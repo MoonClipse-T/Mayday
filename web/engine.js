@@ -76,6 +76,7 @@ const SOLID={g:null,c:.1,cy:.05,
     obj.traverseVisible(o=>{ if(!o.isMesh||o.material===PICK) return; const pos=o.geometry.attributes.position; if(!pos) return; const idx=o.geometry.index, mw=o.matrixWorld;
       const V=i=>new THREE.Vector3(qv(pos,i,0),qv(pos,i,1),qv(pos,i,2)).applyMatrix4(mw), n=idx?idx.count:pos.count;
       for(let t=0;t+2<n;t+=3){ const A=V(idx?idx.getX(t):t), B=V(idx?idx.getX(t+1):t+1), C=V(idx?idx.getX(t+2):t+2);
+        if(a.subVectors(B,A).cross(b.subVectors(C,A)).lengthSq()<1e-8) continue;      // 넓이 0 인 삼각형(자르다 남은 선) : 보이지 않는데 막는다
         const k=Math.max(1,Math.ceil(Math.max(A.distanceTo(B),B.distanceTo(C),C.distanceTo(A))/s)); a.subVectors(B,A).divideScalar(k); b.subVectors(C,A).divideScalar(k);
         for(let u=0;u<=k;u++) for(let v=0;v<=k-u;v++){ d.copy(A).addScaledVector(a,u).addScaledVector(b,v); this.mark(d.x,d.y,d.z); } } }); },
   want:false, build(){ this.want=false; const t0=performance.now(), box=new THREE.Box3(); LEVEL.solids.forEach(o=>box.expandByObject(o)); this.reset(box); LEVEL.solids.forEach(o=>this.add(o));
@@ -199,23 +200,27 @@ function loadTex(file){ return new Promise((res,rej)=>texLoader.load('web/assets
 const LEVEL={key:null,root:null,spawn:{x:0,z:0,yaw:0},spots:{},items:{},lights:[],
   // solid : 보이는 메시로 몸 충돌을 만든다 (걸어 다니는 맵). 켜면 손으로 둔 COL_ · COLC_ 상자는 쓰지 않는다 (보이지 않는 벽이 생겨서)
   // prep(root) : 이름 규칙을 읽기 전에 맵을 손볼 때 (예 : 거꾸로 내보낸 의자 돌리기)
-  async load(key,{solid=true,prep}={}){ this.clear(); this.key=key;
-    const root=await loadGLB(key); WORLD.add(root); if(prep) prep(root); root.updateMatrixWorld(true); this.root=root;
+  async load(key,o={}){ this.clear(); const r=await this.add(key,o); Object.assign(this,{key,root:r.root,spawn:r.spawn,spots:r.spots,items:r.items}); return r; },
+  // add : 지금 세계를 지우지 않고 맵 하나를 더 올린다 (우주선 방들을 한 공간에) · ox = 세계에서 x 로 옮긴 만큼
+  //   → 방 r = {key, ox, root, spawn, spots, items(세계 좌표), objs(그 방의 보이는 것들 — 숨기기 · 재질 바꾸기용), add(o)}
+  async add(key,{solid=true,prep,ox=0}={}){
+    const root=await loadGLB(key); root.position.x=ox; WORLD.add(root); if(prep) prep(root); root.updateMatrixWorld(true);
+    const r={key,ox,root,spawn:{x:ox,z:0,yaw:0},spots:{},items:{},objs:[root],add(o){ WORLD.add(o); this.objs.push(o); return o; }};
     const kill=[], bb=new THREE.Box3(), v=new THREE.Vector3(), q=new THREE.Quaternion(), e=new THREE.Euler();
     root.traverse(o=>{ const n=o.name||'';
       if(/^COLC_/.test(n)){ bb.setFromObject(o); if(!solid) CIRC.push({x:(bb.min.x+bb.max.x)/2,z:(bb.min.z+bb.max.z)/2,r:(bb.max.x-bb.min.x)/2}); kill.push(o); return; }
       if(/^COL_/.test(n)){ bb.setFromObject(o); if(!solid) addBox(bb.min.x,bb.min.z,bb.max.x,bb.max.z); kill.push(o); return; }
       if(/^FLOOR_/.test(n)){ bb.setFromObject(o); FLOORS.push({x1:bb.min.x,x2:bb.max.x,z1:bb.min.z,z2:bb.max.z,y:bb.max.y}); kill.push(o); return; }
-      if(/^LIGHT_/.test(n)){ const u=o.userData, l=new THREE.PointLight(new THREE.Color(u.color||'#ffe2c0'),u.i||1,u.d||10,1.6); o.getWorldPosition(l.position); WORLD.add(l); this.lights.push(l); return; }
+      if(/^LIGHT_/.test(n)){ const u=o.userData, l=new THREE.PointLight(new THREE.Color(u.color||'#ffe2c0'),u.i||1,u.d||10,1.6); o.getWorldPosition(l.position); r.add(l); this.lights.push(l); return; }
       if(n==='SPAWN'||/^SPOT_/.test(n)){ o.getWorldPosition(v); o.getWorldQuaternion(q); e.setFromQuaternion(q,'YXZ'); const p={x:v.x,y:v.y,z:v.z,yaw:e.y};
-        if(n==='SPAWN') this.spawn=p; else this.spots[n.slice(5)]=p; return; }
+        if(n==='SPAWN') r.spawn=p; else r.spots[n.slice(5)]=p; return; }
       if(/^fog_volume/i.test(n)){ kill.push(o); return; }       // Blender 안개 부피 상자 : 웹에서는 회색 벽이 되고 길을 막는다
-      if(/^IT_/.test(n)){ this.items[n.slice(3)]=o; dequant(o); }
+      if(/^IT_/.test(n)){ r.items[n.slice(3)]=o; dequant(o); }
       if(o.isMesh) (Array.isArray(o.material)?o.material:[o.material]).forEach(m=>{ if(/^baked_/i.test(m.name)) o.material=new THREE.MeshBasicMaterial({map:m.map,name:m.name}); });
     });
     kill.forEach(o=>o.parent&&o.parent.remove(o));
     // 충돌 칸은 장면 준비가 끝나고 걷기 시작할 때 만든다 (그 사이 숨긴 것은 빠지고, 장면이 LEVEL.solids 에 넣은 캡슐 · 가구는 들어간다)
-    const merged=mergeStatic(root); this.solids=solid?[root,...merged]:[]; SOLID.want=solid; },
+    const merged=mergeStatic(root); r.objs.push(...merged); if(solid){ this.solids.push(root,...merged); SOLID.want=true; } return r; },
   solids:[],
   clear(){ SOLID.g=null; SOLID.want=false; this.solids=[]; WORLD.clear(); COL.length=CIRC.length=FLOORS.length=INTER.length=TICK.length=0; this.spots={}; this.items={}; this.lights=[]; hot=null;
     if(typeof PEOPLE!=='undefined') PEOPLE.clear(); if(typeof SKY!=='undefined') SKY.clear(); },
@@ -257,23 +262,26 @@ function screenPlane(item,toward,mat){ const bb=new THREE.Box3().setFromObject(i
   m.position.copy(c); if(alongX){ m.position.x+=sg*(s.x/2+.005); m.rotation.y=sg*Math.PI/2; } else { m.position.z+=sg*(s.z/2+.005); m.rotation.y=sg>0?0:Math.PI; }
   item.visible=false; WORLD.add(m); return m; }
 
-/* 눈에 보이는 문 : 문틀 · 미닫이 문짝 둘 · 위 표시판 · 빛 띠. 앞면이 rot 방향(0 = +z)을 본다 → door.open() 으로 열린다 */
-function makeDoor(x,z,rot,label,{w=1.7,h=2.35,y=0}={}){ const g=new THREE.Group(); g.position.set(x,y,z); g.rotation.y=rot;
+/* 눈에 보이는 문 : 문틀 · 미닫이 문짝 둘 · 위 표시판 · 빛 띠. 앞면이 rot 방향(0 = +z)을 본다 → door.open() 으로 열린다
+   back : 뒷면 표시판 글 · tunnel : 뒤가 벽일 때 문틀 안에만 가짜 통로를 그린다 (진짜로 뚫린 문이면 false) · room : 그 방의 것으로 넣기
+   닫혀 있는 동안만 막는다 (문짝은 충돌 칸에 넣지 않고 따로 상자로) */
+function makeDoor(x,z,rot,label,{w=1.7,h=2.35,y=0,back='',tunnel=true,room=null}={}){ const g=new THREE.Group(); g.position.set(x,y,z); g.rotation.y=rot;
   const metal=new THREE.MeshStandardMaterial({color:0x5f6870,metalness:.6,roughness:.45}), dark=new THREE.MeshStandardMaterial({color:0x2a3037,metalness:.6,roughness:.5});
   const glow=new THREE.MeshBasicMaterial({color:0x9fd8ff}), box=(sx,sy,sz,m,px,py,pz)=>{ const b=new THREE.Mesh(new THREE.BoxGeometry(sx,sy,sz),m); b.position.set(px,py,pz); g.add(b); return b; };
-  box(.16,h+.16,.32,dark,-w/2-.08,(h+.16)/2,0); box(.16,h+.16,.32,dark,w/2+.08,(h+.16)/2,0); box(w+.32,.16,.32,dark,0,h+.08,0);
+  const frames=[box(.16,h+.16,.32,dark,-w/2-.08,(h+.16)/2,0),box(.16,h+.16,.32,dark,w/2+.08,(h+.16)/2,0),box(w+.32,.16,.32,dark,0,h+.08,0)];
   box(.03,h,.03,glow,-w/2-.005,h/2,.17); box(.03,h,.03,glow,w/2+.005,h/2,.17);
   const leaves=[-1,1].map(s=>{ const l=new THREE.Group(); l.position.x=s*w/4; g.add(l);
     const p=new THREE.Mesh(new THREE.BoxGeometry(w/2-.01,h,.08),metal); p.position.y=h/2; l.add(p);
     const st=new THREE.Mesh(new THREE.BoxGeometry(.05,h*.72,.01),glow); st.position.set(-s*(w/4-.06),h/2,.045); l.add(st);
     const pl=new THREE.Mesh(new THREE.BoxGeometry(w/2-.2,.32,.01),dark); pl.position.set(0,h*.55,.045); l.add(pl); return l; });
   // 표시판 (글씨는 캔버스)
-  const c=document.createElement('canvas'); c.width=512; c.height=96; const x2=c.getContext('2d'); x2.fillStyle='#0b1218'; x2.fillRect(0,0,512,96);
-  x2.fillStyle='#9fd8ff'; x2.font='600 44px "IBM Plex Sans KR","Malgun Gothic",sans-serif'; x2.textAlign='center'; x2.textBaseline='middle'; x2.fillText(label,256,50);
-  if(label){ const sign=new THREE.Mesh(new THREE.PlaneGeometry(w,w*96/512),new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(c)})); sign.position.set(0,h+.16+w*48/512+.04,.05); g.add(sign); }      // label '' : 맵에 표지판이 이미 있으면 뺀다
+  const sign=(txt,bk)=>{ const cv=document.createElement('canvas'); cv.width=512; cv.height=96; const x3=cv.getContext('2d'); x3.fillStyle='#0b1218'; x3.fillRect(0,0,512,96);
+    x3.fillStyle='#9fd8ff'; x3.font='600 44px "IBM Plex Sans KR","Malgun Gothic",sans-serif'; x3.textAlign='center'; x3.textBaseline='middle'; x3.fillText(txt,256,50);
+    const m=new THREE.Mesh(new THREE.PlaneGeometry(w,w*96/512),new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(cv)})); m.position.set(0,h+.16+w*48/512+.04,bk?-.05:.05); if(bk) m.rotation.y=Math.PI; g.add(m); };
+  if(label) sign(label); if(back) sign(back,true);      // label '' : 맵에 표지판이 이미 있으면 뺀다
   const lamp=new THREE.PointLight(0x9fd8ff,.45,2.6,2); lamp.position.set(0,h+.3,.6); g.add(lamp);
   // 문 너머 통로 : 문은 벽 앞에 세운 것이라 뒤는 벽이다. 문틀 안쪽만 스텐실로 뚫고(깊이를 맨 뒤로 되돌림) 그 자리에만 통로를 그린다
-  const ref=makeDoor.n=(makeDoor.n||0)%250+1;
+  if(tunnel){ const ref=makeDoor.n=(makeDoor.n||0)%250+1;
   // ① 보이는 문틀 안쪽에 표시(스텐실)만 남기고 ② 그 자리의 깊이를 맨 뒤로 되돌린다 (z = w : 정점에서) → ③ 통로는 표시된 곳에만 그린다
   const holeG=new THREE.PlaneGeometry(w,h);
   const hole=new THREE.Mesh(holeG,new THREE.MeshBasicMaterial({colorWrite:false,depthWrite:false,stencilWrite:true,stencilRef:ref,stencilFunc:THREE.AlwaysStencilFunc,stencilZPass:THREE.ReplaceStencilOp}));
@@ -290,10 +298,12 @@ function makeDoor(x,z,rot,label,{w=1.7,h=2.35,y=0}={}){ const g=new THREE.Group(
     endT=paint(x=>{ const gr=x.createRadialGradient(128,140,10,128,140,170); gr.addColorStop(0,'#cfe8f5'); gr.addColorStop(.5,'#4a5d6b'); gr.addColorStop(1,'#222b32'); x.fillStyle=gr; x.fillRect(0,0,256,256); });
   const tm=t=>new THREE.MeshBasicMaterial({map:t,side:THREE.BackSide,stencilWrite:true,stencilRef:ref,stencilFunc:THREE.EqualStencilFunc,stencilFail:THREE.KeepStencilOp,stencilZFail:THREE.KeepStencilOp,stencilZPass:THREE.KeepStencilOp});
   const L=7, tun=new THREE.Mesh(new THREE.BoxGeometry(w+.5,h+.4,L),[tm(wallT),tm(wallT),tm(ceilT),tm(floorT),tm(endT),tm(endT)]);
-  tun.position.set(0,(h+.4)/2-.02,-.08-L/2); tun.renderOrder=11; g.add(tun);
-  WORLD.add(g); LEVEL.solids.push(g);
-  g.open=()=>new Promise(res=>{ AUDIO.noise(.9,.2,0,900); AUDIO.tone(140,.5,'sawtooth',.05); let k=0; const fn=dt=>{ k=Math.min(1,k+dt/.8); const e=k*k*(3-2*k);
-    leaves.forEach((l,i)=>l.position.x=(i?1:-1)*(w/4+e*(w/2-.06))); if(k>=1){ const i=TICK.indexOf(fn); if(i>=0) TICK.splice(i,1); res(); } }; TICK.push(fn); });
+  tun.position.set(0,(h+.4)/2-.02,-.08-L/2); tun.renderOrder=11; g.add(tun); }
+  if(room) room.add(g); else WORLD.add(g); LEVEL.solids.push(...frames);
+  const ax=Math.abs(Math.cos(rot))>.5; addBox(x-(ax?w/2:.1),z-(ax?.1:w/2),x+(ax?w/2:.1),z+(ax?.1:w/2),()=>!g.isOpen);
+  g.isOpen=false;
+  g.open=()=>new Promise(res=>{ if(g.isOpen) return res(); AUDIO.noise(.9,.2,0,900); AUDIO.tone(140,.5,'sawtooth',.05); let k=0; const fn=dt=>{ k=Math.min(1,k+dt/.8); const e=k*k*(3-2*k);
+    leaves.forEach((l,i)=>l.position.x=(i?1:-1)*(w/4+e*(w/2+.1))); if(k>.6) g.isOpen=true; if(k>=1){ const i=TICK.indexOf(fn); if(i>=0) TICK.splice(i,1); res(); } }; TICK.push(fn); });
   // 열고 걸어 들어간다 : 문 앞에 서서 통로 쪽을 보고 → 문이 열리면 안으로 걸으며 어두워진다 (다음 구역은 go 로)
   g.enter=async()=>{ P.free=false; const fx=Math.sin(rot), fz=Math.cos(rot);
     await camTo({x:x+fx*1.3,z:z+fz*1.3,yaw:yawTo(x,z),pitch:0},.6); await g.open();

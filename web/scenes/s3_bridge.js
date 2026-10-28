@@ -3,34 +3,34 @@
    맵 : web/assets/bridge.glb (blender/03_함교.blend) — SPAWN · SPOT_pilotL/R · nav · comms · eng · sci · captain · holo · door · window
         IT_scr_*(화면) · IT_holo(홀로 테이블)
    흐름 (1장 끝) : 도착 → 홀로 테이블에서 웜홀 진입 항로 확인 → 함장석에서 진입 명령 → 웜홀 통과 → 같은 우주처럼 보이지만 AR 은하 지도는 NGC 3500
+   함선 안의 방 하나 (scenes/ship.js) — 함교는 x 를 옮기지 않아서 방 안 좌표 = 세계 좌표
    ============================================================ */
 'use strict';
-SCENES.bridge={title:'함교', async enter(){
+// 의자 7개가 거꾸로(등받이가 화면 쪽) 내보내져 있다 → 제자리에서 반 바퀴
+ROOMS.bridgePrep=root=>root.children.filter(o=>/^seat_/.test(o.name)).forEach(o=>{ const c=new THREE.Box3().setFromObject(o).getCenter(new THREE.Vector3());
+  o.rotation.y+=Math.PI; o.updateMatrixWorld(true); const c2=new THREE.Box3().setFromObject(o).getCenter(new THREE.Vector3()); o.position.x+=c.x-c2.x; o.position.z+=c.z-c2.z; });
+ROOMS.bridge=async R=>{
   const f=S.flags, me=t=>({kind:'me',t}), V=t=>({who:'VEGA',kind:'vega',t});
-  // 의자 7개가 거꾸로(등받이가 화면 쪽) 내보내져 있다 → 제자리에서 반 바퀴
-  await LEVEL.load('bridge',{prep:root=>root.children.filter(o=>/^seat_/.test(o.name)).forEach(o=>{ const c=new THREE.Box3().setFromObject(o).getCenter(new THREE.Vector3());
-    o.rotation.y+=Math.PI; o.updateMatrixWorld(true); const c2=new THREE.Box3().setFromObject(o).getCenter(new THREE.Vector3()); o.position.x+=c.x-c2.x; o.position.z+=c.z-c2.z; })});
   let away=!!f.passed;
-  await SKY.space(away?{dir:[0,.02,1],R:.07,srot:2.4,jupiter:false,sunDir:[-.4,.6,.5]}:{dir:[.05,.04,-1],R:.16,jdir:[-.75,-.12,-.65],jsize:.9,sunDir:[1,.3,.6]});
-  WORLD.add(new THREE.HemisphereLight(0xb8d4ee,0x141820,.42));
-  WORLD.traverse(o=>{ if(o.isMesh&&o.material&&/wall_albedo|base_ram|base_door/.test(o.material.name)) o.material.emissiveIntensity=.55; });
-  renderer.toneMappingExposure=.85;
-  const sp=LEVEL.spots, it=LEVEL.items, U=BRIDGEUI;
-  BRIDGEUI.clear(); HOLO.build(); HOLO.side=away?'away':'home';
+  R.objs.forEach(r=>r.traverse(o=>{ if(o.isMesh&&o.material&&/wall_albedo|base_ram|base_door/.test(o.material.name)) o.material.emissiveIntensity=.55; }));
+  const sp=R.spots, it=R.items, U=BRIDGEUI;
+  HOLO.build(); HOLO.side=away?'away':'home';
   const hp=it.holo?new THREE.Box3().setFromObject(it.holo).getCenter(new THREE.Vector3()):new THREE.Vector3(0,1.25,-2.6); if(it.holo) it.holo.material=PICK;
   HOLO.root.position.set(hp.x,1.42,hp.z);
-  const tm=new THREE.MeshStandardMaterial({color:0x1b1f25,metalness:.65,roughness:.38}); WORLD.traverse(o=>{ if(o.isMesh&&o.material&&o.material.name==='Table_v2') o.material=tm; });
+  const tm=new THREE.MeshStandardMaterial({color:0x1b1f25,metalness:.65,roughness:.38}); R.objs.forEach(r=>r.traverse(o=>{ if(o.isMesh&&o.material&&o.material.name==='Table_v2') o.material=tm; }));
   HOLO.root.scale.setScalar(1.35); HOLO.root.position.y=1.5;
 
-  // 사람 : 마야(조종) · 서준(항법) · 다니엘(기관) 앉아 있고, 오언(보안)은 문 옆에 서 있다
+  // 사람 : 마야(조종) · 서준(항법) · 다니엘(기관) 앉아 있고, 오언(보안)은 문 옆에 서 있다 — 동면 구역에서 걸어와 닿을 때까지는 숨겨 둔다
   const sit=(kind,s,name,role)=>PEOPLE.spawn({kind,name,role,at:s,pose:'sit',seatY:.56});
   const [maya,seojun,daniel,owen]=await Promise.all([sit('maya',sp.pilotL,'마야 첸','부선장 · 조종'),sit('seojun',sp.nav,'한서준','항법'),sit('daniel',sp.eng,'다니엘 로드리게스','기관'),
     PEOPLE.spawn({kind:'owen',name:'오언 하트',role:'보안',at:sp.door})]);
   [maya,seojun,daniel].forEach(p=>p.watch=true);
+  const crew=[maya,seojun,daniel,owen], show=on=>crew.forEach(p=>{ p.wrap.visible=on; p.solid=on; p.pick.visible=on; });
+  show(false); SHIP.crewOnBridge=()=>show(true);
   const MY=(t,fx)=>({who:'마야',t,npc:maya,fx}), SJ=(t,fx)=>({who:'서준',t,npc:seojun,fx}), DN=(t,fx)=>({who:'다니엘',t,npc:daniel,fx}), OW=t=>({who:'오언',t,npc:owen});
 
   /* ---- 화면들 ---- */
-  const room=new THREE.Vector3(0,1.4,0), {T,head,F,M,INK,MUTE,DIM,CY,AL}=U;
+  const room=new THREE.Vector3(R.X(0),1.4,0), {T,head,F,M,INK,MUTE,DIM,CY,AL}=U;
   const dist=()=>away?0:Math.max(0,410000-(S.t%600)*12);
   U.mount('pilotL',it.scr_pilotL,new THREE.Vector3(-1.75,1.3,-5.5),(g,W,H,t)=>{ head(g,W,'PILOT · 조종','마야 첸');
     // 자세 지시계 (인공 수평선)
@@ -50,7 +50,7 @@ SCENES.bridge={title:'함교', async enter(){
     for(let i=0;i<70;i++){ const x=(Math.sin(i*91.7)*.5+.5)*W, y=40+(Math.cos(i*37.1)*.5+.5)*(H-90), b=(i*7%5)/5; g.fillStyle=`rgba(230,242,250,${.3+b*.6})`; g.fillRect(x,y,2+b*2,2+b*2);
       if(i%4===0){ const ok=!away; g.strokeStyle=ok?CY:AL; g.strokeRect(x-8,y-8,18,18); if(i%12===0) T(g,ok?'HIP '+(10000+i*397):'???',x+12,y-6,M(11),ok?CY:AL); } }
     T(g,'알려진 별과 일치',16,H-22,F(500,15),MUTE); T(g,(away?'0':'1,204')+' / 1,204',W-16,H-20,M(26,600),away?AL:INK,'right'); });
-  U.mount('comms',it.scr_comms,room,(g,W,H,t)=>{ head(g,W,'COMMS · 통신','(레아 — 회복 중)');
+  U.mount('comms',it.scr_comms,room,(g,W,H,t)=>{ head(g,W,'COMMS · 통신','지구 · 휴스턴');
     g.strokeStyle=CY; g.beginPath(); for(let x=0;x<W;x+=3){ const y=H*.45+Math.sin(x*.05+t*4)*14*(away?.1:1)+(Math.random()-.5)*(away?30:6); x?g.lineTo(x,y):g.moveTo(x,y); } g.stroke();
     T(g,'지구 링크 (웜홀 경유)',16,H*.72,F(500,15),MUTE); T(g,away?'신호 없음':'지연 43분 12초',16,H*.72+30,M(22,600),away?AL:INK);
     T(g,'HUY-1 비컨 탐색',W*.55,H*.72,F(500,15),MUTE); T(g,away?'수신 대기…':'—',W*.55,H*.72+30,M(22,600),away?CY:DIM); });
@@ -67,7 +67,7 @@ SCENES.bridge={title:'함교', async enter(){
     const gr=g.createRadialGradient(cx,cy,0,cx,cy,40); gr.addColorStop(0,talk?'#ffffff':'#bfe9ff'); gr.addColorStop(1,'rgba(127,212,255,0)'); g.fillStyle=gr; g.beginPath(); g.arc(cx,cy,40,0,7); g.fill(); g.lineWidth=1;
     T(g,'VEGA',cx,H*.72,M(34,600),INK,'center'); T(g,'함선 운영 AI · v7.4',cx,H*.72+32,F(400,16),MUTE,'center');
     T(g,away?'위치 : 계산 불가':'모든 시스템 정상',cx,H*.9,M(16),away?AL:CY,'center'); });
-  TICK.push(dt=>U.tick(dt));
+  TICK.push(dt=>{ U.tick(dt); HOLO.tick(dt); });      // 홀로그램도 매 프레임 (돌기 · 끌어 돌리기 · 깜빡임)
   const vm=U.mesh('vega'); if(vm) interact(vm,'VEGA — 함선 AI',()=>TALK.say(away?[V('현재 위치를 계산할 수 없습니다. 항법 기준 별을 새로 정하는 중입니다.')]:[V('웜홀 진입까지 42분. 진입 각도는 한서준 대원의 항법 계산을 따릅니다.'),V('선장님, 저는 웜홀 건너편의 일을 알지 못합니다. 1호의 마지막 기록도 그 순간에서 끝납니다.')]),{range:4});
 
   /* ---- AR 홀로그램 ---- */
@@ -99,11 +99,12 @@ SCENES.bridge={title:'함교', async enter(){
     if(!f.route) return TALK.say([MY('선장님, 진입 전에 홀로 테이블에서 항로부터 같이 봐 주세요.')]);
     await transit(); },{range:2.6});
 
-  async function transit(){ f.transit=true; P.free=false; goal(''); await camTo({x:cs.x,z:cs.z+.08,yaw:0,pitch:.02,eye:1.22},1.4); P.look=true;
+  // 진입할 때 AR 이 열려 있으면 닫고, 테이블 위 홀로그램도 끈다 (흔들리는 함교에 떠 있으면 어색하다)
+  async function transit(){ f.transit=true; if(inAR) await closeAR(); HOLO.root.visible=false; P.free=false; goal(''); await camTo({x:cs.x,z:cs.z+.08,yaw:0,pitch:.02,eye:1.22},1.4); P.look=true;
     await TALK.say([MY('진입 궤도 고정. 엔진 출력 40%.'),SJ('웜홀 중심까지 오차 0.02초각. 이대로 가면 돼요.'),DN('선체 응력 올라갑니다. 다들 안전띠!'),
       V('모든 대원 고정 확인. 선장님의 명령을 기다립니다.'),me('…하위헌스 2호, 웜홀 진입.')]);
     P.look=false; const U0=SKY.U, R0=U0.R.value; let k=0, done=false; AUDIO.hum(1.6,34);
-    const red=new THREE.PointLight(0xff3018,0,14,1.6); red.position.set(0,3.2,-2); WORLD.add(red);
+    const red=new THREE.PointLight(0xff3018,0,14,1.6); red.position.set(R.X(0),3.2,-2); WORLD.add(red);
     const fx=dt=>{ k+=dt/11; const e=Math.min(1,k);
       U0.R.value=R0+Math.pow(e,2.2)*2.6; U0.tun.value=Math.max(0,(e-.45)/.55);
       const sh=e*e*.035; camera.position.x+=(Math.random()-.5)*sh; camera.position.y+=(Math.random()-.5)*sh; camera.rotation.z=(Math.random()-.5)*sh*.6;
@@ -116,12 +117,12 @@ SCENES.bridge={title:'함교', async enter(){
     // 하얗게 → 고요
     const fe=$('#fade'); fe.style.background='#fff'; await fade(true,500); TICK.splice(TICK.indexOf(fx),1); camera.rotation.z=0; WORLD.remove(red); AUDIO.hum(.2,30);
     await sleep(1600);
-    await SKY.space({dir:[0,.02,1],R:.07,srot:2.4,jupiter:false,sunDir:[-.4,.6,.5]}); away=true; f.passed=true; HOLO.side='away';
+    away=true; f.passed=true; await SKY.space(SHIP.sky()); HOLO.side='away'; SHIP.zone=null;
     await fade(false,2600); fe.style.background=''; AUDIO.hum(1,40);
-    await SCENES.bridge.after(); }
+    await after(); }
 
   /* 건너편 : 창밖은 그냥 우주 — 그런데 */
-  SCENES.bridge.after=async()=>{ P.look=true;
+  const after=async()=>{ P.look=true;
     await TALK.say([V('…통과 완료. 선체 이상 없음. 대원 생체 신호 모두 정상.'),MY('살았다… 창밖 좀 봐요. 그냥, 똑같은 우주네요.'),me('별이 그대로다. 정말 건너온 건가.'),
       SJ('잠깐만요. 별 목록 대조… 일치 0개. 1,204개 중에 하나도 안 맞아요.'),V('위치를 계산할 수 없습니다. 알려진 기준 별이 없습니다.'),
       SJ('선장님, 홀로 테이블로 와 주세요. 은하 지도를 새로 그려 볼게요.')]);
@@ -139,16 +140,12 @@ SCENES.bridge={title:'함교', async enter(){
   PEOPLE.talkable(maya,()=>TALK.say(away?[MY('조종은 안정적이에요. 그런데 어디로 가야 할지를 모르겠네요.')]:[MY('214일 만에 조종간을 잡으니까 손이 떨리네요. 좋은 쪽으로요.')]));
   PEOPLE.talkable(seojun,()=>TALK.say(away?[SJ('별이 하나도 안 맞아요. 처음부터 다시 재야 해요.')]:[SJ('별 1,204개로 위치를 잡고 있어요. 시차가 큰 별일수록 가까운 별이에요.')]));
   PEOPLE.talkable(daniel,()=>TALK.say([DN(away?'엔진은 멀쩡해요. 웜홀이 배를 씹어 먹진 않았네요.':'반응로 82%. 웜홀 들어가면 응력이 꽤 걸릴 거예요.')]));
-  PEOPLE.talkable(owen,()=>TALK.say([OW(away?'…조용하네요. 너무 조용해요.':'함교 출입은 제가 지킵니다. 나머지 대원은 의무실에서 회복 중입니다.')]));
-  // 문 : 거주 구역으로
-  const door=makeDoor(0,8.58,Math.PI,'중앙 통로 · 거주 구역');
-  const dm=new THREE.Mesh(new THREE.BoxGeometry(2.1,2.7,.3),PICK); dm.position.set(0,1.35,8.4); WORLD.add(dm);
-  interact(dm,'문 · 중앙 통로 (거주 구역)',async()=>{ if(f.transit) return TALK.say([OW('지금은 함교를 비우시면 안 됩니다, 선장님.')]); await door.enter(); await go('deck'); },{range:3.2});
-
-  warp(LEVEL.spawn.x,LEVEL.spawn.z,LEVEL.spawn.yaw); stamp('하위헌스 2호 · 함교',away?'위치 미상':'목성 궤도 · 웜홀 진입 T−0:42');
-  SHIPMAP.at('bridge'); AUDIO.hum(1,46); await fade(false,1400); S.phase='play';
-  if(!f.bridgeIn){ f.bridgeIn=true;
+  PEOPLE.talkable(owen,()=>TALK.say([OW(away?'…조용하네요. 너무 조용해요.':'함교 출입은 제가 지킵니다.')]));
+  // 뒷문 : 웜홀에 들어간 뒤로는 함교를 비울 수 없다
+  SHIP.lock.bridge=()=>f.transit&&!f.where?'지금은 함교를 비우시면 안 됩니다, 선장님.':null;
+  // 처음 들어오면
+  R.onEnter=async()=>{ if(f.bridgeIn||!f.allAwake||SHIP.mode!=='wake') return; f.bridgeIn=true;
     await TALK.say([V('함교에 오신 것을 환영합니다, 선장님. 목성 궤도 진입 완료.'),MY('선장님! 창밖 보세요. 저기가 웜홀이에요.'),me('…가까이서 보니 더 크군.'),
-      SJ('진입 전에 홀로 테이블에서 항로를 같이 확인해요. 가운데 테이블이에요.')]); }
-  P.free=true; goal(away?'AR 홀로 테이블에서 은하 지도를 연다':f.route?'함장석에 앉아 웜홀 진입을 명령한다':'홀로 테이블에서 웜홀까지의 항로를 확인한다');
-}};
+      SJ('진입 전에 홀로 테이블에서 항로를 같이 확인해요. 가운데 테이블이에요.')]);
+    goal(f.route?'함장석에 앉아 웜홀 진입을 명령한다':'홀로 테이블에서 웜홀까지의 항로를 확인한다'); };
+};

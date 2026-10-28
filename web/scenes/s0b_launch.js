@@ -46,7 +46,7 @@ SCENES.launch={title:'발사', async enter(){
   await card('','2091년 4월 20일','케네디 우주 센터 · 발사대 39B',2600);
   const R=(t,who='발사 관제',auto=1400)=>({who,ch:'무전',kind:'radio',t,auto}), C=(t,auto=1500)=>({kind:'me',t,auto});
   await TALK.say([R('하위헌스 승무원 수송선 헤르메스, 궤도 조립장까지 랑데부 비행. 기상 양호.',undefined,1800),C('창밖이 밝아 온다. 이게 마지막으로 보는 지구의 아침이다.',1800),
-    R('승무원 14명 탑승 확인. 선장, 최종 확인 바랍니다.'),{who:'크리스',ch:'무전',kind:'me',t:'헤르메스, 발사 준비 완료. Go for launch.',auto:1400},
+    R('승무원 5명 탑승 확인. 선장, 최종 확인 바랍니다.'),{who:'크리스',ch:'무전',kind:'me',t:'헤르메스, 발사 준비 완료. Go for launch.',auto:1400},
     R('T−10. 9. 8. 7. 6.',undefined,900),R('메인 엔진 점화 시작.',undefined,600)]);
   ign=.01; AUDIO.noise(9,.5,0,220); AUDIO.noise(9,.25,.4,900); AUDIO.tone(38,9,'sawtooth',.08);
   await TALK.say([R('5. 4. 3. 2. 1.',undefined,700)]);

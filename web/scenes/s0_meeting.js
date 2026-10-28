@@ -27,7 +27,7 @@ SCENES.meeting={title:'프롤로그 · 브리핑룸', async enter(){
   const gaze=(x,y,z)=>{ if(P.look&&!P.free) lookAt(x,y,z,.9); };
   const attend=who=>{ const h=who.B.head?who.B.head.getWorldPosition(new THREE.Vector3()):new THREE.Vector3(who.wrap.position.x,who.headY,who.wrap.position.z); all.concat(gray).forEach(p=>{ p.lookAt=p===who?null:h; }); if(who===gray&&gray.pointAt) gaze(scr.x,scr.y-.05,scr.z); else gaze(h.x,h.y-.05,h.z); };
   const toScreen=()=>{ all.forEach(p=>p.lookAt=scr); gaze(scr.x,scr.y-.05,scr.z); };
-  const f=S.flags, me=t=>({kind:'me',t}), say=(npc,who)=>(t,fx)=>({who,t,npc,fx:()=>{ attend(npc); fx&&fx(); }});
+  const f=S.flags, me=t=>({kind:'me',t}), say=(npc,who)=>(t,fx,scr)=>({who,t,npc,fx:()=>{ attend(npc); fx&&fx(); if(scr) toScreen(); }});      // scr : 이 대사 동안은 화면을 본다
   const G=say(gray,'그레이 국장'), A=say(amara,'아마라 박사'), E=say(elena,'엘레나'), MY=say(maya,'마야'), SJ=say(seojun,'서준'), DN=say(daniel,'다니엘');
   const point=on=>{ gray.pointAt=on?scr:null; if(on) toScreen(); };
 
@@ -51,13 +51,13 @@ SCENES.meeting={title:'프롤로그 · 브리핑룸', async enter(){
     G('보이지 않을 뿐이야. 아마라 박사.',()=>point(false)),
   ]);
   await TALK.say([
-    A('네. 목성 근처를 우주 망원경으로 찍은 하늘이에요.',()=>SCREEN.show('wormhole')),
-    A('보이세요? 별빛이 고리처럼 휘어 있어요. 아주 큰 질량이 지나가는 빛을 휘게 하는 거예요. 그런데 빛을 내지도, 그림자를 만들지도 않아요.'),
-    A('고리 안쪽을 보세요. 그 안에 보이는 별들은… 이 근처 하늘의 별이 아니에요. 시공간에 뚫린 구멍. 웜홀이에요.'),
+    A('네. 목성 근처를 우주 망원경으로 찍은 하늘이에요.',()=>SCREEN.show('wormhole'),1),
+    A('보이세요? 별빛이 고리처럼 휘어 있어요. 아주 큰 질량이 지나가는 빛을 휘게 하는 거예요. 그런데 빛을 내지도, 그림자를 만들지도 않아요.',null,1),
+    A('고리 안쪽을 보세요. 그 안에 보이는 별들은… 이 근처 하늘의 별이 아니에요. 시공간에 뚫린 구멍. 웜홀이에요.',null,1),
     SJ('안쪽 하늘이 다른 곳이라는 건 어떻게 확신하죠?'),
-    A('빛을 무지개처럼 펼쳐 봤어요. 스펙트럼이요.',()=>SCREEN.show('spectrum')),
-    A('검은 줄 — 흡수선은 원소마다 자리가 정해져 있어요. 별빛의 지문이죠. 그런데 웜홀 안쪽 빛은 모든 흡수선이 같은 비율로 붉은 쪽으로 밀려 있어요.'),
-    A('우리에게서 빠르게 멀어지는, 아주 먼 은하의 빛이라는 뜻이에요. 약 4억 3천만 광년. 외부 은하, NGC 3500.'),
+    A('빛을 무지개처럼 펼쳐 봤어요. 스펙트럼이요.',()=>SCREEN.show('spectrum'),1),
+    A('검은 줄 — 흡수선은 원소마다 자리가 정해져 있어요. 별빛의 지문이죠. 그런데 웜홀 안쪽 빛은 모든 흡수선이 같은 비율로 붉은 쪽으로 밀려 있어요.',null,1),
+    A('우리에게서 빠르게 멀어지는, 아주 먼 은하의 빛이라는 뜻이에요. 약 4억 3천만 광년. 외부 은하, NGC 3500.',null,1),
     me('그래서 1호를 보낸 거였군요.'),
     A('네. 그다음은… 엘레나가 설명할 거예요.'),
   ]);
@@ -73,7 +73,7 @@ SCENES.meeting={title:'프롤로그 · 브리핑룸', async enter(){
   await TALK.say([
     G('중력 이상은 기다려 주지 않네. NASA는 2차 탐사를 결정했어. 하위헌스 2호.',()=>{ SCREEN.show('crew'); point(true); }),
     G('목성까지 214일, 웜홀을 지나 1호를 찾고, 웜홀이 무엇인지 알아 오는 게 임무야.',()=>point(false)),
-    G('크리스. 자네가 선장을 맡아 주게. 대원은 자네를 포함해 열네 명. 여기 앉은 셋도 함께 가네.'),
+    G('크리스. 자네가 선장을 맡아 주게. 대원은 자네를 포함해 다섯 — 최정예만 보낸다. 여기 앉은 셋, 그리고 보안 담당 오언 하트.'),
     MY('마야 첸이에요. 조종을 맡아요. 선장님 옆자리는 오랜만이네요.'),
     SJ('한서준, 항법입니다. 별만 보이면 어디든 위치를 잡아 드리겠습니다.'),
     DN('다니엘. 엔진이랑 배 속은 제가 책임질게요. 웜홀 들어가기 전에 고장은 다 잡아 둡니다.'),

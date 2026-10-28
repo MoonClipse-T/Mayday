@@ -165,7 +165,7 @@ const SCREEN=(()=>{ const W=1600,H=700; let cv,g,tex,mesh,ov,og,otex,oMesh,mode=
       box(28,456,940,204,'항로'); const pts=[[60,600],[300,560],[620,520],[900,500]]; g.strokeStyle=CY; g.setLineDash([4,6]); g.beginPath(); pts.forEach(([x,yy],i)=>i?g.lineTo(x,yy):g.moveTo(x,yy)); g.stroke(); g.setLineDash([]);
       [['지구',0],['궤도 조립장',1],['목성 · 214일',2],['웜홀',3]].forEach(([n,i])=>{ const [x,yy]=pts[i]; g.fillStyle=i===3?AL:INK; g.beginPath(); g.arc(x,yy,i===3?8:5,0,7); g.fill(); T(n,x,yy+30,F(500,15),i===3?AL:MUTE,'center'); });
       const sh=(clock*.12)%1; g.fillStyle=AL; g.beginPath(); g.arc(lerp(60,900,sh),lerp(600,500,sh)-(sh<.33?sh*120:sh<.66?40-(sh-.33)*60:20-(sh-.66)*60),3,0,7); g.fill();
-      box(990,72,582,588,'승무원 14명'); const C=[['크리스','선장'],['마야','부선장 · 조종'],['서준','항법'],['레아','통신'],['다니엘','기관'],['오언','보안'],['사라','의무관'],['아이샤','생명 과학'],['토마스','지질'],['유키','대기 과학'],['파블로','로봇'],['노라','의무 보조'],['이반','기관 보조'],['하은','데이터']];
+      box(990,72,582,588,'승무원 5명 · 최정예'); const C=[['크리스','선장'],['마야 첸','부선장 · 조종'],['한서준','항법'],['다니엘 로드리게스','기관'],['오언 하트','보안']];
       C.forEach(([n,r],i)=>{ const x=1012+(i%2)*280, yy=118+Math.floor(i/2)*76, on=t*5>i; if(!on) return;
         g.fillStyle=i?'rgba(233,231,226,.06)':'rgba(255,90,54,.14)'; g.fillRect(x,yy-26,262,62); T(n,x+14,yy+2,F(600,20),i?INK:AL); T(r,x+14,yy+26,F(400,14),MUTE); T('HUY-2 · '+String(i+1).padStart(2,'0'),x+250,yy+2,M(12),DIM,'right'); }); },
   };

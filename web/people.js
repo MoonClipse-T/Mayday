@@ -8,7 +8,7 @@
    - 움직임 : 숨쉬기 · 고개 돌려 보기 · 눈 깜빡임 · 말할 때 턱 — 동작 클립이 있으면(걷기 · 쉬기) 그 위에 더한다
    - PEOPLE.spawn({kind,name,role,at,pose:'stand'|'sit',seatY}) → 사람
      p.talking = true 면 입이 움직인다 · p.pointAt = Vector3 면 오른팔로 가리킨다 · p.lookAt = Vector3 면 그쪽을 본다
-     PEOPLE.walk(p,[[x,z],…],speed) → 걸어서 간다 (걷기 클립이 있는 모델만 다리가 움직인다)
+     PEOPLE.walk(p,[[x,z(,y)],…],speed) → 걸어서 간다 (걷기 클립이 있는 모델만 다리가 움직인다) · p.sleep = true 면 동면 중 (움직임 · 시선 멈춤)
    ============================================================ */
 'use strict';
 const PEOPLE=(()=>{
@@ -80,12 +80,13 @@ const PEOPLE=(()=>{
   function tick(dt){ for(const p of list){ const {B,wrap}=p; p.ph+=dt;
       p.base.forEach((q,b)=>b.quaternion.copy(q));
       // 걷기 : 다음 점으로 몸을 돌리며 나간다
-      if(p.path&&p.path.length){ const [tx,tz]=p.path[0], dx=tx-wrap.position.x, dz=tz-wrap.position.z, d=Math.hypot(dx,dz);
+      if(p.path&&p.path.length){ const [tx,tz,ty]=p.path[0], dx=tx-wrap.position.x, dz=tz-wrap.position.z, d=Math.hypot(dx,dz);
+        if(ty!==undefined) wrap.position.y+=(ty-wrap.position.y)*Math.min(1,dt*5);      // 점에 높이가 있으면 (캡슐 바닥 → 복도 바닥)
         if(d<.08){ p.path.shift(); if(!p.path.length){ p.path=null; p.done&&p.done(); } }
         else { const want=Math.atan2(dx,dz); let df=want-wrap.rotation.y; df=Math.atan2(Math.sin(df),Math.cos(df)); wrap.rotation.y+=df*Math.min(1,dt*6);
           const s=Math.min(d,p.speed*dt); wrap.position.x+=dx/d*s; wrap.position.z+=dz/d*s; } }
       // 서 있으면 idle, 걸으면 walk 로 부드럽게 바꾼다 (쉬는 동작이 없는 모델은 걸을 때만 움직인다)
-      if(p.mixer){ p.mw+=((p.path?1:0)-p.mw)*Math.min(1,dt*5); if(p.walkA) p.walkA.setEffectiveWeight(p.mw); if(p.idleA) p.idleA.setEffectiveWeight(p.walkA?1-p.mw:1);
+      if(p.mixer&&!p.sleep){ p.mw+=((p.path?1:0)-p.mw)*Math.min(1,dt*5); if(p.walkA) p.walkA.setEffectiveWeight(p.mw); if(p.idleA) p.idleA.setEffectiveWeight(p.walkA?1-p.mw:1);
         if(p.idleA||p.mw>.01) p.mixer.update(dt); }
       const right=V().set(1,0,0).applyQuaternion(wrap.quaternion);      // 몸 기준 x 축 (월드) — 이 축으로 + 돌리면 앞으로 숙여진다
       // 숨쉬기 · 몸무게 옮기기
@@ -94,7 +95,7 @@ const PEOPLE=(()=>{
       // 시선 : lookAt 이 있으면 그쪽, 없으면 가까운 크리스 (몸 정면에서 ±70° 안)
       const hx=wrap.position.x, hz=wrap.position.z, T=p.lookAt||{x:P.x,y:P.y+P.eye,z:P.z}, dx=T.x-hx, dz=T.z-hz, fwd=wrap.rotation.y;
       let want=Math.atan2(dx,dz)-fwd; want=Math.atan2(Math.sin(want),Math.cos(want)); const near=(p.lookAt||Math.hypot(dx,dz)<6)&&p.watch&&!p.path;
-      want=near?clamp(want,-1.2,1.2):0; p.look+=(want-p.look)*Math.min(1,dt*3);
+      want=near&&!p.sleep?clamp(want,-1.2,1.2):0; p.look+=(want-p.look)*Math.min(1,dt*3);
       const wantP=near?clamp(Math.atan2(p.headY+(wrap.position.y)-T.y,Math.hypot(dx,dz)),-.45,.45):0; p.lookP+=(wantP-p.lookP)*Math.min(1,dt*3);
       turn(B.neck,up,p.look*.45); turn(B.head,up,p.look*.55); turn(B.head,right,p.lookP*.8);
       // 가리키기 : 오른팔을 목표 쪽으로 (pw 0→1 로 부드럽게)

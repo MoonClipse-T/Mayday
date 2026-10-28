@@ -1,5 +1,5 @@
 /* ============================================================
-   궤도 · 출발 (컷신, 우주에서 본 하위헌스 2호) → 214일 후 목성 앞 → 동면 구역(cryo)
+   궤도 · 출발 (컷신, 우주에서 본 하위헌스 2호) → 라운지(lounge : 시차로 웜홀까지의 거리) → 214일 후 목성 앞(approach) → 동면 구역(cryo)
    맵 : web/assets/ship_ext.glb (Deep Space Science / Survey Vessel, CC BY) · 지구 : Solar System Scope 낮 · 구름 · 밤 지도 (CC BY 4.0)
    ============================================================ */
 'use strict';
@@ -33,17 +33,25 @@ SCENES.orbit={title:'궤도', async enter(){
     const T=ship.position.clone().add(sc); P.yaw=Math.atan2(-(T.x-P.x),-(T.z-P.z)); P.pitch=Math.atan2(T.y-P.y,Math.hypot(T.x-P.x,T.z-P.z)); }; TICK.push(orbitCam);
   stamp('지구 궤도 · 고도 412 km','2091.04.20  09:40'); cine(true); AUDIO.hum(.3,40);
   await fade(false,2200); $('#fade').style.background='';
-  await card('지구 궤도','하위헌스 2호','길이 214 m · 승무원 14명 · 목표 : 목성의 웜홀',3200);
+  await card('지구 궤도','하위헌스 2호','길이 214 m · 승무원 5명 · 목표 : 목성의 웜홀',3200);
   const R=(t,who='휴스턴',auto=1600)=>({who,ch:'무전',kind:'radio',t,auto});
-  await TALK.say([R('하위헌스 2호, 헤르메스 도킹 완료 확인. 승무원 전원 이동.',undefined,1800),{who:'VEGA',kind:'vega',t:'승무원 열네 명, 동면 캡슐 배정을 마쳤습니다. 목성까지 214일.',auto:1800},
+  await TALK.say([R('하위헌스 2호, 헤르메스 도킹 완료 확인. 승무원 전원 이동.',undefined,1800),{who:'VEGA',kind:'vega',t:'승무원 다섯 명, 동면 캡슐 배정을 마쳤습니다. 목성까지 214일.',auto:1800},
     {who:'크리스',ch:'무전',kind:'me',t:'휴스턴, 하위헌스 2호. 이온 엔진 점화합니다.',auto:1400}]);
   thrust=.05; const ti=setInterval(()=>{ thrust=Math.min(1.2,thrust+.08); },120); AUDIO.tone(90,6,'sine',.06,0,40);
   await TALK.say([R('엔진 점화 확인. 좋은 여행 되게, 크리스. 1호를 찾아 주게.',undefined,2400)]);
   await sleep(3800); clearInterval(ti);
-  await fade(true,1500); TICK.length=0;
-  // 214일 후 : 목성 앞, 웜홀 쪽으로 다가가는 2호
+  await fade(true,1500); cine(false); await go('lounge');
+}};
+// 214일 후 : 목성 앞, 웜홀 쪽으로 다가가는 2호 (라운지 대화가 끝나면)
+SCENES.approach={title:'목성 접근', async enter(){
+  LEVEL.clear(); const ship=await loadGLB('ship_ext'); WORLD.add(ship); renderer.toneMappingExposure=1.05; cine(true);
+  WORLD.add(new THREE.AmbientLight(0x223040,.35)); const sun=new THREE.DirectionalLight(0xfff4e6,2.4); sun.position.set(1000,250,300); WORLD.add(sun);
+  const sb=new THREE.Box3().setFromObject(ship), sc=sb.getCenter(new THREE.Vector3()), L=sb.max.z-sb.min.z;
+  const glowTex=(()=>{ const c=document.createElement('canvas'); c.width=c.height=128; const x=c.getContext('2d'), g=x.createRadialGradient(64,64,0,64,64,64); g.addColorStop(0,'rgba(255,255,255,1)'); g.addColorStop(.25,'rgba(150,200,255,.8)'); g.addColorStop(1,'rgba(80,140,255,0)'); x.fillStyle=g; x.fillRect(0,0,128,128); return new THREE.CanvasTexture(c); })();
+  const eng=[]; for(const dx of [-3.2,0,3.2]){ const s=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,opacity:.5})); s.position.set(sc.x+dx,sc.y,sb.max.z+1.5); s.scale.setScalar(7); ship.add(s); eng.push(s); }
+  P.free=false; P.eye=0;
   await card('214일 후','목성','하위헌스 2호 · 웜홀까지 41만 km',3000);
-  WORLD.remove(earth); WORLD.remove(halo); thrust=.4; v=0; ship.position.set(0,0,0); WORLD.remove(sun);
+  WORLD.remove(sun);
   await SKY.space({dir:[.25,.06,-1],R:.12,jdir:[-.6,-.25,-1],jsize:.95,sunDir:[1,.25,.3]});
   TICK.push(dt=>{ eng.forEach((s,i)=>{ s.material.opacity=.5+.1*Math.sin(S.t*30+i); s.scale.setScalar(7); }); ship.position.z-=dt*2; });
   // 배 뒤에서 앞(웜홀)을 본다
