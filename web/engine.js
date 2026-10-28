@@ -78,16 +78,16 @@ addEventListener('keydown',e=>{ keys[e.code]=true;
 addEventListener('keyup',e=>{ keys[e.code]=false; });
 const stick={id:null,cx:0,cy:0,dx:0,dy:0}, look={id:null,lx:0,ly:0,sx:0,sy:0,t0:0,moved:false};
 const stickEl=$('#stick'), knob=$('#knob');
-canvas.addEventListener('pointerdown',e=>{ if(TALK.on){ TALK.next(); return; } if(S.busy||S.phase!=='play') return; canvas.setPointerCapture(e.pointerId);
+canvas.addEventListener('pointerdown',e=>{ if(TALK.on&&!P.look){ TALK.next(); return; } if((S.busy&&!P.look)||S.phase!=='play') return; canvas.setPointerCapture(e.pointerId);
   if(stick.id===null&&e.pointerType==='touch'&&e.clientX<innerWidth*.45&&P.free){ stick.id=e.pointerId; stick.cx=e.clientX; stick.cy=e.clientY;
     stickEl.style.left=(e.clientX-70)+'px'; stickEl.style.top=(e.clientY-70)+'px'; stickEl.style.bottom='auto'; stickEl.classList.add('live'); setStick(e.clientX,e.clientY); return; }
   if(look.id===null){ look.id=e.pointerId; look.lx=look.sx=e.clientX; look.ly=look.sy=e.clientY; look.t0=performance.now(); look.moved=false; } });
 canvas.addEventListener('pointermove',e=>{ if(e.pointerId===stick.id){ setStick(e.clientX,e.clientY); return; }
   if(e.pointerId!==look.id) return; const dx=e.clientX-look.lx, dy=e.clientY-look.ly; look.lx=e.clientX; look.ly=e.clientY;
-  if(Math.hypot(e.clientX-look.sx,e.clientY-look.sy)>8) look.moved=true; if(!P.free) return;
+  if(Math.hypot(e.clientX-look.sx,e.clientY-look.sy)>8) look.moved=true; if(window.dragHook){ dragHook(dx,dy,e); return; } if(!P.free&&!P.look) return;
   const k=e.pointerType==='touch'?.0048:.0032; P.yaw-=dx*k; P.pitch=clamp(P.pitch-dy*k,-1.3,1.3); });
 function endPointer(e){ if(e.pointerId===stick.id){ stick.id=null; stick.dx=stick.dy=0; knob.style.transform=''; stickEl.classList.remove('live'); stickEl.style.left=stickEl.style.top=stickEl.style.bottom=''; return; }
-  if(e.pointerId===look.id){ look.id=null; if(!look.moved&&performance.now()-look.t0<400) tapAt(e.clientX,e.clientY); } }
+  if(e.pointerId===look.id){ look.id=null; if(!look.moved&&performance.now()-look.t0<400){ if(TALK.on) TALK.next(); else tapAt(e.clientX,e.clientY); } } }
 canvas.addEventListener('pointerup',endPointer); canvas.addEventListener('pointercancel',endPointer);
 function setStick(x,y){ let dx=x-stick.cx, dy=y-stick.cy; const m=Math.hypot(dx,dy), R=60; if(m>R){ dx=dx/m*R; dy=dy/m*R; } stick.dx=dx/R; stick.dy=dy/R; knob.style.transform=`translate(${dx}px,${dy}px)`; }
 $('#run').addEventListener('pointerdown',e=>{ e.stopPropagation(); S.run=!S.run; e.currentTarget.classList.toggle('on',S.run); AUDIO.click(); });
@@ -126,7 +126,7 @@ const TALK={on:false,q:[],i:0,res:null,timer:0,full:'',
     el.querySelector('.name').textContent=L.who||(L.kind==='me'?'크리스':''); el.querySelector('.ch').textContent=L.ch||(L.kind==='vega'?'VEGA':L.kind==='radio'?'무전':L.kind==='me'?'생각':'현장');
     const t=el.querySelector('.txt'); t.textContent=''; let k=0; clearInterval(this.timer); TALK.speaker(L.npc);
     if(L.fx) L.fx();
-    this.timer=setInterval(()=>{ k++; t.textContent=L.t.slice(0,k); if(k%3===0&&L.kind==='vega') AUDIO.tick(); if(k>=L.t.length){ clearInterval(this.timer); el.classList.add('done'); TALK.speaker(null); } },L.kind==='vega'?28:24); },
+    this.timer=setInterval(()=>{ k++; t.textContent=L.t.slice(0,k); if(k%3===0&&L.kind==='vega') AUDIO.tick(); if(k>=L.t.length){ clearInterval(this.timer); el.classList.add('done'); TALK.speaker(null); if(L.auto){ const i=this.i; setTimeout(()=>{ if(this.on&&this.i===i) this.next(); },L.auto); } } },L.kind==='vega'?28:24); },
   next(){ const t=$('#talk .txt'); if(t.textContent.length<this.full.length){ clearInterval(this.timer); t.textContent=this.full; $('#talk').classList.add('done'); TALK.speaker(null); return; }
     this.i++; if(this.i<this.q.length) return this.show();
     this.on=false; $('#talk').classList.remove('on'); TALK.speaker(null); busy(); const r=this.res; this.res=null; r&&r(); },
@@ -138,18 +138,18 @@ $('#talk').addEventListener('pointerdown',e=>{ e.stopPropagation(); TALK.next();
 let camAnim=null;
 function yawTo(x,z){ const a=Math.atan2(-(x-P.x),-(z-P.z)); return P.yaw+Math.atan2(Math.sin(a-P.yaw),Math.cos(a-P.yaw)); }
 function pitchTo(x,y,z){ return Math.atan2(y-(P.y+P.eye),Math.hypot(x-P.x,z-P.z)); }
-function camTo(to,dur){ return new Promise(res=>{ camAnim={from:{x:P.x,z:P.z,y:P.y,yaw:P.yaw,pitch:P.pitch},to,t:0,dur,res}; }); }
+function camTo(to,dur){ return new Promise(res=>{ camAnim={from:{x:P.x,z:P.z,y:P.y,yaw:P.yaw,pitch:P.pitch,eye:P.eye},to,t:0,dur,res}; }); }
 function lookAt(x,y,z,dur=1.2){ return camTo({yaw:yawTo(x,z),pitch:pitchTo(x,y,z)},dur); }
 function tickCam(dt){ if(!camAnim) return; camAnim.t+=dt; const k=Math.min(1,camAnim.t/camAnim.dur), e=k<.5?2*k*k:-1+(4-2*k)*k, f=camAnim.from, t=camAnim.to;
-  for(const n of ['x','z','y','yaw','pitch']) P[n]=lerp(f[n],t[n]??f[n],e); if(k>=1){ const r=camAnim.res; camAnim=null; r(); } }
+  for(const n of ['x','z','y','yaw','pitch','eye']) P[n]=lerp(f[n],t[n]??f[n],e); if(k>=1){ const r=camAnim.res; camAnim=null; r(); } }
 function warp(x,z,yaw){ P.x=x; P.z=z; P.y=floorAt(x,z); P.vx=P.vz=0; if(yaw!==undefined) P.yaw=yaw; P.pitch=0; }
 
 /* ---------------- GLB ---------------- */
 const gltfLoader=new THREE.GLTFLoader(), GLB={};
-async function loadGLB(key){ if(!GLB[key]) GLB[key]=fetch('web/assets/'+key+'.glb').then(r=>{ if(!r.ok) throw new Error(key+'.glb '+r.status); return r.arrayBuffer(); });
+async function loadGLB(key){ if(!GLB[key]) GLB[key]=fetch('web/assets/'+key+'.glb?v='+(window.V||'')).then(r=>{ if(!r.ok) throw new Error(key+'.glb '+r.status); return r.arrayBuffer(); });
   const buf=await GLB[key]; return new Promise((res,rej)=>gltfLoader.parse(buf,'',g=>{ g.scene.userData.animations=g.animations||[]; res(g.scene); },rej)); }
 const texLoader=new THREE.TextureLoader();
-function loadTex(file){ return new Promise((res,rej)=>texLoader.load('web/assets/'+file,t=>{ t.encoding=THREE.sRGBEncoding; res(t); },undefined,rej)); }
+function loadTex(file){ return new Promise((res,rej)=>texLoader.load('web/assets/'+file+'?v='+(window.V||''),t=>{ t.encoding=THREE.sRGBEncoding; res(t); },undefined,rej)); }
 
 /* ---------------- 맵 (장면) ----------------
    LEVEL.load(key) : 앞 맵을 비우고 web/assets/<key>.glb 를 읽어 이름 규칙대로 충돌 · 자리 · 조사 대상을 만든다
@@ -222,4 +222,14 @@ function frame(now){ requestAnimationFrame(frame); const dt=Math.min(.1,(now-las
 
 /* 장면 등록 : SCENES.<key> = {title, async enter(){…}} — main.js 가 순서대로 부른다. 제작용 바로 가기 : 주소 ?s=<key> */
 const SCENES={};
-async function go(key){ S.phase='cut'; P.free=false; await fade(true); await SCENES[key].enter(); }
+async function go(key){ S.phase='cut'; P.free=false; P.look=false; await fade(true); P.eye=1.66; camera.fov=70; camera.updateProjectionMatrix(); goal(''); window.dragHook=null; SHIPMAP.at(null); await SCENES[key].enter(); }
+
+/* 선내도 : 왼쪽 위 작은 배 그림 — 지금 있는 구역에 불이 들어온다 (우주선 안에서만) */
+const SHIPMAP={rooms:[['bridge','함교',8,40],['deck','거주 구역',56,58],['cryo','동면 C',122,40],['cryoAB','동면 A·B',170,40],['eng','기관',218,34]],
+  at(key){ const el=$('#shipmap'); if(!key){ el.classList.remove('on'); return; }
+    const r=this.rooms.map(([k,n,x,w])=>{ const on=k===key, lock=k==='cryoAB'||k==='eng';
+      return `<rect x="${x}" y="14" width="${w}" height="18" fill="${on?'rgba(255,90,54,.22)':'rgba(233,231,226,.04)'}" stroke="${on?'#ff5a36':'rgba(233,231,226,.35)'}" stroke-width="1"${lock?' stroke-dasharray="2 2"':''}/>`
+        +`<text x="${x+w/2}" y="46" fill="${on?'#ff5a36':'rgba(233,231,226,.55)'}" font-size="9" text-anchor="middle" font-family="IBM Plex Sans KR,sans-serif">${n}</text>`; }).join('');
+    el.innerHTML=`<svg viewBox="0 0 260 52" role="img"><text x="0" y="8" fill="rgba(233,231,226,.4)" font-size="7" font-family="IBM Plex Mono,monospace" letter-spacing="1.4">HUY-2 · DECK PLAN</text>`
+      +`<path d="M4 23 L8 14 M4 23 L8 32" stroke="rgba(233,231,226,.35)" fill="none"/><line x1="48" y1="23" x2="56" y2="23" stroke="rgba(233,231,226,.35)"/><line x1="114" y1="23" x2="122" y2="23" stroke="rgba(233,231,226,.35)"/><line x1="162" y1="23" x2="170" y2="23" stroke="rgba(233,231,226,.35)"/><line x1="210" y1="23" x2="218" y2="23" stroke="rgba(233,231,226,.35)"/>`+r+`</svg>`;
+    el.classList.add('on'); } };

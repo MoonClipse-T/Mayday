@@ -45,6 +45,21 @@
 <div id="doc" class="ov"><div class="slate"><p class="head"><span class="dt"></span><span class="id">NASA · JSC</span></p>
   <h2></h2><div class="body"></div><button class="close">닫기</button></div></div>
 
+<!-- 동면 캡슐 단말 (해동 · 생체 신호) -->
+<div id="vitals" aria-live="polite">
+  <p class="hd"><span class="id">C-00</span><span class="st">해동 중</span></p>
+  <p class="nm"></p><p class="rl"></p>
+  <div class="row"><span class="k">체온</span><b class="temp">31.2</b><span class="u">℃</span></div>
+  <div class="row"><span class="k">심박</span><b class="hr">12</b><span class="u">bpm</span></div>
+  <div class="bar"><i></i></div>
+</div>
+
+<!-- 선내도 (지금 있는 곳) -->
+<div id="shipmap" aria-hidden="true"></div>
+
+<!-- 함교 홀로그램 조작 -->
+<div id="holoui"><p class="hd">AR 항법 홀로그램</p><div class="btns"></div><button class="close">닫기</button></div>
+
 <div id="fade" class="on"></div>
 
 <!-- 시작 화면 -->
@@ -57,15 +72,13 @@
   <p class="credit">공간 · 인물 : Sketchfab CC BY (README 참고) · 별지도 NASA/Goddard SVS · 목성 지도 Solar System Scope CC BY 4.0 · 밤 풍경 Poly Haven CC0</p>
 </div>
 
-<script src="web/vendor/three.r128.min.js"></script>
-<script src="web/vendor/GLTFLoader.js"></script>
-<script src="web/vendor/SkeletonUtils.js"></script>
-<script src="web/engine.js"></script>
-<script src="web/people.js"></script>
-<script src="web/sky.js"></script>
-<script src="web/screens.js"></script>
-<script src="web/scenes/s0_meeting.js"></script>
-<script src="web/scenes/s1_cryo.js"></script>
-<script src="web/main.js"></script>
+<script>
+// 고칠 때마다 V 를 올린다 → 디벗 브라우저가 옛 파일을 쓰지 않는다 (맵 .glb 도 같은 번호로 받는다)
+window.V=/[?&]dev/.test(location.search)?String(Date.now()):'7';
+['vendor/three.r128.min.js','vendor/GLTFLoader.js','vendor/SkeletonUtils.js','engine.js','people.js','sky.js','screens.js','holo.js',
+ 'scenes/s0_meeting.js','scenes/s0b_launch.js','scenes/s0c_orbit.js','scenes/s1_cryo.js','scenes/s2_deck.js','scenes/s3_bridge.js','main.js']
+ .reduce((p,f)=>p.then(()=>new Promise((res,rej)=>{ const s=document.createElement('script'); s.src='web/'+f+'?v='+V; s.onload=res; s.onerror=()=>rej(new Error(f)); document.body.appendChild(s); })),Promise.resolve())
+ .catch(e=>{ document.getElementById('start').textContent='불러오기 실패 — '+e.message; });
+</script>
 </body>
 </html>

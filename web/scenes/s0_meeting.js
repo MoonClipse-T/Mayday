@@ -1,70 +1,99 @@
 /* ============================================================
    프롤로그 · NASA 존슨 우주 센터 브리핑룸 B (2091. 03. 14)
-   국장 → 아마라 박사 → 엘레나 → 다시 국장(선장 임명) → 창가 → 우주선(cryo) 으로
-   맵 : web/assets/meeting.glb (blender/00_회의실.blend) — SPAWN · SPOT_director/astro/comm/window · IT_screen
+   다 같이 테이블에 앉아 있고, 그레이 국장이 화면 앞에서 발표한다. 크리스(나)도 앉아서 듣는다 — 둘러보기만 된다
+   국장 발표 → 아마라 박사(웜홀 · 분광) → 엘레나(1호 마지막 교신) → 선장 임명 · 대원 소개 → 회의가 끝나면 일어나 창가로 → 발사
+   맵 : web/assets/meeting.glb (blender/00_회의실.blend) — SPAWN · SPOT_window · IT_screen
    ============================================================ */
 'use strict';
 SCENES.meeting={title:'프롤로그 · 브리핑룸', async enter(){
   await LEVEL.load('meeting'); await SKY.city(-1.1,.9); renderer.toneMappingExposure=1;
   // 방은 조명이 구워져 있고, 사람만 빛을 받는다
-  const hemi=new THREE.HemisphereLight(0xfff6ea,0x2a2a30,1.05); WORLD.add(hemi);
+  WORLD.add(new THREE.HemisphereLight(0xfff6ea,0x2a2a30,1.05));
   const key=new THREE.DirectionalLight(0xfff0dc,.9); key.position.set(2,4,2); WORLD.add(key);
-  const sp=LEVEL.spots, mk=(kind,at,name,role)=>PEOPLE.spawn({kind,name,role,at});
-  const gray=await mk('eric',sp.director,'로버트 그레이','국장'), amara=await mk('carla',sp.astro,'아마라 오코예','천체물리학자'), elena=await mk('claudia',sp.comm,'엘레나 피셔','통신 책임자');
+  // 테이블 의자 10개 (왼쪽 줄은 동쪽(+x)을, 오른쪽 줄은 서쪽을 본다) — 화면은 북쪽 벽(z −4.8)
+  const ROW=[-1.79,-.76,.28,1.31,2.36], L=i=>({x:-1.61,z:ROW[i],yaw:-Math.PI/2}), R=i=>({x:.5,z:ROW[i],yaw:Math.PI/2});
+  const sit=(kind,at,name,role)=>PEOPLE.spawn({kind,name,role,at,pose:'sit'});
+  const [gray,amara,elena,maya,seojun,daniel,guard]=await Promise.all([
+    PEOPLE.spawn({kind:'eric',name:'로버트 그레이',role:'NASA 탐사 임무국장',at:{x:2.35,z:-3.9,yaw:Math.PI*.8}}),
+    sit('carla',R(0),'아마라 오코예','천체물리학자'), sit('claudia',R(3),'엘레나 피셔','심우주 통신 책임자'),
+    sit('sophia',R(1),'마야 첸','2호 부선장 후보'), sit('nathan',R(2),'한서준','2호 항법사 후보'), sit('manuel',L(3),'다니엘 로드리게스','2호 기관장 후보'),
+    PEOPLE.spawn({kind:'guard',name:'경비',role:'',at:{x:3.6,z:3.7,yaw:Math.PI*.15}})]);
+  guard.watch=false;
   await SCREEN.mount(LEVEL.items.screen,new THREE.Vector3(0,1.6,0));
-  const f=S.flags, me=t=>({kind:'me',t}), G=(t,fx)=>({who:'그레이 국장',t,npc:gray,fx}), A=(t,fx)=>({who:'아마라 박사',t,npc:amara,fx}), E=(t,fx)=>({who:'엘레나',t,npc:elena,fx});
+  const scr=new THREE.Vector3(-.43,2,-4.75), all=[amara,elena,maya,seojun,daniel];
+  // 모두가 말하는 사람을 본다 (말하는 사람은 크리스를 본다)
+  const attend=who=>{ const h=new THREE.Vector3(who.wrap.position.x,who.wrap.position.y+who.headY,who.wrap.position.z); all.concat(gray).forEach(p=>{ p.lookAt=p===who?null:h; }); };
+  const toScreen=()=>all.forEach(p=>p.lookAt=scr);
+  const f=S.flags, me=t=>({kind:'me',t}), say=(npc,who)=>(t,fx)=>({who,t,npc,fx:()=>{ attend(npc); fx&&fx(); }});
+  const G=say(gray,'그레이 국장'), A=say(amara,'아마라 박사'), E=say(elena,'엘레나'), MY=say(maya,'마야'), SJ=say(seojun,'서준'), DN=say(daniel,'다니엘');
+  const point=on=>{ gray.pointAt=on?scr:null; if(on) toScreen(); };
 
-  PEOPLE.talkable(gray,async()=>{
-    if(!f.brief1){ f.brief1=true; await TALK.say([
-      G('크리스, 와 줬군. 앉을 시간은 없네. 화면을 보게.',()=>SCREEN.show('gravity')),
-      G('지구 평균 중력과의 차이야. 5년 전엔 저울이 몇 그램 틀리는 정도였지. 지금은 해마다 네 배씩 커지고 있어.'),
-      G('밀물이 방벽을 넘고, 비행기가 고도를 지키지 못하고 있네. 태풍도 지진도 막아 냈는데… 이런 건 처음이야.',()=>SCREEN.show('earth')),
-      G('원인은 지구 밖에 있었네. 목성의 공전 궤도가 조금씩 비틀리고 있어.',()=>SCREEN.show('jupiter')),
-      me('목성을 움직인다고요? 그만한 질량이 어디에…'),
-      G('그걸 찾은 사람이 아마라 박사야. 박사에게 직접 듣게.'),
-    ]); goal('아마라 박사에게 목성 곁에서 찾은 것을 듣는다'); return; }
-    if(!f.brief3){ await TALK.say([G(f.brief2?'엘레나에게 1호의 마지막 교신도 듣고 오게.':'아마라 박사가 오른쪽에 있네.')]); return; }
-    if(!f.captain){ f.captain=true; await TALK.say([
-      G('중력 이상은 기다려 주지 않네. NASA는 2차 탐사를 결정했어. 하위헌스 2호.',()=>SCREEN.show('crew')),
-      G('크리스. 자네가 선장을 맡아 주게. 대원은 자네를 포함해 열네 명이야.'),
-      me('…1호를 찾겠습니다. 그 문장의 끝도요.'),
-      G('출발은 다음 달이야. 가기 전에 창밖을 한번 보게. 저 하늘 어딘가에 목성이 있지.'),
-    ]); goal('창가로 가서 밤하늘을 본다'); return; }
-    await TALK.say([G('창가에 가 보게, 크리스.')]); });
+  // 크리스의 자리 : 왼쪽 줄 두 번째 의자 — 앉은 눈높이
+  const seat=L(1); warp(seat.x-.12,seat.z,0); P.eye=1.18; P.yaw=yawTo(-.43,-4.75)*.6+(-Math.PI/2)*.4; P.pitch=.06;
+  stamp('NASA JSC · 브리핑룸 B','2091.03.14  21:38');
+  AUDIO.hum(.6,60); await fade(false,1400);
+  await card('PROLOGUE','2091년 3월 14일','휴스턴 · NASA 존슨 우주 센터',3000);
+  S.phase='play'; P.free=false; P.look=true;       // 앉아 있는 동안 : 둘러보기만
+  goal('회의 · 화면을 보며 듣는다');
+  await TALK.say([me('긴급 회의. 자정 가까운 시간인데 자리가 다 찼다.'),
+    G('다 모였군. 시작하지. 늦은 시간에 불러서 미안하네.',()=>SCREEN.show('gravity')),
+    G('전 세계 관측소 412곳의 중력계 값이야. 붉은 곳일수록 평소 지구 중력과 차이가 크네.',()=>point(true)),
+    G('5년 전엔 저울이 몇 그램 틀리는 정도였지. 지금은 해마다 네 배씩 커지고 있어. 오른쪽 아래 — 대전 관측소, 지금 이 순간의 값이야.'),
+    G('결과가 이거야.',()=>{ SCREEN.show('earth'); }),
+    G('밀물이 방벽을 넘고, 비행기가 고도를 지키지 못하고, 원자시계마저 하루 31나노초씩 어긋나. 태풍도 지진도 막아 냈는데… 땅이 끌어당기는 힘이 바뀌는 건 처음이야.'),
+    DN('…부산 조위계 그래프, 저거 이번 달 거예요?',()=>point(false)), G('그래, 다니엘. 이번 달이야.'),
+    G('원인은 지구 밖에 있었네.',()=>{ SCREEN.show('jupiter'); point(true); }),
+    G('점선이 원래 목성이 돌아야 할 길, 붉은 선이 실제로 관측된 길이야. 한쪽으로 끌려 나가고 있지.'),
+    me('목성을 끌어당긴다고요? 그만한 질량이 어디에… 저기엔 아무것도 없는데.'),
+    G('보이지 않을 뿐이야. 아마라 박사.',()=>point(false)),
+  ]);
+  await TALK.say([
+    A('네. 목성 근처를 우주 망원경으로 찍은 하늘이에요.',()=>SCREEN.show('wormhole')),
+    A('보이세요? 별빛이 고리처럼 휘어 있어요. 아주 큰 질량이 지나가는 빛을 휘게 하는 거예요. 그런데 빛을 내지도, 그림자를 만들지도 않아요.'),
+    A('고리 안쪽을 보세요. 그 안에 보이는 별들은… 이 근처 하늘의 별이 아니에요. 시공간에 뚫린 구멍. 웜홀이에요.'),
+    SJ('안쪽 하늘이 다른 곳이라는 건 어떻게 확신하죠?'),
+    A('빛을 무지개처럼 펼쳐 봤어요. 스펙트럼이요.',()=>SCREEN.show('spectrum')),
+    A('검은 줄 — 흡수선은 원소마다 자리가 정해져 있어요. 별빛의 지문이죠. 그런데 웜홀 안쪽 빛은 모든 흡수선이 같은 비율로 붉은 쪽으로 밀려 있어요.'),
+    A('우리에게서 빠르게 멀어지는, 아주 먼 은하의 빛이라는 뜻이에요. 약 4억 3천만 광년. 외부 은하, NGC 3500.'),
+    me('그래서 1호를 보낸 거였군요.'),
+    A('네. 그다음은… 엘레나가 설명할 거예요.'),
+  ]);
+  await TALK.say([
+    E('하위헌스 1호, 대원 열두 명. 웜홀 너머에서 312일 동안 행성 자료를 보내왔어요. 생명 가능 지대의 행성을 찾는 게 임무였죠.'),
+    E('이게 마지막 수신이에요. 틀어 볼게요.',()=>{ SCREEN.show('mayday'); setTimeout(()=>AUDIO.radio(5.5),700); }),
+    {who:'하위헌스 1호',ch:'수신 HUY-1',kind:'radio',t:'…치직… Mayday, Mayday, we are— …',fx:()=>toScreen()},
+    E('여기서 끊겼어요. 그 뒤로 일곱 달째, 아무것도 없어요.'),
+    MY('"we are"… 우리는, 뭐라는 거죠. 다쳤다? 길을 잃었다?'),
+    E('모르겠어요. 파형이 그 순간 갑자기 끊겨요. 고장처럼 보이지 않아요.'),
+    me('…누가 끊은 것처럼.'),
+  ]);
+  await TALK.say([
+    G('중력 이상은 기다려 주지 않네. NASA는 2차 탐사를 결정했어. 하위헌스 2호.',()=>{ SCREEN.show('crew'); point(true); }),
+    G('목성까지 214일, 웜홀을 지나 1호를 찾고, 웜홀이 무엇인지 알아 오는 게 임무야.',()=>point(false)),
+    G('크리스. 자네가 선장을 맡아 주게. 대원은 자네를 포함해 열네 명. 여기 앉은 셋도 함께 가네.'),
+    MY('마야 첸이에요. 조종을 맡아요. 선장님 옆자리는 오랜만이네요.'),
+    SJ('한서준, 항법입니다. 별만 보이면 어디든 위치를 잡아 드리겠습니다.'),
+    DN('다니엘. 엔진이랑 배 속은 제가 책임질게요. 웜홀 들어가기 전에 고장은 다 잡아 둡니다.'),
+    me('…1호를 찾겠습니다. 그 문장의 끝도요.'),
+    G('출발은 다음 달 20일, 케네디 39B 발사대야. 오늘은 여기까지. 가기 전에 창밖이라도 한번 보게, 크리스.'),
+  ]);
+  all.concat(gray).forEach(p=>p.lookAt=null); SCREEN.show('crew');
+  // 일어선다 → 자유롭게 걸어 다닌다
+  await camTo({x:seat.x-.85,yaw:P.yaw,pitch:0},1.1); P.eye=1.66; P.free=true; P.look=false;
+  goal('회의가 끝났다 — 창가로 가서 밤하늘을 본다');
 
-  PEOPLE.talkable(amara,async()=>{
-    if(!f.brief1){ await TALK.say([A('국장님 브리핑부터 들으세요. 화면 앞에 계세요.')]); return; }
-    if(!f.brief2){ f.brief2=true; await TALK.say([
-      A('크리스. 목성 근처를 찍은 하늘이에요. 별빛이 고리처럼 휘어 있죠?',()=>SCREEN.show('wormhole')),
-      A('보이지 않는 엄청난 질량이 지나가는 빛을 휘게 하는 거예요. 시공간에 뚫린 구멍 — 웜홀.'),
-      A('그 안에서 새어 나온 빛을 무지개처럼 펼쳐 봤어요. 검은 흡수선이 전부 붉은 쪽으로 밀려 있었어요.',()=>SCREEN.show('spectrum')),
-      A('아주 먼 곳에서, 우리에게서 멀어지며 온 빛이라는 뜻이죠. 웜홀 건너편은 우리은하가 아니에요. 외부 은하, NGC 3500.'),
-      me('그래서 1호를 보낸 거군요.'),
-      A('네. 1호의 마지막 교신은… 엘레나에게 들어 보세요. 왼쪽 창가 쪽에 있어요.'),
-    ]); goal('엘레나에게 1호의 마지막 교신을 듣는다'); return; }
-    await TALK.say([A('흡수선의 위치는 거짓말을 안 해요. 그게 별빛의 지문이거든요.')]); });
+  // 회의 뒤 짧은 말
+  PEOPLE.talkable(gray,()=>TALK.say([G('출발 전까지 할 일이 산더미야. 그래도 오늘 밤은 좀 자 두게.')]));
+  PEOPLE.talkable(amara,()=>TALK.say([A('흡수선의 위치는 거짓말을 안 해요. 저 너머에 뭐가 있든, 빛은 정직해요.')]));
+  PEOPLE.talkable(elena,()=>TALK.say([E('2호가 떠나면 제가 지구 쪽 통신을 맡아요. 신호가 다시 잡히면 제일 먼저 알려 드릴게요.')]));
+  PEOPLE.talkable(maya,()=>TALK.say([MY('214일 동안 잠만 잔다니. 깨면 목성이 창밖에 있겠네요.')]));
+  PEOPLE.talkable(seojun,()=>TALK.say([SJ('웜홀 너머 별은 우리 별 목록에 없을 거예요. 거기선 처음부터 다시 재야 해요.')]));
+  PEOPLE.talkable(daniel,()=>TALK.say([DN('1호랑 2호는 같은 설계예요. 1호가 어디가 고장 났는지 보면 우리 배도 알 수 있겠죠.')]));
 
-  PEOPLE.talkable(elena,async()=>{
-    if(!f.brief2){ await TALK.say([E('브리핑이 먼저예요, 선장님.')]); return; }
-    if(!f.brief3){ f.brief3=true; await TALK.say([
-      E('하위헌스 1호, 대원 열두 명. 웜홀 너머에서 312일 동안 행성 자료를 보내왔어요.'),
-      E('이게 마지막 수신이에요. 틀어 볼게요.',()=>{ SCREEN.show('mayday'); setTimeout(()=>AUDIO.radio(5.5),600); }),
-      {who:'하위헌스 1호',ch:'수신 HUY-1',kind:'radio',t:'…치직… Mayday, Mayday, we are— …'},
-      E('여기서 끊겼어요. 그 뒤로 일곱 달째, 아무것도 없어요.'),
-      me('‘we are’ … 그다음은 뭐였을까.'),
-    ]); goal('그레이 국장에게 돌아간다'); return; }
-    await TALK.say([E('신호가 다시 잡히면 제일 먼저 알려 드릴게요.')]); });
-
-  // 창가 : 가까이 가면 밤하늘을 보고 다음 장면으로
-  TICK.push(()=>{ if(!f.captain||f.window||S.busy) return; const w=sp.window; if(Math.hypot(P.x-w.x,P.z-w.z)>1.4) return; f.window=true;
+  // 창가 : 가까이 가면 밤하늘을 보고 → 발사
+  const w=LEVEL.spots.window;
+  TICK.push(()=>{ if(f.window||S.busy||!P.free) return; if(Math.hypot(P.x-w.x,P.z-w.z)>1.6) return; f.window=true;
     (async()=>{ P.free=false; goal(''); await lookAt(w.x+Math.sin(w.yaw)*-30,9,w.z+Math.cos(w.yaw)*-30,1.6);
       await TALK.say([me('저 불빛 너머 어딘가에 목성이 있다. 그리고 그 곁에 — 문이 하나 열려 있다.'),me('…돌아올 수 있을까.')]);
-      await go('cryo'); })(); });
-
-  warp(LEVEL.spawn.x,LEVEL.spawn.z,LEVEL.spawn.yaw); stamp('NASA JSC · 브리핑룸 B','2091.03.14  21:38');
-  AUDIO.hum(.6,60); await fade(false,1200);
-  await card('PROLOGUE','2091년 3월 14일','휴스턴 · NASA 존슨 우주 센터');
-  S.phase='play'; P.free=true;
-  await TALK.say([me('긴급 회의라더니… 국장님이 직접 불렀다.')]);
-  goal('화면 앞의 그레이 국장에게 간다');
+      await go('launch'); })(); });
 }};

@@ -107,3 +107,36 @@ body.talking #stick,body.talking .ring,body.talking #label,body.talking #reticle
 #title .credit{position:absolute;left:calc(var(--pad) + 6vw);right:var(--pad);bottom:var(--pad);font-size:11px;color:var(--dim);margin:0}
 
 @media (max-width:760px){ #talk{padding:14px 16px 18px} .ring{width:72px;height:72px} }
+
+/* ---------- 동면 캡슐 단말 ---------- */
+#vitals{position:fixed;right:calc(var(--pad) + 40px);top:50%;transform:translate(16px,-50%);width:300px;z-index:15;padding:18px 20px 20px;background:var(--glass);border-left:2px solid var(--vega);
+  opacity:0;transition:opacity .35s,transform .35s var(--e);pointer-events:none;font-family:var(--mono)}
+#vitals.on{opacity:1;transform:translate(0,-50%)}
+#vitals .hd{display:flex;justify-content:space-between;margin:0 0 12px;font-size:12px;letter-spacing:.18em;color:var(--vega)}
+#vitals .st{color:var(--mute)}
+#vitals .nm{margin:0;font-family:var(--sans);font-size:22px;font-weight:600}
+#vitals .rl{margin:2px 0 14px;font-family:var(--sans);font-size:14px;color:var(--mute)}
+#vitals .row{display:flex;align-items:baseline;gap:10px;border-top:1px solid var(--hair);padding:8px 0}
+#vitals .k{width:44px;font-size:12px;color:var(--dim);font-family:var(--sans)}
+#vitals b{font-size:30px;font-weight:500;color:var(--ink);min-width:86px}
+#vitals .u{font-size:12px;color:var(--dim)}
+#vitals .bar{height:3px;background:var(--hair);margin-top:10px}
+#vitals .bar i{display:block;height:100%;width:0;background:var(--vega)}
+
+/* ---------- 선내도 ---------- */
+#shipmap{position:fixed;left:calc(var(--pad) + 40px);top:calc(var(--pad) + 34px);z-index:6;pointer-events:none;opacity:0;transition:opacity .6s}
+#shipmap.on{opacity:.9}
+body.at-title #shipmap,body.cine #shipmap{opacity:0}
+#shipmap svg{display:block;width:210px;height:auto}
+
+/* ---------- 함교 홀로그램 조작 ---------- */
+#holoui{position:fixed;left:50%;bottom:calc(var(--pad) + 22px);transform:translateX(-50%);z-index:16;display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--glass);border:1px solid var(--hair);
+  opacity:0;pointer-events:none;transition:opacity .3s}
+#holoui.on{opacity:1;pointer-events:auto}
+#holoui .hd{margin:0 10px 0 6px;font-family:var(--mono);font-size:11px;letter-spacing:.2em;color:var(--vega)}
+#holoui .btns{display:flex;gap:8px}
+#holoui button{min-height:52px;padding:0 18px;border:1px solid var(--hair);font-size:15px}
+#holoui button.on{border-color:var(--vega);color:var(--vega);background:rgba(159,216,255,.1)}
+#holoui .close{color:var(--mute)}
+body.talking #holoui.on{opacity:.35;pointer-events:none}
+@media (max-width:760px){ #vitals{width:240px} #holoui{flex-wrap:wrap;justify-content:center;width:calc(100vw - 32px)} }
