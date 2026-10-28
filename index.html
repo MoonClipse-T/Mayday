@@ -2,28 +2,70 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>MAYDAY</title>
-<meta name="description" content="웜홀 너머에서 마지막 신호가 왔다 — 별과 우주 방탈출">
-<meta name="theme-color" content="#050506">
+<meta name="theme-color" content="#040506">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+KR:wght@300;400;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="web/style.css">
 </head>
-<body>
-<main id="stage" aria-live="polite"></main>
+<body class="at-title">
+<canvas id="c"></canvas>
 
-<div id="hud">
-  <p class="count"><b id="now">01</b> / <span id="all">01</span></p>
-  <button id="mute" class="icon" aria-label="소리 켜기">소리 끔</button>
-  <div class="nav">
-    <button id="prev" class="icon" aria-label="이전 장면">←</button>
-    <button id="next" class="icon" aria-label="다음">→</button>
-  </div>
-  <p id="credit"></p>
+<!-- 바이저 : 가장자리 계기선 · 위치 · 시각 -->
+<div id="visor" aria-hidden="true">
+  <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+  <p id="stamp"><span class="rec"></span><span id="where">—</span><span id="when"></span></p>
 </div>
 
-<script type="module" src="web/main.js"></script>
+<!-- HUD -->
+<div id="hud">
+  <div id="goal"><span class="k">목표</span><span id="goaltext"></span></div>
+  <div id="reticle"><i></i><i></i><i></i><i></i></div>
+  <p id="label"></p>
+  <div id="stick"><div id="knob"></div></div>
+  <button id="act" class="ring" aria-label="조사 · 대화">조사</button>
+  <button id="run" class="ring small" aria-label="달리기">달리기</button>
+  <p id="toast"></p>
+</div>
+
+<!-- 교신 자막 -->
+<div id="talk" aria-live="polite">
+  <p class="who"><span class="ch"></span><b class="name"></b></p>
+  <p class="txt"></p>
+  <span class="more" aria-hidden="true"></span>
+</div>
+
+<!-- 장 카드 (영화 자막) -->
+<div id="card"><i class="bar top"></i><i class="bar bot"></i>
+  <div class="in"><p class="kick"></p><p class="title"></p><p class="sub"></p></div></div>
+
+<!-- 문서 (승무원 태블릿) -->
+<div id="doc" class="ov"><div class="slate"><p class="head"><span class="dt"></span><span class="id">NASA · JSC</span></p>
+  <h2></h2><div class="body"></div><button class="close">닫기</button></div></div>
+
+<div id="fade" class="on"></div>
+
+<!-- 시작 화면 -->
+<div id="title">
+  <p class="org">NASA · 하위헌스 계획 · 기밀 2급</p>
+  <h1>MAYDAY</h1>
+  <p class="log">수신 기록 HUY-1 / 312일째 — <span>“Mayday, Mayday, we are—”</span></p>
+  <button id="start" disabled>불러오는 중</button>
+  <p class="how"></p>
+  <p class="credit">공간 · 인물 : Sketchfab CC BY (README 참고) · 별지도 NASA/Goddard SVS · 목성 지도 Solar System Scope CC BY 4.0 · 밤 풍경 Poly Haven CC0</p>
+</div>
+
+<script src="web/vendor/three.r128.min.js"></script>
+<script src="web/vendor/GLTFLoader.js"></script>
+<script src="web/vendor/SkeletonUtils.js"></script>
+<script src="web/engine.js"></script>
+<script src="web/people.js"></script>
+<script src="web/sky.js"></script>
+<script src="web/screens.js"></script>
+<script src="web/scenes/s0_meeting.js"></script>
+<script src="web/scenes/s1_cryo.js"></script>
+<script src="web/main.js"></script>
 </body>
 </html>
