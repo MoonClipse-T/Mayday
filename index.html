@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>MAYDAY</title>
+<meta name="description" content="웜홀 너머에서 마지막 신호가 왔다 — 별과 우주 방탈출">
+<meta name="theme-color" content="#050506">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="web/style.css">
+</head>
+<body>
+<main id="stage" aria-live="polite"></main>
+
+<div id="hud">
+  <p class="count"><b id="now">01</b> / <span id="all">01</span></p>
+  <button id="mute" class="icon" aria-label="소리 켜기">소리 끔</button>
+  <div class="nav">
+    <button id="prev" class="icon" aria-label="이전 장면">←</button>
+    <button id="next" class="icon" aria-label="다음">→</button>
+  </div>
+  <p id="credit"></p>
+</div>
+
+<script type="module" src="web/main.js"></script>
+</body>
+</html>
