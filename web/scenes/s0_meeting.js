@@ -17,7 +17,7 @@ SCENES.meeting={title:'프롤로그 · 브리핑룸', async enter(){
   const [gray,amara,elena,maya,seojun,daniel,guard]=await Promise.all([
     PEOPLE.spawn({kind:'eric',name:'로버트 그레이',role:'NASA 탐사 임무국장',at:{x:2.35,z:-3.9,yaw:Math.PI*.8}}),
     sit('carla',R(0),'아마라 오코예','천체물리학자'), sit('claudia',R(3),'엘레나 피셔','심우주 통신 책임자'),
-    sit('sophia',R(1),'마야 첸','2호 부선장 후보'), sit('nathan',R(2),'한서준','2호 항법사 후보'), sit('manuel',L(3),'다니엘 로드리게스','2호 기관장 후보'),
+    sit('maya',R(1),'마야 첸','2호 부선장 후보'), sit('seojun',R(2),'한서준','2호 항법사 후보'), sit('manuel',L(3),'다니엘 로드리게스','2호 기관장 후보'),
     PEOPLE.spawn({kind:'guard',name:'경비',role:'',at:{x:3.6,z:3.7,yaw:Math.PI*.15}})]);
   guard.watch=false;
   await SCREEN.mount(LEVEL.items.screen,new THREE.Vector3(0,1.6,0));

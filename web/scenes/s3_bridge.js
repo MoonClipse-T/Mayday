@@ -24,7 +24,7 @@ SCENES.bridge={title:'함교', async enter(){
 
   // 사람 : 마야(조종) · 서준(항법) · 다니엘(기관) 앉아 있고, 오언(보안)은 문 옆에 서 있다
   const sit=(kind,s,name,role)=>PEOPLE.spawn({kind,name,role,at:s,pose:'sit',seatY:.56});
-  const [maya,seojun,daniel,owen]=await Promise.all([sit('sophia',sp.pilotL,'마야 첸','부선장 · 조종'),sit('nathan',sp.nav,'한서준','항법'),sit('manuel',sp.eng,'다니엘 로드리게스','기관'),
+  const [maya,seojun,daniel,owen]=await Promise.all([sit('maya',sp.pilotL,'마야 첸','부선장 · 조종'),sit('seojun',sp.nav,'한서준','항법'),sit('manuel',sp.eng,'다니엘 로드리게스','기관'),
     PEOPLE.spawn({kind:'guard',name:'오언 하트',role:'보안',at:sp.door})]);
   [maya,seojun,daniel].forEach(p=>p.watch=true);
   const MY=(t,fx)=>({who:'마야',t,npc:maya,fx}), SJ=(t,fx)=>({who:'서준',t,npc:seojun,fx}), DN=(t,fx)=>({who:'다니엘',t,npc:daniel,fx}), OW=t=>({who:'오언',t,npc:owen});

@@ -2,6 +2,7 @@
    PEOPLE : 실사 인물 (Sketchfab CC BY — web/assets/person_<kind>.glb)
      Renderpeople : eric · carla · claudia · manuel (리깅) · nathan (걷기 동작) · sophia (서서 쉬는 동작)
      guard (Mixamo 뼈 · 서서 쉬는 동작)
+     maya · seojun (Tripo — Mixamo 뼈 mixamorig:Hips · idle · walk · 비행복) : 크기는 실제 키(HEIGHT)로 맞춘다
    - 뼈 이름이 모델마다 달라서 정규식 두 벌로 찾는다 (Renderpeople upperarm_l_024 / Mixamo LeftArm_09)
    - 자세는 뼈 방향을 '월드 방향'으로 맞추는 aim 으로 만든다 (뼈 축을 몰라도 된다) : 팔 내리기 · 앉기 · 화면 가리키기
    - 움직임 : 숨쉬기 · 고개 돌려 보기 · 눈 깜빡임 · 말할 때 턱 — 동작 클립이 있으면(걷기 · 쉬기) 그 위에 더한다
@@ -13,14 +14,18 @@
 const PEOPLE=(()=>{
   const proto={}, list=[]; const V=()=>new THREE.Vector3(), Q=()=>new THREE.Quaternion();
   const _a=V(), _b=V(), _q=Q(), _p=Q(), _r=Q(), _s=Q();
-  async function load(kind){ if(!proto[kind]) proto[kind]=loadGLB('person_'+kind); return proto[kind]; }
+  // Tripo 모델은 크기가 제각각이라 키(m)로 맞추고 발을 바닥에 둔다
+  const HEIGHT={maya:1.66,seojun:1.76};
+  async function load(kind){ if(!proto[kind]) proto[kind]=loadGLB('person_'+kind).then(s=>{ if(HEIGHT[kind]){ s.updateMatrixWorld(true); const b=new THREE.Box3().setFromObject(s), k=HEIGHT[kind]/(b.max.y-b.min.y);
+      s.scale.multiplyScalar(k); s.position.y-=b.min.y*k; } return s; }); return proto[kind]; }
   const bone=(g,re)=>{ let b=null; g.traverse(o=>{ if(!b&&o.isBone&&re.test(o.name)) b=o; }); return b; };
-  const RE={hip:/(^|_)hip_\d|:Hips_/, sp2:/(^|_)spine_02|:Spine1_/, sp3:/(^|_)spine_03|:Spine2_/, neck:/(^|_)neck_\d|:Neck_/, head:/(^|_)head_\d|:Head_\d/, jaw:/(^|_)jaw_\d/,
+  // Mixamo 뼈 : 불러오면 : 가 빠진다(mixamorigHips). Sketchfab 은 끝에 _번호(mixamorigHips_01), Tripo 는 번호 없이 — 둘 다 받는다
+  const RE={hip:/(^|_)hip_\d|mixamorig:?Hips(_|$)/, sp2:/(^|_)spine_02|mixamorig:?Spine1(_|$)/, sp3:/(^|_)spine_03|mixamorig:?Spine2(_|$)/, neck:/(^|_)neck_\d|mixamorig:?Neck(_|$)/, head:/(^|_)head_\d|mixamorig:?Head(_\d|$)/, jaw:/(^|_)jaw_\d/,
     lidL:/(^|_)eyelid_l_\d/, lidR:/(^|_)eyelid_r_\d/,
-    uaL:/(^|_)upperarm_l_\d|:LeftArm_/, laL:/(^|_)lowerarm_l_\d|:LeftForeArm_/, hL:/(^|_)hand_l_\d|:LeftHand_\d/,
-    uaR:/(^|_)upperarm_r_\d|:RightArm_/, laR:/(^|_)lowerarm_r_\d|:RightForeArm_/, hR:/(^|_)hand_r_\d|:RightHand_\d/,
-    ulL:/(^|_)upperleg_l_\d|:LeftUpLeg_/, llL:/(^|_)lowerleg_l_\d|:LeftLeg_/, fL:/(^|_)foot_l_\d|:LeftFoot_/, tL:/(^|_)ball_l_\d|:LeftToeBase_/,
-    ulR:/(^|_)upperleg_r_\d|:RightUpLeg_/, llR:/(^|_)lowerleg_r_\d|:RightLeg_/, fR:/(^|_)foot_r_\d|:RightFoot_/, tR:/(^|_)ball_r_\d|:RightToeBase_/};
+    uaL:/(^|_)upperarm_l_\d|mixamorig:?LeftArm(_|$)/, laL:/(^|_)lowerarm_l_\d|mixamorig:?LeftForeArm(_|$)/, hL:/(^|_)hand_l_\d|mixamorig:?LeftHand(_\d|$)/,
+    uaR:/(^|_)upperarm_r_\d|mixamorig:?RightArm(_|$)/, laR:/(^|_)lowerarm_r_\d|mixamorig:?RightForeArm(_|$)/, hR:/(^|_)hand_r_\d|mixamorig:?RightHand(_\d|$)/,
+    ulL:/(^|_)upperleg_l_\d|mixamorig:?LeftUpLeg(_|$)/, llL:/(^|_)lowerleg_l_\d|mixamorig:?LeftLeg(_|$)/, fL:/(^|_)foot_l_\d|mixamorig:?LeftFoot(_|$)/, tL:/(^|_)ball_l_\d|mixamorig:?LeftToeBase(_|$)/,
+    ulR:/(^|_)upperleg_r_\d|mixamorig:?RightUpLeg(_|$)/, llR:/(^|_)lowerleg_r_\d|mixamorig:?RightLeg(_|$)/, fR:/(^|_)foot_r_\d|mixamorig:?RightFoot(_|$)/, tR:/(^|_)ball_r_\d|mixamorig:?RightToeBase(_|$)/};
   // 뼈를 월드 방향 dir 로 향하게 (자식 뼈 쪽이 뼈 방향)
   function aim(b,child,dir){ if(!b||!child) return; b.updateWorldMatrix(true,false); child.updateWorldMatrix(true,false);
     b.getWorldPosition(_a); child.getWorldPosition(_b); _b.sub(_a).normalize(); _q.setFromUnitVectors(_b,dir.clone().normalize());
@@ -35,7 +40,7 @@ const PEOPLE=(()=>{
     wrap.position.set(at.x,at.y||0,at.z); wrap.rotation.y=(face??at.yaw)-Math.PI;     // 모델은 블렌더 -y(=three +z)를 본다
     wrap.updateMatrixWorld(true);
     const B={}; for(const k in RE) B[k]=bone(g,RE[k]);
-    const clips=src.userData.animations||[]; let mixer=null, act=null;
+    const clips=src.userData.animations||[]; let mixer=null, idleA=null, walkA=null;
     // 몸 기준 방향 (x 몸의 왼쪽(+), y 위, z 앞) → 월드
     const toW=(x,y,z)=>new THREE.Vector3(x,y,z).applyQuaternion(wrap.quaternion);
     const side=s=>s==='L'?1:-1;
@@ -52,11 +57,14 @@ const PEOPLE=(()=>{
         aim(B['ua'+s],B['la'+s],toW(k*.16,-1,.02)); aim(B['la'+s],B['h'+s],toW(k*.1,-1,.32)); }
       if(clips.length&&clip!==false){
         mixer=new THREE.AnimationMixer(g);
+        // 동작 고르기 : 이름에 walk · idle 이 있으면 그것 (Tripo), 하나뿐이면 nathan 은 걷기 · 나머지는 서서 쉬기
+        const walkC=clips.find(c=>/walk/i.test(c.name))||(kind==='nathan'?clips[0]:null), idleC=clips.find(c=>/idle/i.test(c.name))||(clips[0]!==walkC?clips[0]:null);
         // 제자리 동작으로 : 뿌리 · 골반 이동 중 한쪽으로 계속 나가는 축(걷기의 앞)을 첫 값에 묶는다 → 몸은 엔진이 옮긴다
-        const c=clips[0].clone(); c.tracks.forEach(t=>{ if(!/position$/.test(t.name)) return; const v=t.values, n=v.length/3;
+        const play=c0=>{ if(!c0) return null; const c=c0.clone(); c.tracks.forEach(t=>{ if(!/position$/.test(t.name)) return; const v=t.values, n=v.length/3;
           for(let ax=0;ax<3;ax++){ let lo=1e9,hi=-1e9; for(let i=0;i<n;i++){ lo=Math.min(lo,v[i*3+ax]); hi=Math.max(hi,v[i*3+ax]); }
             if(Math.abs(v[(n-1)*3+ax]-v[ax])>(hi-lo)*.5&&hi-lo>1e-4) for(let i=0;i<n;i++) v[i*3+ax]=v[ax]; } });
-        act=mixer.clipAction(c); act.play(); act.time=Math.random()*c.duration;
+          const a=mixer.clipAction(c); a.play(); a.time=Math.random()*c.duration; return a; };
+        idleA=play(idleC); walkA=play(walkC); if(walkA) walkA.setEffectiveWeight(0);
       }
     }
     wrap.updateMatrixWorld(true);
@@ -64,7 +72,7 @@ const PEOPLE=(()=>{
     const hp=V(); g.updateMatrixWorld(true); (B.head||g).getWorldPosition(hp);
     // 탭 판정 원기둥
     const pk=new THREE.Mesh(new THREE.CylinderGeometry(.38,.38,pose==='sit'?1.4:1.9,10),PICK); pk.position.set(0,pose==='sit'?.7-(wrap.position.y-(at.y||0)):.95,0); wrap.add(pk);
-    const p={kind,name,role,wrap,g,B,base,mixer,act,pose,headY:hp.y-(at.y||0),talking:false,blinkT:1+Math.random()*3,blink:0,ph:Math.random()*10,look:0,lookP:0,jaw:0,pick:pk,watch:true,
+    const p={kind,name,role,wrap,g,B,base,mixer,idleA,walkA,mw:0,pose,headY:hp.y-(at.y||0),talking:false,blinkT:1+Math.random()*3,blink:0,ph:Math.random()*10,look:0,lookP:0,jaw:0,pick:pk,watch:true,
       pointAt:null,pw:0,lookAt:null,path:null,speed:1.25};
     list.push(p); return p; }
 
@@ -76,7 +84,9 @@ const PEOPLE=(()=>{
         if(d<.08){ p.path.shift(); if(!p.path.length){ p.path=null; p.done&&p.done(); } }
         else { const want=Math.atan2(dx,dz); let df=want-wrap.rotation.y; df=Math.atan2(Math.sin(df),Math.cos(df)); wrap.rotation.y+=df*Math.min(1,dt*6);
           const s=Math.min(d,p.speed*dt); wrap.position.x+=dx/d*s; wrap.position.z+=dz/d*s; } }
-      if(p.mixer&&(p.kind!=='nathan'||p.path)) p.mixer.update(dt);      // nathan 은 걷기 클립 : 걸을 때만
+      // 서 있으면 idle, 걸으면 walk 로 부드럽게 바꾼다 (쉬는 동작이 없는 모델은 걸을 때만 움직인다)
+      if(p.mixer){ p.mw+=((p.path?1:0)-p.mw)*Math.min(1,dt*5); if(p.walkA) p.walkA.setEffectiveWeight(p.mw); if(p.idleA) p.idleA.setEffectiveWeight(p.walkA?1-p.mw:1);
+        if(p.idleA||p.mw>.01) p.mixer.update(dt); }
       const right=V().set(1,0,0).applyQuaternion(wrap.quaternion);      // 몸 기준 x 축 (월드) — 이 축으로 + 돌리면 앞으로 숙여진다
       // 숨쉬기 · 몸무게 옮기기
       if(!p.mixer){ turn(B.hip,up,Math.sin(p.ph*.35)*(p.pose==='sit'?.008:.025)); }
