@@ -1,7 +1,7 @@
 /* ============================================================
    1장 · 깨어남 — 하위헌스 2호 동면 구역 C (출발 214일째, 목성 궤도 진입 3시간 전)
    맵 : web/assets/cryo.glb (blender/01_동면실.blend) — SPAWN · SPOT_window · SPOT_pod_L1~R7 · COL_/COLC_
-   흐름 : 깨어남 → 관측창(목성 · 웜홀) → 대원 13명 해동 (캡슐마다 체온 · 심박 확인) → 남쪽 문 → 거주 구역(deck)
+   흐름 : 깨어남 → 관측창(목성 · 웜홀) → 캡슐 단말 하나로 대원 13명 동시 해동 (대원별 체온 · 심박 기록) → 남쪽 문 → 거주 구역(deck)
    창밖 : 실제 별지도 + 웜홀 렌즈 + 목성 (sky.js) · 창유리 : 얼룩 · 반사 · 경광등이 비친다
    ============================================================ */
 'use strict';
@@ -23,7 +23,7 @@ SCENES.cryo={title:'1장 · 깨어남', async enter(){
   // 동면 캡슐 14기 : 모델 하나(pod · 열린 캡슐 pod_open)를 SPOT_pod_* 자리에 복제해 세운다 (모양 데이터는 함께 쓴다)
   const [pod,podOpen]=await Promise.all([loadGLB('pod'),loadGLB('pod_open')]);
   const pods={};
-  const place=(src,s)=>{ const o=THREE.SkeletonUtils.clone(src); o.position.set(s.x,0,s.z); o.rotation.y=s.yaw; o.traverse(m=>{ if(m.isMesh) m.frustumCulled=false; }); WORLD.add(o); return o; };
+  const place=(src,s)=>{ const o=THREE.SkeletonUtils.clone(src); o.position.set(s.x,0,s.z); o.rotation.y=s.yaw; o.traverse(m=>{ if(m.isMesh) m.frustumCulled=false; }); WORLD.add(o); LEVEL.solids.push(o); return o; };
   Object.entries(LEVEL.spots).filter(([k])=>k.startsWith('pod_')).forEach(([k,s])=>{ pods[k.slice(4)]={s,o:place(k==='pod_L4'?podOpen:pod,s)}; });
   if(LEVEL.items.c07) LEVEL.items.c07.visible=false;
   await SKY.space({dir:[.2,.1,-1],R:.1,jdir:[-.3,-.07,-1],jsize:.5,sunDir:[1,.35,.2]});
@@ -54,29 +54,33 @@ SCENES.cryo={title:'1장 · 깨어남', async enter(){
           vec3 col=vec3(.78,.86,1.0)+vec3(.2,-.6,-.7)*alarm;
           gl_FragColor=vec4(col,clamp(s*.9+fr*.22+edge*.16+alarm*(.03+fr*.12),0.0,.5)); }`});
     const pane=new THREE.Mesh(new THREE.PlaneGeometry(3.6,2.3),mat); pane.position.set(0,2.05,-8.6); WORLD.add(pane); if(gl) gl.visible=false;
+    interact(pane,'관측창 — 밖을 본다',()=>lookOut(),{range:6,enabled:()=>!f.window}); S.pane=pane;
     TICK.push(()=>{ U.alarm.value=alarm*(f.allAwake?0:1); }); }
 
-  /* ---- 해동 화면 (캡슐 단말) ---- */
+  /* ---- 해동 화면 (캡슐 단말) : 13기를 한꺼번에 — 대원별 체온 · 심박은 기록해 둔다 (뒤에 괴물 판별 0.4 K 복선) ---- */
   const vit=$('#vitals');
-  async function thaw(c){ const P0=pods[c.pod]; f['t_'+c.id]=true; S.thawing=true; S.awake=(S.awake||0)+1; goal('');
-    vit.querySelector('.id').textContent=c.id; vit.querySelector('.nm').textContent=c.name; vit.querySelector('.rl').textContent=c.role;
-    vit.classList.add('on'); AUDIO.beep(); const temp=36.3+Math.random()*.5, hr=56+Math.random()*14|0; c.temp=temp;
-    const tE=vit.querySelector('.temp'), hE=vit.querySelector('.hr'), bar=vit.querySelector('.bar i'), st=vit.querySelector('.st');
-    st.textContent='해동 중'; const t0=performance.now(), dur=3200;
+  async function thawAll(){ if(f.thawed) return; f.thawed=true; goal(''); const crew=CREW.filter(c=>!c.me);
+    crew.forEach(c=>{ c.temp=36.3+Math.random()*.5; c.hr=56+Math.random()*14|0; });
+    vit.querySelector('.id').textContent='C-01 ~ C-14'; vit.querySelector('.nm').textContent='대원 13명 동시 해동'; vit.querySelector('.rl').textContent='동면 구역 C · 선장 승인';
+    vit.classList.add('on'); AUDIO.beep(); const tE=vit.querySelector('.temp'), hE=vit.querySelector('.hr'), bar=vit.querySelector('.bar i'), st=vit.querySelector('.st');
+    const avgT=crew.reduce((a,c)=>a+c.temp,0)/crew.length, avgH=crew.reduce((a,c)=>a+c.hr,0)/crew.length;
+    st.textContent='해동 중'; const t0=performance.now(), dur=4200;
+    // 해동하는 동안 캡슐 불빛이 앞에서부터 차례로 초록으로 바뀌고 증기가 오른다
+    crew.forEach((c,i)=>setTimeout(()=>{ steam(pods[c.pod].s); if(podLight[c.pod]) podLight[c.pod].color.set(0x6dffb0); if(i%3===0) AUDIO.noise(1.4,.12,0,5000,'highpass'); },300+i*dur/crew.length));
     await new Promise(res=>{ const step=()=>{ const k=Math.min(1,(performance.now()-t0)/dur), e=1-Math.pow(1-k,2);
-      tE.textContent=(31.2+(temp-31.2)*e).toFixed(1); hE.textContent=Math.round(12+(hr-12)*e); bar.style.width=(k*100)+'%';
+      tE.textContent=(31.2+(avgT-31.2)*e).toFixed(1); hE.textContent=Math.round(12+(avgH-12)*e); bar.style.width=(k*100)+'%';
       if(Math.random()<.12) AUDIO.tick(); k<1?requestAnimationFrame(step):res(); }; step(); });
     st.textContent='생체 신호 정상'; AUDIO.tone(660,.15,'sine',.1); AUDIO.tone(990,.25,'sine',.08,.15);
-    steam(P0.s); AUDIO.noise(1.8,.16,0,5000,'highpass'); if(podLight[c.pod]) podLight[c.pod].color.set(0x6dffb0);
-    if(c.kind){ // 캡슐이 열리고 일어난다
-      WORLD.remove(P0.o); P0.o=place(podOpen,P0.s);
-      const sx=P0.s.x+(P0.s.x<0?1.05:-1.05), p=await PEOPLE.spawn({kind:c.kind,name:c.name,role:c.role,at:{x:sx,z:P0.s.z,yaw:P0.s.x<0?-Math.PI/2:Math.PI/2}});
-      c.p=p; await sleep(600); vit.classList.remove('on');
-      await TALK.say(c.line.map((t,i)=>({who:c.name.split(' ')[0],t,npc:p})));
-      PEOPLE.talkable(p,()=>TALK.say([{who:c.name.split(' ')[0],t:c.after||'함교에서 뵐게요, 선장님.',npc:p}]));
-    } else { await sleep(900); vit.classList.remove('on'); toast(c.id+' '+c.name+' · 캡슐 안에서 회복 중',2200); }
-    S.thawing=false; const left=CREW.filter(k=>!k.me&&!f['t_'+k.id]).length; goal(left?`대원을 깨운다 — 캡슐 단말을 눌러 해동 (${13-left} / 13)`:'');
-    if(!left) await allAwake(); }
+    // 기록 : 대원별 체온 (뒤에 다시 본다)
+    const lst=document.createElement('div'); lst.className='list'; lst.innerHTML=crew.map(c=>`<p><span>${c.id}</span>${c.name}<b>${c.temp.toFixed(1)} ℃</b></p>`).join(''); vit.appendChild(lst);
+    // 캡슐이 열리고 넷이 일어난다
+    const up=crew.filter(c=>c.kind);
+    await Promise.all(up.map(async c=>{ const P0=pods[c.pod]; WORLD.remove(P0.o); P0.o=place(podOpen,P0.s);
+      const sx=P0.s.x+(P0.s.x<0?1.05:-1.05); c.p=await PEOPLE.spawn({kind:c.kind,name:c.name,role:c.role,at:{x:sx,z:P0.s.z,yaw:P0.s.x<0?-Math.PI/2:Math.PI/2}});
+      PEOPLE.talkable(c.p,()=>TALK.say([{who:c.name.split(' ')[0],t:c.line[1],npc:c.p}])); }));
+    await sleep(2600); vit.classList.remove('on'); setTimeout(()=>lst.remove(),600);
+    await TALK.say(up.map(c=>({who:c.name.split(' ')[0],t:c.line[0],npc:c.p})));
+    await allAwake(); }
   // 증기 : 부드러운 점들이 솟았다 퍼진다
   const puff=(()=>{ const c=document.createElement('canvas'); c.width=c.height=64; const x=c.getContext('2d'), gr=x.createRadialGradient(32,32,0,32,32,32); gr.addColorStop(0,'rgba(255,255,255,.9)'); gr.addColorStop(1,'rgba(255,255,255,0)'); x.fillStyle=gr; x.fillRect(0,0,64,64); return new THREE.CanvasTexture(c); })();
   function steam(s){ const n=60, geo=new THREE.BufferGeometry(), pos=new Float32Array(n*3), vel=[]; for(let i=0;i<n;i++){ pos[i*3]=s.x+(Math.random()-.5)*.6; pos[i*3+1]=.6+Math.random()*.6; pos[i*3+2]=s.z+(Math.random()-.5)*1.2;
@@ -86,7 +90,7 @@ SCENES.cryo={title:'1장 · 깨어남', async enter(){
       if(life>2.6){ WORLD.remove(pts); TICK.splice(TICK.indexOf(fn),1); } }; TICK.push(fn); }
   // 캡슐 탭 판정 (보이지 않는 상자)
   CREW.filter(c=>!c.me).forEach(c=>{ const s=pods[c.pod]&&pods[c.pod].s; if(!s) return; const b=new THREE.Mesh(new THREE.BoxGeometry(1.1,2,2),PICK); b.position.set(s.x,1,s.z); WORLD.add(b);
-    interact(b,c.id+' 캡슐 · '+c.name+' ('+c.role+') — 해동',()=>thaw(c),{range:3,enabled:()=>f.window&&!f['t_'+c.id]&&!S.thawing}); });
+    interact(b,c.id+' 캡슐 · '+c.name+' ('+c.role+') — 단말 : 전원 해동',()=>thawAll(),{range:3,enabled:()=>f.window&&!f.thawed}); });
 
   async function allAwake(){ f.allAwake=true; await sleep(500);
     await TALK.say([V('대원 13명 해동 완료. 생체 신호 모두 정상입니다. 경보를 해제합니다.'),V('회복 중인 아홉 명은 의무실로 옮기겠습니다.'),
@@ -98,21 +102,22 @@ SCENES.cryo={title:'1장 · 깨어남', async enter(){
     goal('함교로 간다 — 동면 구역 남쪽 문'); }
 
   // 남쪽 문 → 거주 구역
-  const dm=new THREE.Mesh(new THREE.BoxGeometry(2.1,2.7,.5),PICK); dm.position.set(0,1.35,8.4); WORLD.add(dm);
+  const door=makeDoor(0,8.3,Math.PI,'중앙 통로 · 거주 구역');
+  const dm=new THREE.Mesh(new THREE.BoxGeometry(2.1,2.7,.3),PICK); dm.position.set(0,1.35,8.12); WORLD.add(dm);
   interact(dm,'문 · 중앙 통로 (거주 구역 · 함교)',async()=>{ if(!f.allAwake){ await TALK.say([V(f.window?'대원 해동이 끝나기 전에는 동면 구역을 잠가 둡니다.':'선장님, 먼저 관측창을 확인해 주십시오.')]); return; }
-    AUDIO.noise(.9,.2,0,900); AUDIO.tone(140,.5,'sawtooth',.05); await go('deck'); },{range:3.2});
+    await door.open(); await go('deck'); },{range:3.2});
 
-  // 관측창 : 창 앞 3.5 m 안에서 창을 바라보면 (카메라를 억지로 돌리지 않고, 시야만 살짝 모은다)
-  const sw=LEVEL.spots.window, wdir=new THREE.Vector3(.2,.1,-1).normalize();
-  TICK.push(()=>{ if(f.window||S.busy||!P.free||!sw) return; if(Math.hypot(P.x-sw.x,P.z-sw.z)>3.6) return;
-    const fz=-Math.cos(P.yaw); if(fz>-.85) return; f.window=true;
+  // 관측창 : 창 앞 4.6 m 안에서 창 쪽(±45°)을 보거나, 창을 누르면 (카메라를 억지로 돌리지 않고, 시야만 살짝 모은다)
+  const sw=LEVEL.spots.window;
+  TICK.push(()=>{ if(f.window||S.busy||!P.free||!sw) return; if(Math.hypot(P.x-sw.x,P.z-sw.z)>4.6) return; if(Math.cos(P.yaw)<.7) return; lookOut(); });
+  function lookOut(){ if(f.window) return; f.window=true;
     (async()=>{ goal(''); const fov0=camera.fov; let k=0; const z=dt=>{ k=Math.min(1,k+dt/2.2); camera.fov=lerp(fov0,58,k*k*(3-2*k)); camera.updateProjectionMatrix(); }; TICK.push(z);
       await TALK.say([me('…저게 웜홀.'),V('웜홀까지 41만 km. 목성 중력권에 들어왔습니다. 별빛이 고리 모양으로 휘는 것이 보이실 겁니다.'),
         me('고리 안쪽 별들은… 우리 하늘의 별이 아니라고 했지.'),me('214일을 잤는데 하루처럼 느껴지는군.'),
-        V('선장님, 목성 궤도 진입 전에 대원을 깨워야 합니다. 캡슐마다 선장님의 생체 확인이 필요합니다.'),
-        V('캡슐 단말을 누르시면 해동을 시작합니다. 체온과 심박이 정상 범위에 들어오는지 함께 봐 주십시오.')]);
+        V('선장님, 목성 궤도 진입 전에 대원을 깨워야 합니다. 해동은 선장 승인이 필요합니다.'),
+        V('아무 캡슐 단말이나 누르시면 열세 명을 한꺼번에 해동합니다. 체온과 심박이 정상 범위에 들어오는지 함께 봐 주십시오.')]);
       TICK.splice(TICK.indexOf(z),1); let b=0; const back=dt=>{ b=Math.min(1,b+dt/1.2); camera.fov=lerp(58,fov0,b); camera.updateProjectionMatrix(); if(b>=1) TICK.splice(TICK.indexOf(back),1); }; TICK.push(back);
-      goal('대원을 깨운다 — 캡슐 단말을 눌러 해동 (0 / 13)'); })(); });
+      goal('대원을 깨운다 — 캡슐 단말을 눌러 전원 해동'); })(); }
 
   warp(LEVEL.spawn.x,LEVEL.spawn.z,LEVEL.spawn.yaw); stamp('하위헌스 2호 · 동면 구역 C','출발 214일째  ·  목성 궤도 진입 T−3:12'); SHIPMAP.at('cryo');
   AUDIO.hum(1,42);

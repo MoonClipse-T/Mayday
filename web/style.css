@@ -51,6 +51,7 @@ body.at-title #hud,body.cine #hud{opacity:0}
 .ring.on{border-color:var(--alert);color:#fff;background:rgba(255,90,54,.18)}
 .ring.small{width:64px;height:64px;font-size:12px;bottom:calc(var(--pad) + 150px);right:calc(var(--pad) + 40px)}
 .ring.small.on{border-color:var(--ink);background:rgba(233,231,226,.14)}
+#jump.ring.small{bottom:calc(var(--pad) + 56px);right:calc(var(--pad) + 134px)}
 body.touch #stick,body.touch .ring{display:block}
 body.talking #stick,body.talking .ring,body.talking #label,body.talking #reticle{opacity:0;pointer-events:none}
 
@@ -140,3 +141,7 @@ body.at-title #shipmap,body.cine #shipmap{opacity:0}
 #holoui .close{color:var(--mute)}
 body.talking #holoui.on{opacity:.35;pointer-events:none}
 @media (max-width:760px){ #vitals{width:240px} #holoui{flex-wrap:wrap;justify-content:center;width:calc(100vw - 32px)} }
+#vitals .list{margin-top:12px;border-top:1px solid var(--hair);padding-top:8px;columns:2;column-gap:14px;font-family:var(--sans);font-size:11px;color:var(--mute)}
+#vitals .list p{margin:0 0 3px;display:flex;gap:6px;break-inside:avoid}
+#vitals .list span{color:var(--dim);font-family:var(--mono)}
+#vitals .list b{margin-left:auto;font-size:11px;min-width:0;color:var(--ink);font-weight:500}

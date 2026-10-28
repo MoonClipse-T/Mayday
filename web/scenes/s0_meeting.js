@@ -1,8 +1,8 @@
 /* ============================================================
    프롤로그 · NASA 존슨 우주 센터 브리핑룸 B (2091. 03. 14)
    다 같이 테이블에 앉아 있고, 그레이 국장이 화면 앞에서 발표한다. 크리스(나)도 앉아서 듣는다 — 둘러보기만 된다
-   국장 발표 → 아마라 박사(웜홀 · 분광) → 엘레나(1호 마지막 교신) → 선장 임명 · 대원 소개 → 회의가 끝나면 일어나 창가로 → 발사
-   맵 : web/assets/meeting.glb (blender/00_회의실.blend) — SPAWN · SPOT_window · IT_screen
+   국장 발표 → 아마라 박사(웜홀 · 분광) → 엘레나(1호 마지막 교신) → 선장 임명 · 대원 소개 → 회의가 끝나면 한 달 뒤 발사로
+   맵 : web/assets/meeting.glb (blender/00_회의실.blend) — SPAWN · IT_screen
    ============================================================ */
 'use strict';
 SCENES.meeting={title:'프롤로그 · 브리핑룸', async enter(){
@@ -11,8 +11,9 @@ SCENES.meeting={title:'프롤로그 · 브리핑룸', async enter(){
   WORLD.add(new THREE.HemisphereLight(0xfff6ea,0x2a2a30,1.05));
   const key=new THREE.DirectionalLight(0xfff0dc,.9); key.position.set(2,4,2); WORLD.add(key);
   // 테이블 의자 10개 (왼쪽 줄은 동쪽(+x)을, 오른쪽 줄은 서쪽을 본다) — 화면은 북쪽 벽(z −4.8)
-  const ROW=[-1.79,-.76,.28,1.31,2.36], L=i=>({x:-1.61,z:ROW[i],yaw:-Math.PI/2}), R=i=>({x:.5,z:ROW[i],yaw:Math.PI/2});
-  const sit=(kind,at,name,role)=>PEOPLE.spawn({kind,name,role,at,pose:'sit'});
+  // 의자 자리 · 높이는 충돌 칸에서 잰 값 (앉는 면 가운데 x −1.3 / 0.25 · 높이 0.57 m)
+  const ROW=[-1.65,-.65,.3,1.25,2.2], L=i=>({x:-1.28,z:ROW[i],yaw:-Math.PI/2}), R=i=>({x:.23,z:ROW[i],yaw:Math.PI/2});
+  const sit=(kind,at,name,role)=>PEOPLE.spawn({kind,name,role,at,pose:'sit',seatY:.57});
   const [gray,amara,elena,maya,seojun,daniel,guard]=await Promise.all([
     PEOPLE.spawn({kind:'eric',name:'로버트 그레이',role:'NASA 탐사 임무국장',at:{x:2.35,z:-3.9,yaw:Math.PI*.8}}),
     sit('carla',R(0),'아마라 오코예','천체물리학자'), sit('claudia',R(3),'엘레나 피셔','심우주 통신 책임자'),
@@ -38,10 +39,10 @@ SCENES.meeting={title:'프롤로그 · 브리핑룸', async enter(){
   await TALK.say([me('긴급 회의. 자정 가까운 시간인데 자리가 다 찼다.'),
     G('다 모였군. 시작하지. 늦은 시간에 불러서 미안하네.',()=>SCREEN.show('gravity')),
     G('전 세계 관측소 412곳의 중력계 값이야. 붉은 곳일수록 평소 지구 중력과 차이가 크네.',()=>point(true)),
-    G('5년 전엔 저울이 몇 그램 틀리는 정도였지. 지금은 해마다 네 배씩 커지고 있어. 오른쪽 아래 — 대전 관측소, 지금 이 순간의 값이야.'),
+    G('5년 전엔 저울이 몇 그램 틀리는 정도였지. 지금은 해마다 네 배씩 커지고 있어. 오른쪽 아래 — 콜로라도 볼더 관측소, 지금 이 순간의 값이야.'),
     G('결과가 이거야.',()=>{ SCREEN.show('earth'); }),
     G('밀물이 방벽을 넘고, 비행기가 고도를 지키지 못하고, 원자시계마저 하루 31나노초씩 어긋나. 태풍도 지진도 막아 냈는데… 땅이 끌어당기는 힘이 바뀌는 건 처음이야.'),
-    DN('…부산 조위계 그래프, 저거 이번 달 거예요?',()=>point(false)), G('그래, 다니엘. 이번 달이야.'),
+    DN('…뉴욕 배터리 공원 조위계 그래프, 저거 이번 달 거예요?',()=>point(false)), G('그래, 다니엘. 이번 달이야.'),
     G('원인은 지구 밖에 있었네.',()=>{ SCREEN.show('jupiter'); point(true); }),
     G('점선이 원래 목성이 돌아야 할 길, 붉은 선이 실제로 관측된 길이야. 한쪽으로 끌려 나가고 있지.'),
     me('목성을 끌어당긴다고요? 그만한 질량이 어디에… 저기엔 아무것도 없는데.'),
@@ -75,25 +76,12 @@ SCENES.meeting={title:'프롤로그 · 브리핑룸', async enter(){
     SJ('한서준, 항법입니다. 별만 보이면 어디든 위치를 잡아 드리겠습니다.'),
     DN('다니엘. 엔진이랑 배 속은 제가 책임질게요. 웜홀 들어가기 전에 고장은 다 잡아 둡니다.'),
     me('…1호를 찾겠습니다. 그 문장의 끝도요.'),
-    G('출발은 다음 달 20일, 케네디 39B 발사대야. 오늘은 여기까지. 가기 전에 창밖이라도 한번 보게, 크리스.'),
+    G('출발은 다음 달 20일, 케네디 39B 발사대야. 오늘은 여기까지.'),
+    me('…한 달. 214일. 그리고 그 너머.'),
   ]);
-  all.concat(gray).forEach(p=>p.lookAt=null); SCREEN.show('crew');
-  // 일어선다 → 자유롭게 걸어 다닌다
-  await camTo({x:seat.x-.85,yaw:P.yaw,pitch:0},1.1); P.eye=1.66; P.free=true; P.look=false;
-  goal('회의가 끝났다 — 창가로 가서 밤하늘을 본다');
-
-  // 회의 뒤 짧은 말
-  PEOPLE.talkable(gray,()=>TALK.say([G('출발 전까지 할 일이 산더미야. 그래도 오늘 밤은 좀 자 두게.')]));
-  PEOPLE.talkable(amara,()=>TALK.say([A('흡수선의 위치는 거짓말을 안 해요. 저 너머에 뭐가 있든, 빛은 정직해요.')]));
-  PEOPLE.talkable(elena,()=>TALK.say([E('2호가 떠나면 제가 지구 쪽 통신을 맡아요. 신호가 다시 잡히면 제일 먼저 알려 드릴게요.')]));
-  PEOPLE.talkable(maya,()=>TALK.say([MY('214일 동안 잠만 잔다니. 깨면 목성이 창밖에 있겠네요.')]));
-  PEOPLE.talkable(seojun,()=>TALK.say([SJ('웜홀 너머 별은 우리 별 목록에 없을 거예요. 거기선 처음부터 다시 재야 해요.')]));
-  PEOPLE.talkable(daniel,()=>TALK.say([DN('1호랑 2호는 같은 설계예요. 1호가 어디가 고장 났는지 보면 우리 배도 알 수 있겠죠.')]));
-
-  // 창가 : 가까이 가면 밤하늘을 보고 → 발사
-  const w=LEVEL.spots.window;
-  TICK.push(()=>{ if(f.window||S.busy||!P.free) return; if(Math.hypot(P.x-w.x,P.z-w.z)>1.6) return; f.window=true;
-    (async()=>{ P.free=false; goal(''); await lookAt(w.x+Math.sin(w.yaw)*-30,9,w.z+Math.cos(w.yaw)*-30,1.6);
-      await TALK.say([me('저 불빛 너머 어딘가에 목성이 있다. 그리고 그 곁에 — 문이 하나 열려 있다.'),me('…돌아올 수 있을까.')]);
-      await go('launch'); })(); });
+  all.concat(gray).forEach(p=>p.lookAt=null);
+  // 회의가 끝나면 바로 한 달 뒤 발사로 (수업 1시간 안에 끝내야 해서 창가 장면은 뺐다)
+  S.phase='cut'; P.look=false; goal(''); await fade(true,1400);
+  await card('','한 달 뒤','2091년 4월 20일 · 출발의 날',2600);
+  await go('launch');
 }};

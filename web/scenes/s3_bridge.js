@@ -7,7 +7,9 @@
 'use strict';
 SCENES.bridge={title:'함교', async enter(){
   const f=S.flags, me=t=>({kind:'me',t}), V=t=>({who:'VEGA',kind:'vega',t});
-  await LEVEL.load('bridge');
+  // 의자 7개가 거꾸로(등받이가 화면 쪽) 내보내져 있다 → 제자리에서 반 바퀴
+  await LEVEL.load('bridge',{prep:root=>root.children.filter(o=>/^seat_/.test(o.name)).forEach(o=>{ const c=new THREE.Box3().setFromObject(o).getCenter(new THREE.Vector3());
+    o.rotation.y+=Math.PI; o.updateMatrixWorld(true); const c2=new THREE.Box3().setFromObject(o).getCenter(new THREE.Vector3()); o.position.x+=c.x-c2.x; o.position.z+=c.z-c2.z; })});
   let away=!!f.passed;
   await SKY.space(away?{dir:[0,.02,1],R:.07,srot:2.4,jupiter:false,sunDir:[-.4,.6,.5]}:{dir:[.05,.04,-1],R:.16,jdir:[-.75,-.12,-.65],jsize:.9,sunDir:[1,.3,.6]});
   WORLD.add(new THREE.HemisphereLight(0xb8d4ee,0x141820,.42));
@@ -76,12 +78,12 @@ SCENES.bridge={title:'함교', async enter(){
   let inAR=false, back=null;
   async function openAR(first){ if(inAR) return; inAR=true; back={x:P.x,z:P.z,yaw:P.yaw,pitch:P.pitch}; P.free=false; HOLO.root.visible=true; HOLO.spin=.05;
     await camTo({x:hp.x,z:hp.z+1.75,yaw:Math.round(P.yaw/(Math.PI*2))*Math.PI*2,pitch:-.42,eye:2.05},1.2); P.look=true;
-    window.dragHook=(dx,dy)=>{ HOLO.rot(dx*.008); }; ui.classList.add('on'); const m0=first||HOLO.mode||'solar'; HOLO.show(m0); arSeen(m0); goal(away?'AR 은하 지도 — 우리는 어디에 있나':'AR — 항로를 확인한 뒤 닫기'); }
-  async function closeAR(){ if(!inAR) return; ui.classList.remove('on'); window.dragHook=null; P.look=false; HOLO.spin=.12; await camTo({x:back.x,z:back.z,yaw:back.yaw,pitch:0,eye:1.66},.9); inAR=false; P.free=true;
+    window.dragHook=(dx,dy)=>{ if(touches.size<2) HOLO.rot(dx*.009,dy*.006); }; window.pinchHook=k=>HOLO.zoom(k); ui.classList.add('on'); const m0=first||HOLO.mode||'solar'; HOLO.show(m0); arSeen(m0); goal(away?'AR 은하 지도 — 우리는 어디에 있나':'AR — 항로를 확인한 뒤 닫기'); }
+  async function closeAR(){ if(!inAR) return; ui.classList.remove('on'); window.dragHook=null; HOLO.reset(); window.pinchHook=null; P.look=false; HOLO.spin=.12; await camTo({x:back.x,z:back.z,yaw:back.yaw,pitch:0,eye:1.66},.9); inAR=false; P.free=true;
     if(!away&&f.route) goal('함장석에 앉아 웜홀 진입을 명령한다'); else if(!away) goal('홀로 테이블에서 웜홀까지의 항로를 확인한다'); }
   ui.querySelector('.close').onclick=()=>closeAR();
   const seen={};
-  async function arSeen(m){ if(seen[m]) return; seen[m]=true;
+  async function arSeen(m){ const k=(away?'a_':'h_')+m; if(seen[k]) return; seen[k]=true;      // 건너편에서는 같은 지도도 처음 보는 것으로
     if(!away&&m==='solar') await TALK.say([SJ('지금 우리 위치예요. 지구에서 214일, 목성 바로 옆.'),SJ('웜홀은 목성에서 41만 km. 지구–달 거리랑 거의 같아요.')]);
     if(!away&&m==='jupiter'){ await TALK.say([SJ('붉은 선이 진입 경로예요. 웜홀 바로 앞에서 목성 중력에 한 번 끌리니까 각도를 아주 정확히 맞춰야 해요.'),
       SJ('웜홀까지의 거리는 배경 별들의 시차로 쟀어요. 배가 움직이면 가까운 것일수록 별들 사이에서 많이 움직여 보이거든요.'),
@@ -139,8 +141,9 @@ SCENES.bridge={title:'함교', async enter(){
   PEOPLE.talkable(daniel,()=>TALK.say([DN(away?'엔진은 멀쩡해요. 웜홀이 배를 씹어 먹진 않았네요.':'반응로 82%. 웜홀 들어가면 응력이 꽤 걸릴 거예요.')]));
   PEOPLE.talkable(owen,()=>TALK.say([OW(away?'…조용하네요. 너무 조용해요.':'함교 출입은 제가 지킵니다. 나머지 대원은 의무실에서 회복 중입니다.')]));
   // 문 : 거주 구역으로
-  const dm=new THREE.Mesh(new THREE.BoxGeometry(2.1,2.7,.5),PICK); dm.position.set(0,1.35,8.4); WORLD.add(dm);
-  interact(dm,'문 · 중앙 통로 (거주 구역)',async()=>{ if(f.transit) return TALK.say([OW('지금은 함교를 비우시면 안 됩니다, 선장님.')]); AUDIO.noise(.9,.2,0,900); await go('deck'); },{range:3.2});
+  const door=makeDoor(0,8.58,Math.PI,'중앙 통로 · 거주 구역');
+  const dm=new THREE.Mesh(new THREE.BoxGeometry(2.1,2.7,.3),PICK); dm.position.set(0,1.35,8.4); WORLD.add(dm);
+  interact(dm,'문 · 중앙 통로 (거주 구역)',async()=>{ if(f.transit) return TALK.say([OW('지금은 함교를 비우시면 안 됩니다, 선장님.')]); await door.open(); await go('deck'); },{range:3.2});
 
   warp(LEVEL.spawn.x,LEVEL.spawn.z,LEVEL.spawn.yaw); stamp('하위헌스 2호 · 함교',away?'위치 미상':'목성 궤도 · 웜홀 진입 T−0:42');
   SHIPMAP.at('bridge'); AUDIO.hum(1,46); await fade(false,1400); S.phase='play';

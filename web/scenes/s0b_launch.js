@@ -5,7 +5,7 @@
    ============================================================ */
 'use strict';
 SCENES.launch={title:'발사', async enter(){
-  await LEVEL.load('launch'); SKY.clear();
+  await LEVEL.load('launch',{solid:false}); SKY.clear();
   // 새벽 하늘 : 지평선은 주황, 위로 갈수록 남색 (구 안쪽에 그린다)
   const sky=new THREE.Mesh(new THREE.SphereGeometry(1600,32,16),new THREE.ShaderMaterial({side:THREE.BackSide,depthWrite:false,
     vertexShader:'varying vec3 vP; void main(){ vP=position; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }',

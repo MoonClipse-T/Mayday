@@ -15,7 +15,7 @@ SCENES.deck={title:'거주 구역', async enter(){
   const sp=LEVEL.spots;
   // 의무실 회복 캡슐 넷 (동면 캡슐과 같은 모델) — 안에서 대원이 회복 중
   const pod=await loadGLB('pod'); const REC=[['레아 문','통신'],['사라 킴','의무관'],['아이샤 칸','생명 과학'],['유키 사토','대기 과학']];
-  for(let k=0;k<4;k++){ const s=sp['rec'+k]; if(!s) continue; const o=THREE.SkeletonUtils.clone(pod); o.position.set(s.x,0,s.z); o.rotation.y=Math.PI; WORLD.add(o);
+  for(let k=0;k<4;k++){ const s=sp['rec'+k]; if(!s) continue; const o=THREE.SkeletonUtils.clone(pod); o.position.set(s.x,0,s.z); o.rotation.y=Math.PI; WORLD.add(o); LEVEL.solids.push(o);
     const l=new THREE.PointLight(0x6dffb0,.9,3,2); l.position.set(s.x,1.3,s.z); if(k%2===0) WORLD.add(l);
     const pk=new THREE.Mesh(new THREE.CylinderGeometry(.55,.55,2,10),PICK); pk.position.set(s.x,1,s.z); WORLD.add(pk);
     const [nm,rl]=REC[k]; interact(pk,'회복 캡슐 · '+nm+' ('+rl+')',()=>TALK.say([V(`${nm} 대원, 회복 2단계. 체온 ${(36.4+k*.1).toFixed(1)} ℃, 심박 ${58+k*3}. 약 30분 뒤 깨어납니다.`)]),{range:2.6}); }
@@ -27,9 +27,11 @@ SCENES.deck={title:'거주 구역', async enter(){
   const w=sp.window; TICK.push(()=>{ if(f.deckWin||S.busy||!P.free||!w) return; if(Math.hypot(P.x-w.x,P.z-w.z)>3.2) return; if(-Math.cos(P.yaw)>-.8) return; f.deckWin=true;
     TALK.say(away?[me('…창밖은 그대로다. 별이 있고, 어둠이 있고. 그런데 집이 없다.')]:[me('라운지 창으로 보니 목성이 더 크다.'),V('목성 표면의 붉은 점 — 대적점은 지구보다 큽니다. 웜홀은 그 오른쪽입니다.')]); });
   // 문 : 동면 구역 C (뒤) · 함교 (왼쪽 벽 앞)
-  const door=(x,z,rot,name,fn)=>{ const m=new THREE.Mesh(new THREE.BoxGeometry(2.1,2.7,.6),PICK); m.position.set(x,1.35,z); m.rotation.y=rot; WORLD.add(m); interact(m,name,fn,{range:3.2}); };
-  door(0,8.4,0,'문 · 동면 구역 C',()=>TALK.say([V('동면 구역 C는 비어 있습니다. 회복 중인 대원은 모두 이곳 의무실과 선실에 있습니다.')]));
-  door(-5.2,-5.6,Math.PI/2,'문 · 함교',async()=>{ AUDIO.noise(.9,.2,0,900); AUDIO.tone(140,.5,'sawtooth',.05); S.from='deck'; await go('bridge'); });
+  // 눈에 보이는 문을 벽면에 붙이고, 누르는 상자는 그 바로 앞에 둔다 (벽면은 충돌 칸에서 잰 자리 : 뒤 z 8.3 · 왼쪽 기둥 앞 x −5.05)
+  const door=(x,z,rot,label,name,fn)=>{ const d=makeDoor(x,z,rot,label), m=new THREE.Mesh(new THREE.BoxGeometry(2.1,2.7,.3),PICK);
+    m.position.set(x+Math.sin(rot)*.2,1.35,z+Math.cos(rot)*.2); m.rotation.y=rot; WORLD.add(m); interact(m,name,()=>fn(d),{range:3.2}); };
+  door(0,8.38,Math.PI,'동면 구역 C','문 · 동면 구역 C',()=>TALK.say([V('동면 구역 C는 비어 있습니다. 회복 중인 대원은 모두 이곳 의무실과 선실에 있습니다.')]));
+  door(-5.0,-5.6,Math.PI/2,'함교','문 · 함교',async d=>{ await d.open(); S.from='deck'; await go('bridge'); });
 
   const fromBridge=S.from==='bridge'; S.from='';
   if(fromBridge&&sp.bridgedoor) warp(sp.bridgedoor.x+.6,sp.bridgedoor.z,-Math.PI/2); else warp(LEVEL.spawn.x,LEVEL.spawn.z,LEVEL.spawn.yaw);

@@ -4,7 +4,7 @@
    테이블을 누르면 AR 모드 : 카메라가 테이블 앞으로 · 끌면 홀로그램이 돈다 · 아래 버튼으로 보기를 바꾼다
    ============================================================ */
 'use strict';
-const HOLO=(()=>{ let root=null, cur=null, mode=null, yaw=0, spin=.12, beam=null, t=0, side='home'; const views={}, labels=[];
+const HOLO=(()=>{ let root=null, cur=null, mode=null, yaw=0, tilt=.32, hold=0, spin=.12, beam=null, t=0, side='home'; const views={}, labels=[];
   const CY=0x7fd4ff, AL=0xff5a36, WH=0xeaf6ff;
   const add=(m)=>new THREE.MeshBasicMaterial({color:m.color??CY,transparent:true,opacity:m.op??.6,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,wireframe:!!m.wire});
   const lmat=(c=CY,op=.55)=>new THREE.LineBasicMaterial({color:c,transparent:true,opacity:op,blending:THREE.AdditiveBlending,depthWrite:false});
@@ -75,15 +75,19 @@ const HOLO=(()=>{ let root=null, cur=null, mode=null, yaw=0, spin=.12, beam=null
 
   function show(m){ mode=m; Object.entries(views).forEach(([k,v])=>v.visible=k===m); if(m==='galaxy'){ views.galaxy.userData.home.visible=side==='home'; views.galaxy.userData.away.visible=side==='away'; }
     document.querySelectorAll('#holoui .btns button').forEach(b=>b.classList.toggle('on',b.dataset.m===m)); AUDIO.tone(1200,.05,'sine',.05); AUDIO.tone(1800,.05,'sine',.04,.05); }
-  function tick(dt){ if(!root||!root.visible) return; t+=dt; yaw+=spin*dt; if(cur) cur.rotation.y=yaw;
-    Object.values(views).forEach(v=>{ v.rotation.set(.32,yaw,0,'XYZ'); }); beam.material.uniforms.t.value=t;
+  function tick(dt){ if(!root||!root.visible) return; t+=dt; hold-=dt; if(hold<0) yaw+=spin*dt; if(cur) cur.rotation.y=yaw;
+    Object.values(views).forEach(v=>{ v.rotation.set(tilt,yaw,0,'XYZ'); }); beam.material.uniforms.t.value=t;
     root.children.forEach(o=>{ if(o.material&&o.material.opacity!==undefined&&o!==beam) {} });
     const J=views.jupiter; if(J.visible){ J.userData.jm.rotation.y+=dt*.2; J.userData.wh.children.forEach((r,i)=>{ if(i) r.scale.setScalar(1+.08*Math.sin(t*2+i)); });
       const P=J.userData.path, k=(t*.06)%1, i=Math.floor(k*(P.length-1)); J.userData.ship.position.set(...P[i]); J.userData.sl.position.set(P[i][0]+.02,P[i][1]+.05,P[i][2]); }
     if(views.solar.visible) views.solar.userData.wr.scale.setScalar(1+.15*Math.sin(t*3));
     // 깜빡임 (홀로그램 느낌)
     root.traverse(o=>{ if(o.material&&o.material.blending===THREE.AdditiveBlending&&o.material.userData.op===undefined) o.material.userData.op=o.material.opacity; if(o.material&&o.material.userData.op!==undefined) o.material.opacity=o.material.userData.op*(.88+.12*Math.sin(t*23+o.id)); }); }
-  return {build,show,tick,get root(){ return root; },get mode(){ return mode; },set side(v){ side=v; if(mode==='galaxy') show('galaxy'); },get side(){ return side; },set spin(v){ spin=v; },rot(d){ yaw+=d; }};
+  return {build,show,tick,get root(){ return root; },get mode(){ return mode; },set side(v){ side=v; if(mode==='galaxy') show('galaxy'); },get side(){ return side; },set spin(v){ spin=v; },
+    // 손으로 돌리기 : 좌우 끌기 = 돌리기 · 위아래 끌기 = 기울이기 · 두 손가락 / 휠 = 크게 작게 (끄는 동안과 뒤 3초는 저절로 돌지 않는다)
+    rot(d,dt2=0){ yaw+=d; tilt=Math.max(-.35,Math.min(1.45,tilt+dt2)); hold=3; },
+    zoom(k){ if(!root) return; const s0=root.userData.s0||(root.userData.s0=root.scale.x); root.scale.setScalar(Math.max(s0*.6,Math.min(s0*2.2,root.scale.x*k))); hold=3; },
+    reset(){ tilt=.32; if(root&&root.userData.s0) root.scale.setScalar(root.userData.s0); }};
 })();
 
 /* ---------- 함교 화면 (캔버스 UI) ---------- */

@@ -36,7 +36,7 @@ const SCREEN=(()=>{ const W=1600,H=700; let cv,g,tex,mesh,ov,og,otex,oMesh,mode=
     T('UTC−5  '+hhmmss(78060+clock),W-28,32,M(15),INK,'right');
     g.fillStyle=HAIR; g.fillRect(0,52,W,1); g.fillRect(0,H-36,W,1);
     // 아래 띠 : 실시간 수신 (흘러간다)
-    const tick='▲ 대전 Δg +16.8 mGal    ▲ 스발바르 +18.4    ▼ 케이프타운 조석 +2.3 m    ● JPL 목성 위치 잔차 +4.1″    ● 원자시계 편차 31 ns/일    ▲ 레이캬비크 +18.9    ● DSN 캔버라 HUY-1 채널 무응답 214일    ';
+    const tick='▲ 볼더 Δg +16.8 mGal    ▲ 스발바르 +18.4    ▼ 케이프타운 조석 +2.3 m    ● JPL 목성 위치 잔차 +4.1″    ● 원자시계 편차 31 ns/일    ▲ 레이캬비크 +18.9    ● DSN 캔버라 HUY-1 채널 무응답 214일    ';
     g.save(); g.beginPath(); g.rect(0,H-35,W,35); g.clip(); g.font=M(14); g.fillStyle=MUTE; const tw=g.measureText(tick).width, off=-(clock*60%tw);
     for(let x=off;x<W;x+=tw) g.fillText(tick,x+20,H-12); g.restore();
     g.fillStyle=AL; g.fillRect(0,H-35,6,35); }
@@ -46,7 +46,7 @@ const SCREEN=(()=>{ const W=1600,H=700; let cv,g,tex,mesh,ov,og,otex,oMesh,mode=
     g.strokeStyle='rgba(159,216,255,.08)'; for(let i=1;i<6;i++){ g.beginPath(); g.moveTo(x+w*i/6,y); g.lineTo(x+w*i/6,y+h); g.stroke(); } for(let i=1;i<4;i++){ g.beginPath(); g.moveTo(x,y+h*i/4); g.lineTo(x+w,y+h*i/4); g.stroke(); }
     return (lat,lon)=>[x+(lon+180)/360*w, y+(90-lat)/180*h]; }
 
-  const STN=[['대전',36.35,127.38,16.8],['휴스턴',29.8,-95.4,16.9],['스발바르',78.2,15.6,18.4],['나이로비',-1.3,36.8,15.1],['시드니',-33.9,151.2,16.2],['산티아고',-33.4,-70.6,17.7],
+  const STN=[['볼더',40.0,-105.3,16.8],['대전',36.35,127.38,16.1],['휴스턴',29.8,-95.4,16.9],['스발바르',78.2,15.6,18.4],['나이로비',-1.3,36.8,15.1],['시드니',-33.9,151.2,16.2],['산티아고',-33.4,-70.6,17.7],
     ['도쿄',35.7,139.7,17.1],['레이캬비크',64.1,-21.9,18.9],['케이프타운',-33.9,18.4,15.6],['하와이',19.8,-155.5,16.4]];
   const COAST=[['상하이',31.2,121.5],['뉴욕',40.7,-74],['암스테르담',52.4,4.9],['부산',35.1,129],['마이애미',25.8,-80.2],['뭄바이',19.1,72.9],['자카르타',-6.2,106.8],['베네치아',45.4,12.3],['방콕',13.8,100.5]];
 
@@ -77,7 +77,7 @@ const SCREEN=(()=>{ const W=1600,H=700; let cv,g,tex,mesh,ov,og,otex,oMesh,mode=
       if(n<G.length){ const i=Math.floor(n), f=n-i, [y0,v0]=G[i-1]||G[0], [y1,v1]=G[i]; g.lineTo(lerp(gx(y0),gx(y1),f),lerp(gy(v0),gy(v1),f)); } g.stroke(); g.lineWidth=1;
       if(k>=1){ g.fillStyle=AL; g.beginPath(); g.arc(gx(2091),gy(17),5+2*Math.sin(clock*5),0,7); g.fill(); T('×4 / 년',gx(2091)-14,gy(17)-14,M(15),AL,'right'); }
       // 오늘 24시간 (초당 흔들림)
-      box(990,388,582,154,'대전 관측소 · 최근 60초'); g.strokeStyle=CY; g.beginPath();
+      box(990,388,582,154,'볼더 관측소(콜로라도) · 최근 60초'); g.strokeStyle=CY; g.beginPath();
       for(let i=0;i<=120;i++){ const s=clock-i*.5, v=16.8+.6*Math.sin(s*1.7)+.35*Math.sin(s*5.3)+.2*Math.sin(s*11.1); const x=1560-i*4.3, y=480-(v-16.8)*55; i?g.lineTo(x,y):g.moveTo(x,y); } g.stroke();
       const now=16.8+.6*Math.sin(clock*1.7)+.35*Math.sin(clock*5.3); T((now>=0?'+':'')+now.toFixed(2)+' mGal',1560,420,M(22,600),INK,'right');
       // 아래 표
@@ -93,7 +93,7 @@ const SCREEN=(()=>{ const W=1600,H=700; let cv,g,tex,mesh,ov,og,otex,oMesh,mode=
       C.forEach(([s,v,u],i)=>{ const y=72+i*118; box(990,y,582,106,''); T(s,1012,y+34,F(500,18),MUTE);
         const val=v*ease(t/2.2-i*.15), txt=v%1?val.toFixed(1):Math.round(val).toLocaleString(); T(txt,1012,y+88,M(46,600),i===0?AL:INK); T(u,1012+g.measureText(txt).width+12,y+88,M(18),DIM);
         g.fillStyle=i===0?AL:CY; g.fillRect(1300,y+70,250*ease(t/2.2-i*.15)*(.6+.4*(i%2)),6); });
-      box(28,556,1544,104,'부산 조위계 · 30일 (m)'); g.strokeStyle=CY; g.beginPath();
+      box(28,556,1544,104,'뉴욕 배터리 공원 조위계 · 30일 (m)'); g.strokeStyle=CY; g.beginPath();
       for(let i=0;i<=400;i++){ const d=i/400, a=.4+1.9*d*d, v=a*Math.sin(d*60+clock*.8)+.15*Math.sin(d*240); const x=52+i*3.8, y=616-v*14; i?g.lineTo(x,y):g.moveTo(x,y); } g.stroke();
       g.strokeStyle='rgba(255,90,54,.6)'; g.setLineDash([5,5]); g.beginPath(); g.moveTo(52,588); g.lineTo(1560,588); g.stroke(); g.setLineDash([]); T('방벽 높이',1560,582,M(12),AL,'right'); },
 
