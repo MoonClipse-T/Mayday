@@ -17,14 +17,16 @@ SCENES.meeting={title:'프롤로그 · 브리핑룸', async enter(){
   const [gray,amara,elena,maya,seojun,daniel,guard]=await Promise.all([
     PEOPLE.spawn({kind:'eric',name:'로버트 그레이',role:'NASA 탐사 임무국장',at:{x:2.35,z:-3.9,yaw:Math.PI*.8}}),
     sit('carla',R(0),'아마라 오코예','천체물리학자'), sit('claudia',R(3),'엘레나 피셔','심우주 통신 책임자'),
-    sit('maya',R(1),'마야 첸','2호 부선장 후보'), sit('seojun',R(2),'한서준','2호 항법사 후보'), sit('manuel',L(3),'다니엘 로드리게스','2호 기관장 후보'),
+    sit('maya',R(1),'마야 첸','2호 부선장 후보'), sit('seojun',R(2),'한서준','2호 항법사 후보'), sit('daniel',L(3),'다니엘 로드리게스','2호 기관장 후보'),
     PEOPLE.spawn({kind:'guard',name:'경비',role:'',at:{x:3.6,z:3.7,yaw:Math.PI*.15}})]);
   guard.watch=false;
   await SCREEN.mount(LEVEL.items.screen,new THREE.Vector3(0,1.6,0));
   const scr=new THREE.Vector3(-.43,2,-4.75), all=[amara,elena,maya,seojun,daniel];
   // 모두가 말하는 사람을 본다 (말하는 사람은 크리스를 본다)
-  const attend=who=>{ const h=new THREE.Vector3(who.wrap.position.x,who.wrap.position.y+who.headY,who.wrap.position.z); all.concat(gray).forEach(p=>{ p.lookAt=p===who?null:h; }); };
-  const toScreen=()=>all.forEach(p=>p.lookAt=scr);
+  // 크리스의 눈도 따라간다 : 말하는 사람 얼굴로, 화면을 짚으면 화면으로 (앉아서 듣는 동안만 · 손으로 둘러봐도 다음 대사에서 다시 모인다)
+  const gaze=(x,y,z)=>{ if(P.look&&!P.free) lookAt(x,y,z,.9); };
+  const attend=who=>{ const h=who.B.head?who.B.head.getWorldPosition(new THREE.Vector3()):new THREE.Vector3(who.wrap.position.x,who.headY,who.wrap.position.z); all.concat(gray).forEach(p=>{ p.lookAt=p===who?null:h; }); if(who===gray&&gray.pointAt) gaze(scr.x,scr.y-.05,scr.z); else gaze(h.x,h.y-.05,h.z); };
+  const toScreen=()=>{ all.forEach(p=>p.lookAt=scr); gaze(scr.x,scr.y-.05,scr.z); };
   const f=S.flags, me=t=>({kind:'me',t}), say=(npc,who)=>(t,fx)=>({who,t,npc,fx:()=>{ attend(npc); fx&&fx(); }});
   const G=say(gray,'그레이 국장'), A=say(amara,'아마라 박사'), E=say(elena,'엘레나'), MY=say(maya,'마야'), SJ=say(seojun,'서준'), DN=say(daniel,'다니엘');
   const point=on=>{ gray.pointAt=on?scr:null; if(on) toScreen(); };

@@ -2,7 +2,7 @@
    PEOPLE : 실사 인물 (Sketchfab CC BY — web/assets/person_<kind>.glb)
      Renderpeople : eric · carla · claudia · manuel (리깅) · nathan (걷기 동작) · sophia (서서 쉬는 동작)
      guard (Mixamo 뼈 · 서서 쉬는 동작)
-     maya · seojun (Tripo — Mixamo 뼈 mixamorig:Hips · idle · walk · 비행복) : 크기는 실제 키(HEIGHT)로 맞춘다
+     maya · seojun · daniel · owen (Tripo — Mixamo 뼈 mixamorig:Hips · idle · walk · 비행복) : 크기는 실제 키(HEIGHT)로 맞춘다
    - 뼈 이름이 모델마다 달라서 정규식 두 벌로 찾는다 (Renderpeople upperarm_l_024 / Mixamo LeftArm_09)
    - 자세는 뼈 방향을 '월드 방향'으로 맞추는 aim 으로 만든다 (뼈 축을 몰라도 된다) : 팔 내리기 · 앉기 · 화면 가리키기
    - 움직임 : 숨쉬기 · 고개 돌려 보기 · 눈 깜빡임 · 말할 때 턱 — 동작 클립이 있으면(걷기 · 쉬기) 그 위에 더한다
@@ -15,7 +15,7 @@ const PEOPLE=(()=>{
   const proto={}, list=[]; const V=()=>new THREE.Vector3(), Q=()=>new THREE.Quaternion();
   const _a=V(), _b=V(), _q=Q(), _p=Q(), _r=Q(), _s=Q();
   // Tripo 모델은 크기가 제각각이라 키(m)로 맞추고 발을 바닥에 둔다
-  const HEIGHT={maya:1.66,seojun:1.76};
+  const HEIGHT={maya:1.66,seojun:1.76,owen:1.86,daniel:1.75};
   async function load(kind){ if(!proto[kind]) proto[kind]=loadGLB('person_'+kind).then(s=>{ if(HEIGHT[kind]){ s.updateMatrixWorld(true); const b=new THREE.Box3().setFromObject(s), k=HEIGHT[kind]/(b.max.y-b.min.y);
       s.scale.multiplyScalar(k); s.position.y-=b.min.y*k; } return s; }); return proto[kind]; }
   const bone=(g,re)=>{ let b=null; g.traverse(o=>{ if(!b&&o.isBone&&re.test(o.name)) b=o; }); return b; };

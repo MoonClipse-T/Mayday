@@ -24,8 +24,8 @@ SCENES.bridge={title:'함교', async enter(){
 
   // 사람 : 마야(조종) · 서준(항법) · 다니엘(기관) 앉아 있고, 오언(보안)은 문 옆에 서 있다
   const sit=(kind,s,name,role)=>PEOPLE.spawn({kind,name,role,at:s,pose:'sit',seatY:.56});
-  const [maya,seojun,daniel,owen]=await Promise.all([sit('maya',sp.pilotL,'마야 첸','부선장 · 조종'),sit('seojun',sp.nav,'한서준','항법'),sit('manuel',sp.eng,'다니엘 로드리게스','기관'),
-    PEOPLE.spawn({kind:'guard',name:'오언 하트',role:'보안',at:sp.door})]);
+  const [maya,seojun,daniel,owen]=await Promise.all([sit('maya',sp.pilotL,'마야 첸','부선장 · 조종'),sit('seojun',sp.nav,'한서준','항법'),sit('daniel',sp.eng,'다니엘 로드리게스','기관'),
+    PEOPLE.spawn({kind:'owen',name:'오언 하트',role:'보안',at:sp.door})]);
   [maya,seojun,daniel].forEach(p=>p.watch=true);
   const MY=(t,fx)=>({who:'마야',t,npc:maya,fx}), SJ=(t,fx)=>({who:'서준',t,npc:seojun,fx}), DN=(t,fx)=>({who:'다니엘',t,npc:daniel,fx}), OW=t=>({who:'오언',t,npc:owen});
 
@@ -143,7 +143,7 @@ SCENES.bridge={title:'함교', async enter(){
   // 문 : 거주 구역으로
   const door=makeDoor(0,8.58,Math.PI,'중앙 통로 · 거주 구역');
   const dm=new THREE.Mesh(new THREE.BoxGeometry(2.1,2.7,.3),PICK); dm.position.set(0,1.35,8.4); WORLD.add(dm);
-  interact(dm,'문 · 중앙 통로 (거주 구역)',async()=>{ if(f.transit) return TALK.say([OW('지금은 함교를 비우시면 안 됩니다, 선장님.')]); await door.open(); await go('deck'); },{range:3.2});
+  interact(dm,'문 · 중앙 통로 (거주 구역)',async()=>{ if(f.transit) return TALK.say([OW('지금은 함교를 비우시면 안 됩니다, 선장님.')]); await door.enter(); await go('deck'); },{range:3.2});
 
   warp(LEVEL.spawn.x,LEVEL.spawn.z,LEVEL.spawn.yaw); stamp('하위헌스 2호 · 함교',away?'위치 미상':'목성 궤도 · 웜홀 진입 T−0:42');
   SHIPMAP.at('bridge'); AUDIO.hum(1,46); await fade(false,1400); S.phase='play';

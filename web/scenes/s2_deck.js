@@ -30,8 +30,8 @@ SCENES.deck={title:'거주 구역', async enter(){
   // 눈에 보이는 문을 벽면에 붙이고, 누르는 상자는 그 바로 앞에 둔다 (벽면은 충돌 칸에서 잰 자리 : 뒤 z 8.3 · 왼쪽 기둥 앞 x −5.05)
   const door=(x,z,rot,label,name,fn)=>{ const d=makeDoor(x,z,rot,label), m=new THREE.Mesh(new THREE.BoxGeometry(2.1,2.7,.3),PICK);
     m.position.set(x+Math.sin(rot)*.2,1.35,z+Math.cos(rot)*.2); m.rotation.y=rot; WORLD.add(m); interact(m,name,()=>fn(d),{range:3.2}); };
-  door(0,8.38,Math.PI,'동면 구역 C','문 · 동면 구역 C',()=>TALK.say([V('동면 구역 C는 비어 있습니다. 회복 중인 대원은 모두 이곳 의무실과 선실에 있습니다.')]));
-  door(-5.0,-5.6,Math.PI/2,'함교','문 · 함교',async d=>{ await d.open(); S.from='deck'; await go('bridge'); });
+  door(0,8.25,Math.PI,'동면 구역 C','문 · 동면 구역 C',()=>TALK.say([V('동면 구역 C는 비어 있습니다. 회복 중인 대원은 모두 이곳 의무실과 선실에 있습니다.')]));
+  door(-5.0,-5.6,Math.PI/2,'함교','문 · 함교',async d=>{ await d.enter(); S.from='deck'; await go('bridge'); });
 
   const fromBridge=S.from==='bridge'; S.from='';
   if(fromBridge&&sp.bridgedoor) warp(sp.bridgedoor.x+.6,sp.bridgedoor.z,-Math.PI/2); else warp(LEVEL.spawn.x,LEVEL.spawn.z,LEVEL.spawn.yaw);

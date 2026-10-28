@@ -13,12 +13,13 @@ const CREW=[
   {pod:'L5',id:'C-05',name:'한서준',role:'항법',kind:'seojun',line:['으… 머리야. 214일이요? 별 위치부터 다시 재야겠네요.','항법 컴퓨터가 잔 동안 쌓인 오차가 꽤 될 거예요.']},
   {pod:'L6',id:'C-06',name:'아이샤 칸',role:'생명 과학'},{pod:'L7',id:'C-07',name:'토마스 베어',role:'지질'},
   {pod:'R1',id:'C-08',name:'유키 사토',role:'대기 과학'},{pod:'R2',id:'C-09',name:'파블로 루이스',role:'로봇'},
-  {pod:'R3',id:'C-10',name:'다니엘 로드리게스',role:'기관',kind:'manuel',line:['엔진 소리… 좋아, 살아 있네.','선장님, 저는 기관실 점검부터 하고 함교로 갈게요.']},
-  {pod:'R4',id:'C-11',name:'오언 하트',role:'보안',kind:'guard',line:['오언 하트, 이상 없습니다.','…꿈을 꿨는데, 기억이 안 나네요.']},
+  {pod:'R3',id:'C-10',name:'다니엘 로드리게스',role:'기관',kind:'daniel',line:['엔진 소리… 좋아, 살아 있네.','선장님, 저는 기관실 점검부터 하고 함교로 갈게요.']},
+  {pod:'R4',id:'C-11',name:'오언 하트',role:'보안',kind:'owen',line:['오언 하트, 이상 없습니다.','…꿈을 꿨는데, 기억이 안 나네요.']},
   {pod:'R5',id:'C-12',name:'노라 페레스',role:'의무 보조'},{pod:'R6',id:'C-13',name:'이반 소콜로프',role:'기관 보조'},{pod:'R7',id:'C-14',name:'하은 박',role:'데이터'}];
 
 SCENES.cryo={title:'1장 · 깨어남', async enter(){
-  await LEVEL.load('cryo');
+  // 복도 세트의 문짝 둘 중 북쪽(관측창 앞) 것이 창 한가운데를 가린다 → 그 문짝만 지운다
+  await LEVEL.load('cryo',{prep:root=>cutTris(root,'base_door',c=>c.z<-7)});
   const f=S.flags, me=t=>({kind:'me',t}), V=t=>({who:'VEGA',kind:'vega',t});
   // 동면 캡슐 14기 : 모델 하나(pod · 열린 캡슐 pod_open)를 SPOT_pod_* 자리에 복제해 세운다 (모양 데이터는 함께 쓴다)
   const [pod,podOpen]=await Promise.all([loadGLB('pod'),loadGLB('pod_open')]);
@@ -102,10 +103,10 @@ SCENES.cryo={title:'1장 · 깨어남', async enter(){
     goal('함교로 간다 — 동면 구역 남쪽 문'); }
 
   // 남쪽 문 → 거주 구역
-  const door=makeDoor(0,8.3,Math.PI,'중앙 통로 · 거주 구역');
+  const door=makeDoor(0,8.3,Math.PI,'');       // 표지판은 맵에 이미 있다 (중앙 통로 · 거주 구역 · 함교)
   const dm=new THREE.Mesh(new THREE.BoxGeometry(2.1,2.7,.3),PICK); dm.position.set(0,1.35,8.12); WORLD.add(dm);
   interact(dm,'문 · 중앙 통로 (거주 구역 · 함교)',async()=>{ if(!f.allAwake){ await TALK.say([V(f.window?'대원 해동이 끝나기 전에는 동면 구역을 잠가 둡니다.':'선장님, 먼저 관측창을 확인해 주십시오.')]); return; }
-    await door.open(); await go('deck'); },{range:3.2});
+    await door.enter(); await go('deck'); },{range:3.2});
 
   // 관측창 : 창 앞 4.6 m 안에서 창 쪽(±45°)을 보거나, 창을 누르면 (카메라를 억지로 돌리지 않고, 시야만 살짝 모은다)
   const sw=LEVEL.spots.window;

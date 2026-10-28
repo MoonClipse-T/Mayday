@@ -40,7 +40,8 @@ renders/              Blender 렌더
 걸어 다니는 맵(회의실 · 동면실 · 거주 구역 · 함교)은 **보이는 메시 전부**를 가로 10 cm · 세로 5 cm 칸으로 채워 충돌을 만든다. 의자 · 탁자 · 캡슐 · 벽 · 유리 · 사람에 다 부딪힌다.
 발 위 0.38 m 까지의 턱은 그냥 올라서고, 점프(0.66 m)하면 1 m 안팎의 책상 위에도 올라선다. 장면이 나중에 세우는 소품(캡슐 등)은 `LEVEL.solids.push(물체)` 로 넣는다. 확인용 `?nosolid` 끄기.
 그래서 손으로 둔 `COL_` · `COLC_` 상자는 이제 쓰지 않는다(보이지 않는 벽이 생겨서). 컷신 맵은 `LEVEL.load(key,{solid:false})`.
-문은 `makeDoor(x,z,rot,'표시판 글')` 로 벽면에 세운다 (문틀 · 빛 띠 · 열리는 문짝).
+문은 `makeDoor(x,z,rot,'표시판 글')` 로 벽면에 세운다 (문틀 · 빛 띠 · 열리는 문짝 · 문틀 안에만 보이는 통로). `door.enter()` = 열고 걸어 들어가며 어두워짐.
+Blender 의 `fog_volume`(안개 부피 상자)은 웹에서 회색 벽이 되므로 엔진이 뺀다. 한 메시에 묶인 소품 일부를 빼려면 `cutTris(root,재질,조건)`.
 
 ## 맵 만드는 규칙 (Blender 이름 → 엔진, 루나랜드와 같은 규칙)
 `COL_` · `COLC_`(옛 손 충돌 — 걷는 맵에서는 무시) · `FLOOR_`(바닥 높이) · `LIGHT_`(점광원, 속성 color · i · d) · `SPAWN`(시작) · `SPOT_<id>`(사람 · 목적지 · 캡슐 자리, 방향 포함) · `IT_<id>`(조사 대상).
@@ -56,7 +57,7 @@ renders/              Blender 렌더
 ## 출처
 - 회의실: [Meeting room](https://sketchfab.com/3d-models/meeting-room-3fd65e8b05da4b9a94d287ae3f676fd1) by Titank · 인물: Renderpeople [Eric](https://sketchfab.com/3d-models/eric-rigged-001-rigged-3d-business-man-a46bc9f67aaa415bb4f3241eef900e7f) · [Carla](https://sketchfab.com/3d-models/carla-rigged-001-rigged-3d-business-women-acf520f450d14dd799f98a6fede3edf5) · [Claudia](https://sketchfab.com/3d-models/claudia-rigged-002-3d-rigged-business-women-c659bd0accab47c6bbe390cf822a2b92) — CC BY 4.0 (작가는 `assets/sketchfab/*/CREDIT.txt`)
 - 우주선: [Sci-fi corridor](https://sketchfab.com/3d-models/sci-fi-corridor-5e6240c9b30145b0bf81fd02287985e3) by 3dhdscan · [Stasis / Clone Chamber](https://sketchfab.com/3d-models/stasis-clone-chamber-with-animations-8738f78ae4ec4630ac35a4783303ea95) by TampaJoey — CC BY 4.0
-- 마야 · 한서준: Tripo Studio 로 직접 생성 (`assets/tripo/` 원본 → `web/assets/person_maya · person_seojun.glb`, 텍스처 1024)
+- 마야 · 한서준 · 다니엘 · 오언: Tripo Studio 로 직접 생성 (`assets/tripo/` 원본 → `web/assets/person_<이름>.glb`, 텍스처 1024)
 - 인물 추가: Renderpeople [Nathan](https://sketchfab.com/3d-models/nathan-animated-003-walking-3d-man-143a2b1ea5eb4385ae90a73657aca3bc) · [Sophia](https://sketchfab.com/3d-models/sophia-animated-003-animated-3d-woman-dc448c3be0e74f96a55fb475a13433cf) · [Manuel](https://sketchfab.com/3d-models/manuel-animated-001-3d-dancing-man-e65e0fef4e0743868c8d5bff36d61116) · [Security Guard](https://sketchfab.com/3d-models/security-guard-rigged-3d-model-1e3307732bbf4453b30f021bfec5bcaf) by Q.SARDOR — CC BY 4.0
 - 함교 소품: [Sci-Fi Pilot Seat](https://sketchfab.com/3d-models/sci-fi-pilot-seat-52770448cb1149319d1d39ca5c254330) · [Hologram Table](https://sketchfab.com/3d-models/hologram-table-ab0c01198e314786a2c26b152b6cee51) · [Sci Fi Wall Bridge With Monitor](https://sketchfab.com/3d-models/sci-fi-wall-bridge-with-monitor-8875469bba4d47ea855b5d289ed135bb) — CC BY 4.0 (작가는 각 CREDIT.txt)
 - 발사 · 외부: [Space Center Realistic Launch Facility](https://sketchfab.com/3d-models/space-center-realistic-launch-facility-4c87468c552243ec815251b7cb24bc04) by Nikoleta.Zhecheva · [Deep Space Science / Survey Vessel](https://sketchfab.com/3d-models/deep-space-science-survey-vessel-psx-lo-fi-925a09ef43fe4675acd0a935d61dcd43) by Vaportrash — CC BY 4.0 · 지구 지도: Solar System Scope (CC BY 4.0)

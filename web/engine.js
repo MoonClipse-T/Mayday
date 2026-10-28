@@ -209,6 +209,7 @@ const LEVEL={key:null,root:null,spawn:{x:0,z:0,yaw:0},spots:{},items:{},lights:[
       if(/^LIGHT_/.test(n)){ const u=o.userData, l=new THREE.PointLight(new THREE.Color(u.color||'#ffe2c0'),u.i||1,u.d||10,1.6); o.getWorldPosition(l.position); WORLD.add(l); this.lights.push(l); return; }
       if(n==='SPAWN'||/^SPOT_/.test(n)){ o.getWorldPosition(v); o.getWorldQuaternion(q); e.setFromQuaternion(q,'YXZ'); const p={x:v.x,y:v.y,z:v.z,yaw:e.y};
         if(n==='SPAWN') this.spawn=p; else this.spots[n.slice(5)]=p; return; }
+      if(/^fog_volume/i.test(n)){ kill.push(o); return; }       // Blender 안개 부피 상자 : 웹에서는 회색 벽이 되고 길을 막는다
       if(/^IT_/.test(n)){ this.items[n.slice(3)]=o; dequant(o); }
       if(o.isMesh) (Array.isArray(o.material)?o.material:[o.material]).forEach(m=>{ if(/^baked_/i.test(m.name)) o.material=new THREE.MeshBasicMaterial({map:m.map,name:m.name}); });
     });
@@ -240,6 +241,12 @@ function mergeStatic(root){ const made=[]; if(/[?&]nomerge/.test(location.search
       vo+=n; o.parent.remove(o); });
     const geo=new THREE.BufferGeometry(); names.forEach(nn=>geo.setAttribute(nn,new THREE.BufferAttribute(out[nn],g0.attributes[nn].itemSize))); geo.setIndex(new THREE.BufferAttribute(idx,1)); geo.computeBoundingSphere();
     const m=new THREE.Mesh(geo,list[0].material); WORLD.add(m); made.push(m); }); return made; }
+// 재질이 matName 인 메시에서 drop(삼각형 가운데 월드 좌표) 이 참인 삼각형을 지운다 (한 메시에 묶인 소품 일부만 빼기)
+function cutTris(root,matName,drop){ root.updateMatrixWorld(true); const c=new THREE.Vector3(), v=new THREE.Vector3();
+  root.traverse(o=>{ if(!o.isMesh||o.material.name!==matName||!o.geometry.index) return; const g=o.geometry, p=g.attributes.position, idx=g.index, keep=[];
+    for(let t=0;t+2<idx.count;t+=3){ c.set(0,0,0); for(let k=0;k<3;k++){ const i=idx.getX(t+k); c.add(v.set(qv(p,i,0),qv(p,i,1),qv(p,i,2)).applyMatrix4(o.matrixWorld)); }
+      if(!drop(c.divideScalar(3))) keep.push(idx.getX(t),idx.getX(t+1),idx.getX(t+2)); }
+    g.setIndex(keep); }); }
 // 압축(quantize)된 GLB 는 r128 레이캐스트가 빗나간다 → 조사 대상(IT_)만 좌표를 풀어 둔다 (루나랜드 dequant)
 function dequant(o){ o.traverse(m=>{ const a=m.geometry&&m.geometry.attributes.position; if(!a||!a.normalized) return;
   const k=NQ[a.array.constructor.name]||1, f=new Float32Array(a.count*3); for(let i=0;i<a.count;i++){ f[i*3]=Math.max(a.getX(i)/k,-1); f[i*3+1]=Math.max(a.getY(i)/k,-1); f[i*3+2]=Math.max(a.getZ(i)/k,-1); }
@@ -263,11 +270,34 @@ function makeDoor(x,z,rot,label,{w=1.7,h=2.35,y=0}={}){ const g=new THREE.Group(
   // 표시판 (글씨는 캔버스)
   const c=document.createElement('canvas'); c.width=512; c.height=96; const x2=c.getContext('2d'); x2.fillStyle='#0b1218'; x2.fillRect(0,0,512,96);
   x2.fillStyle='#9fd8ff'; x2.font='600 44px "IBM Plex Sans KR","Malgun Gothic",sans-serif'; x2.textAlign='center'; x2.textBaseline='middle'; x2.fillText(label,256,50);
-  const sign=new THREE.Mesh(new THREE.PlaneGeometry(w,w*96/512),new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(c)})); sign.position.set(0,h+.16+w*48/512+.04,.05); g.add(sign);
+  if(label){ const sign=new THREE.Mesh(new THREE.PlaneGeometry(w,w*96/512),new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(c)})); sign.position.set(0,h+.16+w*48/512+.04,.05); g.add(sign); }      // label '' : 맵에 표지판이 이미 있으면 뺀다
   const lamp=new THREE.PointLight(0x9fd8ff,.45,2.6,2); lamp.position.set(0,h+.3,.6); g.add(lamp);
+  // 문 너머 통로 : 문은 벽 앞에 세운 것이라 뒤는 벽이다. 문틀 안쪽만 스텐실로 뚫고(깊이를 맨 뒤로 되돌림) 그 자리에만 통로를 그린다
+  const ref=makeDoor.n=(makeDoor.n||0)%250+1;
+  // ① 보이는 문틀 안쪽에 표시(스텐실)만 남기고 ② 그 자리의 깊이를 맨 뒤로 되돌린다 (z = w : 정점에서) → ③ 통로는 표시된 곳에만 그린다
+  const holeG=new THREE.PlaneGeometry(w,h);
+  const hole=new THREE.Mesh(holeG,new THREE.MeshBasicMaterial({colorWrite:false,depthWrite:false,stencilWrite:true,stencilRef:ref,stencilFunc:THREE.AlwaysStencilFunc,stencilZPass:THREE.ReplaceStencilOp}));
+  const far=new THREE.Mesh(holeG,new THREE.ShaderMaterial({colorWrite:false,depthFunc:THREE.AlwaysDepth,stencilWrite:true,stencilRef:ref,stencilFunc:THREE.EqualStencilFunc,
+    vertexShader:'void main(){ gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); gl_Position.z=gl_Position.w*.99999; }',fragmentShader:'void main(){ gl_FragColor=vec4(0.0); }'}));
+  hole.position.set(0,h/2,.07); far.position.copy(hole.position); hole.renderOrder=10; far.renderOrder=10.5; g.add(hole,far);       // 문짝 바로 앞 (벽 기둥보다 앞) — 문짝은 통로 뒤에 다시 그린다
+  leaves.forEach(l=>l.traverse(m=>{ if(m.isMesh) m.renderOrder=12; }));
+  const paint=(f)=>{ const cv=document.createElement('canvas'); cv.width=256; cv.height=256; const x=cv.getContext('2d'); f(x); const t=new THREE.CanvasTexture(cv); t.encoding=THREE.sRGBEncoding; return t; };
+  const wallT=paint(x=>{ x.fillStyle='#3b4650'; x.fillRect(0,0,256,256); x.strokeStyle='#1d242b'; x.lineWidth=4; for(let i=0;i<=256;i+=43){ x.beginPath(); x.moveTo(i,0); x.lineTo(i,256); x.stroke(); }
+      x.fillStyle='#55626d'; x.fillRect(0,150,256,26); x.fillStyle='#7fd4ff'; x.fillRect(0,92,256,5); }),
+    ceilT=paint(x=>{ x.fillStyle='#2a333b'; x.fillRect(0,0,256,256); x.fillStyle='#f2fbff'; for(let i=8;i<256;i+=48) x.fillRect(104,i,48,26); }),
+    floorT=paint(x=>{ x.fillStyle='#2a3238'; x.fillRect(0,0,256,256); x.strokeStyle='#3b454d'; x.lineWidth=3; for(let i=0;i<=256;i+=16){ x.beginPath(); x.moveTo(0,i); x.lineTo(256,i); x.stroke(); }
+      x.fillStyle='#7fd4ff'; x.fillRect(0,0,6,256); x.fillRect(250,0,6,256); }),
+    endT=paint(x=>{ const gr=x.createRadialGradient(128,140,10,128,140,170); gr.addColorStop(0,'#cfe8f5'); gr.addColorStop(.5,'#4a5d6b'); gr.addColorStop(1,'#222b32'); x.fillStyle=gr; x.fillRect(0,0,256,256); });
+  const tm=t=>new THREE.MeshBasicMaterial({map:t,side:THREE.BackSide,stencilWrite:true,stencilRef:ref,stencilFunc:THREE.EqualStencilFunc,stencilFail:THREE.KeepStencilOp,stencilZFail:THREE.KeepStencilOp,stencilZPass:THREE.KeepStencilOp});
+  const L=7, tun=new THREE.Mesh(new THREE.BoxGeometry(w+.5,h+.4,L),[tm(wallT),tm(wallT),tm(ceilT),tm(floorT),tm(endT),tm(endT)]);
+  tun.position.set(0,(h+.4)/2-.02,-.08-L/2); tun.renderOrder=11; g.add(tun);
   WORLD.add(g); LEVEL.solids.push(g);
   g.open=()=>new Promise(res=>{ AUDIO.noise(.9,.2,0,900); AUDIO.tone(140,.5,'sawtooth',.05); let k=0; const fn=dt=>{ k=Math.min(1,k+dt/.8); const e=k*k*(3-2*k);
     leaves.forEach((l,i)=>l.position.x=(i?1:-1)*(w/4+e*(w/2-.06))); if(k>=1){ const i=TICK.indexOf(fn); if(i>=0) TICK.splice(i,1); res(); } }; TICK.push(fn); });
+  // 열고 걸어 들어간다 : 문 앞에 서서 통로 쪽을 보고 → 문이 열리면 안으로 걸으며 어두워진다 (다음 구역은 go 로)
+  g.enter=async()=>{ P.free=false; const fx=Math.sin(rot), fz=Math.cos(rot);
+    await camTo({x:x+fx*1.3,z:z+fz*1.3,yaw:yawTo(x,z),pitch:0},.6); await g.open();
+    await Promise.all([camTo({x:x-fx*1.6,z:z-fz*1.6},1.3),sleep(450).then(()=>fade(true,850))]); };
   return g; }
 
 /* ---------------- 메인 루프 ---------------- */
