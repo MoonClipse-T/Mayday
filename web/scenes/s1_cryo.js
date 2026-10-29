@@ -2,7 +2,7 @@
    1장 · 깨어남 — 하위헌스 2호 동면 구역 C (출발 214일째, 목성 궤도 진입 3시간 전) · 함선 안의 방 하나 (scenes/ship.js)
    맵 : web/assets/cryo.glb (blender/01_동면실.blend) — SPAWN · SPOT_window · SPOT_pod_L1~R7
    흐름 : 깨어남 → 관측창(목성 · 웜홀) → 캡슐 단말 하나로 대원 넷 동시 해동 (대원별 체온 · 심박 기록) → 넷이 캡슐에서 걸어 나와 함교로 → 뒷문 → 중앙 복도
-   승무원은 최정예 다섯 (크리스 + 넷) — 캡슐 14기 중 다섯만 쓴다. 넷은 캡슐 안에 서서 잠들어 있다 (유리 너머로 보인다)
+   승무원은 최정예 다섯 (크리스 + 넷) — 캡슐도 다섯. 캡슐은 벽을 따라 누워 있고(받침대 위) 넷은 그 안에 누워 잠들어 있다 (위 유리 너머로 보인다)
    창밖 : 실제 별지도 + 웜홀 렌즈 + 목성 (sky.js) · 창유리 : 얼룩 · 반사 · 경광등이 비친다
    ============================================================ */
 'use strict';
@@ -14,30 +14,40 @@ const CREW=[
   {pod:'R4',id:'C-11',name:'오언 하트',role:'보안',kind:'owen',line:['오언 하트, 이상 없습니다.','…꿈을 꿨는데, 기억이 안 나네요.']}];
 
 ROOMS.cryo=async R=>{ const f=S.flags, me=t=>({kind:'me',t}), V=t=>({who:'VEGA',kind:'vega',t}), X=R.X, sp=R.spots;
-  // 동면 캡슐 14기 : 모델 하나(pod · 열린 캡슐 pod_open)를 SPOT_pod_* 자리에 복제해 세운다. 모델 속 '복제 인간'은 숨긴다 (빈 캡슐)
+  // 동면 캡슐 다섯 : 모델 하나(pod · 열린 캡슐 pod_open, 높이 2.5 m)를 눕혀 받침대 위에 둔다 — 머리 쪽이 북(관측창), 유리가 위. 모델 속 '복제 인간'은 숨긴다
+  //   자리 : 왼쪽 줄 L3 · L4(크리스) · L5, 오른쪽 줄 R3 · R4 (맵의 SPOT_pod_* x 를 쓰고 z 는 누운 길이에 맞춰 다시 벌린다)
   const [pod,podOpen]=await Promise.all([loadGLB('pod'),loadGLB('pod_open')]);
-  const pods={}, PODY=.6;                     // 캡슐 안 발판 높이
-  const place=(src,s)=>{ const o=THREE.SkeletonUtils.clone(src); o.position.set(s.x,0,s.z); o.rotation.y=s.yaw;
+  const pods={}, PODY=.95, BEDY=.7, PODZ={L3:2.9,L4:0,L5:-2.9,R3:1.45,R4:-1.45};      // PODY : 누운 캡슐 축 높이 · BEDY : 누운 사람(등) 높이
+  const plinthM=new THREE.MeshStandardMaterial({color:0x1a1e23,metalness:.5,roughness:.55}), stripM=new THREE.MeshBasicMaterial({color:0x4fb8ff});
+  const plinth=s=>{ const g=new THREE.Group(), b=new THREE.Mesh(new THREE.BoxGeometry(.78,.44,2.2),plinthM), l=new THREE.Mesh(new THREE.BoxGeometry(.8,.02,2.0),stripM);
+    b.position.y=.22; l.position.y=.05; g.add(b,l); g.position.set(s.x,0,s.z); R.add(g); LEVEL.solids.push(g); return l; };
+  const place=(src,s)=>{ const o=THREE.SkeletonUtils.clone(src); o.position.set(s.x,PODY,s.z+1.25);
+    o.quaternion.setFromAxisAngle(new THREE.Vector3(0,0,1),Math.PI/2+(s.x-R.ox<0?-.3:.3)).multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0),-Math.PI/2));   // 눕히고 · 유리를 위로(통로 쪽으로 조금)
     o.traverse(m=>{ if(m.isMesh){ m.frustumCulled=false; if(/HumanBody/.test(m.material.name)) m.visible=false;
       // 캡슐 유리 : 모델 그대로면 거의 불투명하다 → 안에 선 대원이 보이게 옅게
       if(/glass/i.test(m.material.name)){ m.material=m.material.clone(); m.material.opacity=.22; m.material.emissiveIntensity=.12; m.material.depthWrite=false; } } }); R.add(o); LEVEL.solids.push(o); return o; };
   // 출발 직후(라운지 대화)에는 크리스와 다니엘의 캡슐이 아직 비어 열려 있다
   const openAtStart=SHIP.mode==='depart'?['pod_L4','pod_R3']:['pod_L4'];
-  Object.entries(sp).filter(([k])=>k.startsWith('pod_')).forEach(([k,s])=>{ pods[k.slice(4)]={s,o:place(openAtStart.includes(k)?podOpen:pod,s)}; });
+  Object.entries(PODZ).forEach(([k,z])=>{ const m=sp['pod_'+k], s={x:m?m.x:X(k[0]==='L'?-2.9:2.9),z,yaw:m?m.yaw:0}; pods[k]={s,o:place(openAtStart.includes('pod_'+k)?podOpen:pod,s),strip:plinth(s)}; });
   if(R.items.c07) R.items.c07.visible=false;
   // 정전 : 선체 세트의 자체 발광(천장 환기구 불빛)을 낮춘다
   R.objs.forEach(r=>r.traverse(o=>{ if(o.isMesh&&o.material&&/wall_albedo|base_ram|base_door/.test(o.material.name)) o.material.emissiveIntensity=.15; }));
   const pl=(c,i,d,x,y,z)=>{ const l=new THREE.PointLight(c,i,d,1.8); l.position.set(X(x),y,z); R.add(l); return l; };
   const red=[pl(0xff2a14,0,9,-3.1,3.6,3.5),pl(0xff2a14,0,9,3.1,3.6,-3.5)];
   // 캡슐 불빛 : 대원 캡슐마다 하나 (해동하면 푸른색 → 초록)
-  const podLight={}; CREW.filter(c=>!c.me).forEach(c=>{ const s=pods[c.pod].s; podLight[c.pod]=pl(0x4fb8ff,1.3,3.2,s.x-R.ox,1.6,s.z); });
+  const podLight={}; CREW.filter(c=>!c.me).forEach(c=>{ const s=pods[c.pod].s; podLight[c.pod]=pl(0x4fb8ff,1.3,3.2,s.x-R.ox,1.9,s.z); });
   pl(0xb8c8ff,1.2,10,0,2.2,-7.6);                              // 창빛
   let alarm=0; TICK.push(()=>{ alarm=Math.max(0,Math.sin(S.t*2.6))**6; red.forEach(l=>l.intensity=alarm*5*(f.allAwake?.0:1)); });
 
-  // 대원 넷 : 캡슐 안에 서서 잠들어 있다 (움직임 · 시선 멈춤) → 해동하면 걸어 나온다
+  // 대원 넷 : 캡슐 안에 반듯이 누워 잠들어 있다 (얼굴이 위 · 머리가 북쪽 · 움직임 · 시선 멈춤) → 해동하면 일어나 걸어 나온다
   const side=s=>s.x-R.ox<0?-1:1;            // 왼쪽 줄(−1)은 +x 쪽 통로를 본다
   await Promise.all(CREW.filter(c=>c.kind&&!(SHIP.mode==='depart'&&c.kind==='daniel')).map(async c=>{ const s=pods[c.pod].s;
-    c.p=await PEOPLE.spawn({kind:c.kind,name:c.name,role:c.role,at:{x:s.x,y:PODY,z:s.z,yaw:side(s)<0?-Math.PI/2:Math.PI/2}}); c.p.sleep=true; c.p.watch=false; c.p.solid=false; }));
+    c.p=await PEOPLE.spawn({kind:c.kind,name:c.name,role:c.role,at:{x:s.x,z:s.z,yaw:side(s)<0?-Math.PI/2:Math.PI/2}}); c.p.sleep=true; c.p.watch=false; c.p.solid=false;
+    c.stand=c.p.wrap.quaternion.clone(); c.p.wrap.rotation.set(-Math.PI/2,0,0); c.p.wrap.position.set(s.x,BEDY,s.z+.86); }));
+  // 일어나기 : 누운 자세 → 캡슐 옆에 선다 (증기 속에서 1.2 초)
+  const getUp=(c,to)=>new Promise(res=>{ const w=c.p.wrap, q0=w.quaternion.clone(), p0=w.position.clone(); let k=0;
+    const fn=dt=>{ k=Math.min(1,k+dt/1.2); const e=k*k*(3-2*k); w.quaternion.copy(q0).slerp(c.stand,e); w.position.lerpVectors(p0,to,e); w.position.y=lerp(p0.y,0,e)+Math.sin(e*Math.PI)*.25;
+      if(k>=1){ TICK.splice(TICK.indexOf(fn),1); res(); } }; TICK.push(fn); });
 
   /* ---- 창유리 : 보는 사람과 바깥 사이에 유리가 있다는 느낌 (얼룩 · 가장자리 서리 · 비스듬히 볼수록 반사 · 경광등이 비친다) ---- */
   const gl=R.root.getObjectByName('wf_glass')||null;
@@ -66,7 +76,7 @@ ROOMS.cryo=async R=>{ const f=S.flags, me=t=>({kind:'me',t}), V=t=>({who:'VEGA',
     const avgT=crew.reduce((a,c)=>a+c.temp,0)/crew.length, avgH=crew.reduce((a,c)=>a+c.hr,0)/crew.length;
     st.textContent='해동 중'; const t0=performance.now(), dur=4200;
     // 해동하는 동안 캡슐 불빛이 차례로 초록으로 바뀌고 증기가 오른다
-    crew.forEach((c,i)=>setTimeout(()=>{ steam(pods[c.pod].s); podLight[c.pod].color.set(0x6dffb0); AUDIO.noise(1.4,.12,0,5000,'highpass'); },300+i*dur/crew.length));
+    crew.forEach((c,i)=>setTimeout(()=>{ steam(pods[c.pod].s); podLight[c.pod].color.set(0x6dffb0); pods[c.pod].strip.material=new THREE.MeshBasicMaterial({color:0x6dffb0}); AUDIO.noise(1.4,.12,0,5000,'highpass'); },300+i*dur/crew.length));
     await new Promise(res=>{ const step=()=>{ const k=Math.min(1,(performance.now()-t0)/dur), e=1-Math.pow(1-k,2);
       tE.textContent=(31.2+(avgT-31.2)*e).toFixed(1); hE.textContent=Math.round(12+(avgH-12)*e); bar.style.width=(k*100)+'%';
       if(Math.random()<.12) AUDIO.tick(); k<1?requestAnimationFrame(step):res(); }; step(); });
@@ -76,7 +86,7 @@ ROOMS.cryo=async R=>{ const f=S.flags, me=t=>({kind:'me',t}), V=t=>({who:'VEGA',
     // 캡슐이 열리고 (유리가 걷힌다) 넷이 눈을 뜨고 통로로 걸어 나온다
     await sleep(1400);
     await Promise.all(crew.map(async (c,i)=>{ await sleep(i*350); const P0=pods[c.pod]; WORLD.remove(P0.o); P0.o=place(podOpen,P0.s); AUDIO.noise(.6,.1,0,2400);
-      c.p.sleep=false; c.p.watch=true; await PEOPLE.walk(c.p,[[P0.s.x-side(P0.s)*1.05,P0.s.z,0]],.7); c.p.solid=true;
+      c.p.sleep=false; await getUp(c,new THREE.Vector3(P0.s.x-side(P0.s)*1.05,0,P0.s.z)); c.p.watch=true; c.p.solid=true;
       PEOPLE.talkable(c.p,()=>TALK.say([{who:c.name.split(' ')[0],t:c.line[1],npc:c.p}])); }));
     await sleep(600); vit.classList.remove('on'); setTimeout(()=>lst.remove(),600);
     await TALK.say(crew.map(c=>({who:c.name.split(' ')[0],t:c.line[0],npc:c.p})));
@@ -89,7 +99,7 @@ ROOMS.cryo=async R=>{ const f=S.flags, me=t=>({kind:'me',t}), V=t=>({who:'VEGA',
     let life=0; const fn=dt=>{ life+=dt; for(let i=0;i<n;i++){ pos[i*3]+=vel[i][0]*dt; pos[i*3+1]+=vel[i][1]*dt; pos[i*3+2]+=vel[i][2]*dt; vel[i][0]*=.97; } geo.attributes.position.needsUpdate=true; m.opacity=.5*Math.max(0,1-life/2.6); m.size=.7+life*.5;
       if(life>2.6){ WORLD.remove(pts); const k=TICK.indexOf(fn); if(k>=0) TICK.splice(k,1); } }; TICK.push(fn); }
   // 캡슐 탭 판정 (보이지 않는 상자) — 대원 캡슐 넷
-  CREW.filter(c=>!c.me).forEach(c=>{ const s=pods[c.pod].s, b=new THREE.Mesh(new THREE.BoxGeometry(1.1,2,2),PICK); b.position.set(s.x,1,s.z); WORLD.add(b);
+  CREW.filter(c=>!c.me).forEach(c=>{ const s=pods[c.pod].s, b=new THREE.Mesh(new THREE.BoxGeometry(1.2,1.6,2.5),PICK); b.position.set(s.x,.8,s.z); WORLD.add(b);
     interact(b,c.id+' 캡슐 · '+c.name+' ('+c.role+') — 단말 : 전원 해동',()=>thawAll(),{range:3,enabled:()=>f.window&&!f.thawed}); });
 
   // 넷이 함교로 : 서준이 앞장서 뒷문을 열고, 복도를 따라 함교로 걸어간다 → 함교에 닿으면 자리에 앉아 있는 것으로 바꾼다

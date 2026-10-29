@@ -75,19 +75,23 @@ ROOMS.bridge=async R=>{
   const M_=[['solar','태양계'],['jupiter','목성 근처'],['galaxy','은하 지도']];
   btns.innerHTML=M_.map(([m,n])=>`<button data-m="${m}">${n}</button>`).join('');
   btns.querySelectorAll('button').forEach(b=>b.onclick=()=>{ HOLO.show(b.dataset.m); arSeen(b.dataset.m); });
+  // 진입 명령 : 항로를 확인하면 홀로그램 화면에 바로 뜬다 (함장석을 눌러도 같다)
+  let cmd=ui.querySelector('.cmd'); if(!cmd){ cmd=document.createElement('button'); cmd.className='cmd'; cmd.textContent='웜홀 진입 명령'; ui.insertBefore(cmd,ui.querySelector('.close')); }
+  const cmdShow=()=>cmd.classList.toggle('on',!away&&!!f.route&&!f.transit);
+  cmd.onclick=()=>{ if(away||!f.route||f.transit) return; AUDIO.beep(); transit(); };
   let inAR=false, back=null;
   async function openAR(first){ if(inAR) return; inAR=true; back={x:P.x,z:P.z,yaw:P.yaw,pitch:P.pitch}; P.free=false; HOLO.root.visible=true; HOLO.spin=.05;
     await camTo({x:hp.x,z:hp.z+1.75,yaw:Math.round(P.yaw/(Math.PI*2))*Math.PI*2,pitch:-.42,eye:2.05},1.2); P.look=true;
-    window.dragHook=(dx,dy)=>{ if(touches.size<2) HOLO.rot(dx*.009,dy*.006); }; window.pinchHook=k=>HOLO.zoom(k); ui.classList.add('on'); const m0=first||HOLO.mode||'solar'; HOLO.show(m0); arSeen(m0); goal(away?'AR 은하 지도 — 우리는 어디에 있나':'AR — 항로를 확인한 뒤 닫기'); }
+    window.dragHook=(dx,dy)=>{ if(touches.size<2) HOLO.rot(dx*.009,dy*.006); }; window.pinchHook=k=>HOLO.zoom(k); ui.classList.add('on'); cmdShow(); const m0=first||HOLO.mode||'solar'; HOLO.show(m0); arSeen(m0); goal(away?'AR 은하 지도 — 우리는 어디에 있나':'AR — 항로를 확인한 뒤 닫기'); }
   async function closeAR(){ if(!inAR) return; ui.classList.remove('on'); window.dragHook=null; HOLO.reset(); window.pinchHook=null; P.look=false; HOLO.spin=.12; await camTo({x:back.x,z:back.z,yaw:back.yaw,pitch:0,eye:1.66},.9); inAR=false; P.free=true;
-    if(!away&&f.route) goal('함장석에 앉아 웜홀 진입을 명령한다'); else if(!away) goal('홀로 테이블에서 웜홀까지의 항로를 확인한다'); }
+    if(!away&&f.route) goal('함장석에 앉아, 또는 홀로 테이블에서 웜홀 진입을 명령한다'); else if(!away) goal('홀로 테이블에서 웜홀까지의 항로를 확인한다'); }
   ui.querySelector('.close').onclick=()=>closeAR();
   const seen={};
   async function arSeen(m){ const k=(away?'a_':'h_')+m; if(seen[k]) return; seen[k]=true;      // 건너편에서는 같은 지도도 처음 보는 것으로
     if(!away&&m==='solar') await TALK.say([SJ('지금 우리 위치예요. 지구에서 214일, 목성 바로 옆.'),SJ('웜홀은 목성에서 41만 km. 지구–달 거리랑 거의 같아요.')]);
     if(!away&&m==='jupiter'){ await TALK.say([SJ('붉은 선이 진입 경로예요. 웜홀 바로 앞에서 목성 중력에 한 번 끌리니까 각도를 아주 정확히 맞춰야 해요.'),
       SJ('웜홀까지의 거리는 배경 별들의 시차로 쟀어요. 배가 움직이면 가까운 것일수록 별들 사이에서 많이 움직여 보이거든요.'),
-      MY('계산대로면 진입각은 문제없어요. 선장님 명령만 남았어요.')]); f.route=true; goal('AR 닫기 → 함장석에 앉아 웜홀 진입을 명령한다'); }
+      MY('계산대로면 진입각은 문제없어요. 선장님 명령만 남았어요.')]); f.route=true; cmdShow(); goal('홀로그램의 [웜홀 진입 명령] 또는 함장석에서 진입을 명령한다'); }
     if(!away&&m==='galaxy') await TALK.say([SJ('우리은하 지도예요. 태양계는 여기 — 중심에서 2만 6천 광년.'),SJ('웜홀 건너편, NGC 3500은 이 지도 밖이에요. 4억 광년도 넘게.')]);
     if(away&&m==='galaxy'&&!f.where){ f.where=true; await whereAreWe(); } }
   interact(it.holo,'AR 홀로 테이블 — 항법 홀로그램 열기',()=>openAR(away?'galaxy':'solar'),{range:3.4});
@@ -100,7 +104,7 @@ ROOMS.bridge=async R=>{
     await transit(); },{range:2.6});
 
   // 진입할 때 AR 이 열려 있으면 닫고, 테이블 위 홀로그램도 끈다 (흔들리는 함교에 떠 있으면 어색하다)
-  async function transit(){ f.transit=true; if(inAR) await closeAR(); HOLO.root.visible=false; P.free=false; goal(''); await camTo({x:cs.x,z:cs.z+.08,yaw:0,pitch:.02,eye:1.22},1.4); P.look=true;
+  async function transit(){ f.transit=true; cmdShow(); if(inAR) await closeAR(); HOLO.root.visible=false; P.free=false; goal(''); await camTo({x:cs.x,z:cs.z+.08,yaw:0,pitch:.02,eye:1.22},1.4); P.look=true;
     await TALK.say([MY('진입 궤도 고정. 엔진 출력 40%.'),SJ('웜홀 중심까지 오차 0.02초각. 이대로 가면 돼요.'),DN('선체 응력 올라갑니다. 다들 안전띠!'),
       V('모든 대원 고정 확인. 선장님의 명령을 기다립니다.'),me('…하위헌스 2호, 웜홀 진입.')]);
     P.look=false; const U0=SKY.U, R0=U0.R.value; let k=0, done=false; AUDIO.hum(1.6,34);
@@ -149,5 +153,5 @@ ROOMS.bridge=async R=>{
   R.onEnter=async()=>{ if(f.bridgeIn||!f.allAwake||SHIP.mode!=='wake') return; f.bridgeIn=true;
     await TALK.say([V('함교에 오신 것을 환영합니다, 선장님. 목성 궤도 진입 완료.'),MY('선장님! 창밖 보세요. 저기가 웜홀이에요.'),me('…가까이서 보니 더 크군.'),
       SJ('진입 전에 홀로 테이블에서 항로를 같이 확인해요. 가운데 테이블이에요.')]);
-    goal(f.route?'함장석에 앉아 웜홀 진입을 명령한다':'홀로 테이블에서 웜홀까지의 항로를 확인한다'); };
+    goal(f.route?'홀로 테이블 또는 함장석에서 웜홀 진입을 명령한다':'홀로 테이블에서 웜홀까지의 항로를 확인한다'); };
 };

@@ -136,9 +136,13 @@ body.at-title #shipmap,body.cine #shipmap{opacity:0}
 #holoui.on{opacity:1;pointer-events:auto}
 #holoui .hd{margin:0 10px 0 6px;font-family:var(--mono);font-size:11px;letter-spacing:.2em;color:var(--vega)}
 #holoui .btns{display:flex;gap:8px}
-#holoui button{min-height:52px;padding:0 18px;border:1px solid var(--hair);font-size:15px}
+#holoui button{min-height:52px;padding:0 18px;border:1px solid var(--hair);font-size:15px;white-space:nowrap;flex-shrink:0}
 #holoui button.on{border-color:var(--vega);color:var(--vega);background:rgba(159,216,255,.1)}
 #holoui .close{color:var(--mute)}
+#holoui .cmd{display:none;border-color:var(--alert);color:#fff;background:rgba(255,90,54,.18);font-weight:600;letter-spacing:.04em}
+#holoui{flex-wrap:wrap;justify-content:center;max-width:calc(100vw - 32px)}
+#holoui .cmd.on{display:block;order:-1;flex-basis:100%;min-height:56px;font-size:17px;animation:cmdpulse 1.6s ease-in-out infinite}
+@keyframes cmdpulse{50%{background:rgba(255,90,54,.34)}}
 body.talking #holoui.on{opacity:.35;pointer-events:none}
 @media (max-width:760px){ #vitals{width:240px} #holoui{flex-wrap:wrap;justify-content:center;width:calc(100vw - 32px)} }
 #vitals .list{margin-top:12px;border-top:1px solid var(--hair);padding-top:8px;columns:2;column-gap:14px;font-family:var(--sans);font-size:11px;color:var(--mute)}
