@@ -62,6 +62,12 @@ SCENES.ship={title:'하위헌스 2호', async enter(o={}){ const f=S.flags; SHIP
     if(z===SHIP.zone) return; SHIP.zone=z; stamp('하위헌스 2호 · '+SHIP.NAME[z],SHIP.when()); SHIPMAP.at(z);
     const r=SHIP.rooms[z]; if(r&&r.onEnter&&S.phase==='play') r.onEnter(); });
   TICK.push(()=>SHIPMAP.dot(P.x,P.z));
+  // 보이는 방만 그린다 : 지금 있는 방 · 복도 · 복도에서 열린(열리는) 문 너머 방 (함교에 있으면 나머지 다섯 방 — 삼각형 수십만 개 — 은 건너뛴다)
+  //   식당 문과 라운지 문은 복도를 사이에 두고 마주 본다 → 서로 보인다
+  const doorOf={bridge:['bridge'],deck:['deck'],cryo:['cryo'],lab:['lab','airlock'],lobby:['lobby'],engine:['engine']}, facing={deck:'lobby',lobby:'deck'};
+  const near=k=>doorOf[k].some(d=>{ const g=SHIP.doors[d]; return g&&(g.isOpen||Math.hypot(P.x-g.position.x,P.z-g.position.z)<4); });
+  TICK.push(()=>{ const z=SHIP.zoneAt(P.x,P.z), here=z==='airlock'?'lab':z;
+    for(const [k,r] of Object.entries(R)) r.root.parent.visible=k===here||((here==='hall'||facing[here]===k)&&near(k)); });
   AUDIO.hum(1,44); LOADING.hide();
   if(SHIP.mode==='depart') return LOUNGE.start(R.lobby);
   if(o.at&&o.at!=='cryo'){ Object.assign(f,{window:true,thawed:true,allAwake:true}); SHIP.crewOnBridge(); R.cryo.skipWake();

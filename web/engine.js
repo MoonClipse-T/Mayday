@@ -39,10 +39,11 @@ const AUDIO={ctx:null,
 /* ---------------- 렌더러 ---------------- */
 const canvas=$('#c');
 const renderer=new THREE.WebGLRenderer({canvas,antialias:!IS_TOUCH,powerPreference:'high-performance'});
-// 태블릿(디벗) : 그래픽 메모리를 줄인다 — GLB 속 그림을 1024 로 줄여서 푼다 (루나랜드 v36 에서 확인한 방법) · 확인용 ?lite
-const LITE=IS_TOUCH||/[?&]lite/.test(location.search);
+// 태블릿(디벗) : 그래픽 메모리를 줄인다 — GLB 속 그림을 한 변 TEXCAP 까지만 (작은 그림은 키우지 않는다 · 예전엔 512 를 1024 로 키워 메모리를 4 배 썼다) · 확인용 ?lite
+const LITE=IS_TOUCH||/[?&]lite/.test(location.search), TEXCAP=1024;
 if(LITE&&typeof createImageBitmap!=='undefined'){ const cib=createImageBitmap.bind(window);
-  window.createImageBitmap=(src,...a)=>src instanceof Blob&&a.length<=1?cib(src,Object.assign({},a[0],{resizeWidth:1024,resizeHeight:1024,resizeQuality:'medium'})):cib(src,...a); }
+  window.createImageBitmap=(src,...a)=>!(src instanceof Blob)||a.length>1?cib(src,...a):cib(src,a[0]).then(bm=>{ const s=TEXCAP/Math.max(bm.width,bm.height); if(s>=1) return bm;
+    return cib(bm,{resizeWidth:Math.round(bm.width*s),resizeHeight:Math.round(bm.height*s),resizeQuality:'medium'}).finally(()=>bm.close()); }); }
 renderer.setPixelRatio(Math.min(devicePixelRatio,LITE?1:2)); renderer.outputEncoding=THREE.sRGBEncoding; renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=1.0;
 // 디벗(갤럭시 탭 · Mali) GPU 안전장치 : 반사광 계산이 넘쳐 화면이 하얗게 덮이는 문제 (루나랜드 safeShaders 그대로)
 (function safeShaders(){ const C=THREE.ShaderChunk, a='float D = D_GGX( alpha, dotNH );', r='return F * ( G * D );';
@@ -208,7 +209,7 @@ function tickCam(dt){ if(!camAnim) return; camAnim.t+=dt; const k=Math.min(1,cam
 function warp(x,z,yaw){ P.x=x; P.z=z; P.y=floorAt(x,z); P.vx=P.vz=0; if(yaw!==undefined) P.yaw=yaw; P.pitch=0; }
 
 /* ---------------- GLB ---------------- */
-const gltfLoader=new THREE.GLTFLoader(), GLB={};
+const gltfLoader=new THREE.GLTFLoader().setMeshoptDecoder(MeshoptDecoder), GLB={};   // GLB 는 meshopt 로 줄여 둔다 (tools/pack.mjs)
 async function loadGLB(key){ if(!GLB[key]) GLB[key]=fetch('web/assets/'+key+'.glb?v='+(window.V||'')).then(r=>{ if(!r.ok) throw new Error(key+'.glb '+r.status); return r.arrayBuffer(); });
   const buf=await GLB[key]; return new Promise((res,rej)=>gltfLoader.parse(buf,'',g=>{ g.scene.userData.animations=g.animations||[]; res(g.scene); },rej)); }
 // 받아만 두기 (풀지 않는다) : 회의 장면 동안 함선 파일을 내려받아 둔다
