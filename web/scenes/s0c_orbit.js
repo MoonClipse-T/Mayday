@@ -4,6 +4,7 @@
    ============================================================ */
 'use strict';
 SCENES.orbit={title:'궤도', async enter(){
+  SHIP.preload();
   LEVEL.clear(); const ship=await loadGLB('ship_ext'); WORLD.add(ship);
   await SKY.space({dir:[0,.3,-1],R:.0001,jupiter:false,sunDir:[1,.25,.3]});
   renderer.toneMappingExposure=1.05;

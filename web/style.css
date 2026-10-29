@@ -155,3 +155,23 @@ body.talking #holoui.on{opacity:.35;pointer-events:none}
 #quiz .msg{min-height:1.4em;margin:6px 0 12px;font-size:14px;color:var(--alert)}
 #quiz.ok .msg{color:var(--vega)}
 #quiz button{min-height:48px;padding:0 24px;border:1px solid var(--vega);color:#fff;font-family:var(--mono);letter-spacing:.2em;background:rgba(127,212,255,.12)}
+
+/* ---------- 불러오는 중 ---------- */
+#loading{position:fixed;left:50%;bottom:22vh;transform:translateX(-50%);z-index:36;width:min(360px,70vw);text-align:center;opacity:0;transition:opacity .5s;pointer-events:none}
+#loading.on{opacity:1}
+#loading .lb{margin:0 0 12px;font-family:var(--mono);font-size:12px;letter-spacing:.24em;color:var(--mute)}
+#loading .bar{height:1px;background:var(--hair)}
+#loading .bar i{display:block;height:1px;width:0;background:var(--vega);transition:width .4s var(--e);box-shadow:0 0 8px var(--vega)}
+#shipmap svg{width:250px}
+/* 퀴즈 식 : 거리 d(pc) = 1 ÷ [칸]″ — 분수로. 구하는 것(pc)은 왼쪽, 칸의 단위(″)는 칸 바로 옆 */
+#quiz .eq{gap:14px;font-size:24px;flex-wrap:nowrap;margin:4px 0 10px}
+#quiz .lhs{display:flex;align-items:baseline;gap:6px;font-family:var(--sans);font-size:20px;color:var(--mute)}
+#quiz .lhs b{font-family:var(--mono);font-size:28px;color:var(--ink);font-weight:500}
+#quiz .lhs small{font-family:var(--mono);font-size:15px;color:var(--vega);border:1px solid rgba(159,216,255,.45);border-radius:3px;padding:1px 6px}
+#quiz .op{color:var(--mute)}
+#quiz .frac{display:inline-flex;flex-direction:column;align-items:center}
+#quiz .num{font-size:26px;line-height:1.2;padding:0 0 4px}
+#quiz .den{display:flex;align-items:center;gap:4px;border-top:2px solid var(--ink);padding-top:8px}
+#quiz .den input{width:6.2em;text-align:right}
+#quiz .den em{font-style:normal;font-size:30px;color:var(--vega);line-height:1}
+#quiz .note{margin:0 0 4px;font-size:14px;color:var(--mute)} #quiz .note b{color:var(--vega);font-weight:600}

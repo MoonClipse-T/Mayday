@@ -3,3 +3,16 @@
 __pycache__/
 .DS_Store
 Thumbs.db
+
+# 받았지만 쓰지 않는 원본 (용량이 커서 올리지 않는다)
+assets/sketchfab/bridge_console/
+assets/sketchfab/bridge_star/
+assets/sketchfab/crew_male/
+assets/sketchfab/crew_woman_walk/
+assets/sketchfab/futuristic_room/
+assets/sketchfab/hallway_white/
+assets/sketchfab/sls_artemis2/
+assets/sketchfab/wall_console/
+assets/sketchfab/reactor_core/
+assets/sketchfab/scifi_meeting/
+blender/02_조종실.blend

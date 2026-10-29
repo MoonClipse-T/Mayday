@@ -26,20 +26,20 @@ const SKY=(()=>{ let mesh=null, jup=null, sun=null, mat=null; const U={sky:{valu
     mesh=new THREE.Mesh(new THREE.SphereGeometry(400,48,24),new THREE.MeshBasicMaterial({map:t,side:THREE.BackSide,depthWrite:false,fog:false,color:new THREE.Color(bright,bright,bright)}));
     mesh.rotation.y=turn; mesh.renderOrder=-1; scene.add(mesh); }
   // 우주 : 별지도 + 웜홀(방향 dir, 각 반지름 R) + 목성(방향 jdir, 각 크기 jsize)
-  async function space({dir=[0,0,-1],R=.12,jdir=[.6,-.1,-1],jsize=.35,sunDir=[1,.3,.4],srot=0,jupiter=true}={}){ clear(); await tex();
+  async function space({dir=[0,0,-1],R=.12,jdir=[.6,-.1,-1],jsize=.35,sunDir=[1,.3,.4],srot=0,jupiter=true,ptex='jupiter_map.jpg'}={}){ clear(); await tex();
     U.C.value.set(...dir).normalize(); U.R.value=R; U.srot.value=srot; U.tun.value=0;
     mat=new THREE.ShaderMaterial({uniforms:U,depthWrite:false,side:THREE.BackSide,
       vertexShader:'varying vec3 vD; void main(){ vec4 w=modelMatrix*vec4(position,1.0); vD=w.xyz-cameraPosition; gl_Position=projectionMatrix*viewMatrix*w; }',
       fragmentShader:'varying vec3 vD;'+LENS+' void main(){ gl_FragColor=vec4(lens(normalize(vD)),1.0); }'});
     mesh=new THREE.Mesh(new THREE.SphereGeometry(900,48,24),mat); mesh.renderOrder=-2; mesh.frustumCulled=false; scene.add(mesh);
-    if(!jupiter){ sun=new THREE.DirectionalLight(0xfff4e6,.6); sun.position.set(...sunDir).multiplyScalar(1000); scene.add(sun); return; }
-    const jt=await loadTex('jupiter_map.jpg'), d=new THREE.Vector3(...jdir).normalize(), dist=700, r=Math.tan(jsize/2)*dist;
+    if(!jupiter){ sun=new THREE.DirectionalLight(0xfff4e6,.6); sun.position.set(...sunDir).multiplyScalar(1000); scene.add(sun); if(SKYMASK.on) SKYMASK.set(true); return; }
+    const PT=SKY._pt||(SKY._pt={}), jt=await (PT[ptex]||(PT[ptex]=loadTex(ptex))), d=new THREE.Vector3(...jdir).normalize(), dist=700, r=Math.tan(jsize/2)*dist;
     jup=new THREE.Mesh(new THREE.SphereGeometry(r,64,32),new THREE.MeshStandardMaterial({map:jt,roughness:1,metalness:0}));
     jup.userData.dir=d; jup.userData.dist=dist; jup.rotation.z=.05; scene.add(jup);
-    sun=new THREE.DirectionalLight(0xfff4e6,2.2); sun.position.set(...sunDir).multiplyScalar(1000); sun.target=jup; scene.add(sun); }
+    sun=new THREE.DirectionalLight(0xfff4e6,2.2); sun.position.set(...sunDir).multiplyScalar(1000); sun.target=jup; scene.add(sun); if(SKYMASK.on) SKYMASK.set(true); }
   function tick(dt){ U.t.value+=dt; if(mesh&&mat) mesh.position.copy(camera.position);
     if(jup){ jup.position.copy(camera.position).addScaledVector(jup.userData.dir,jup.userData.dist); jup.rotation.y+=dt*.01; } }
-  return {city,space,clear,tick,tex,U,get jup(){ return jup; }};
+  return {city,space,clear,tick,tex,U,get jup(){ return jup; },mats:()=>[mesh&&mesh.material,jup&&jup.material].filter(Boolean)};
 })();
 // 회의실 화면용 : 웜홀을 렌더 타깃에 그린다 (같은 렌즈 계산, 평면 화면이라 시선은 화면 좌표로)
 const WH={ rt:null, sc:null, cam:null, U:null,

@@ -6,6 +6,7 @@
    ============================================================ */
 'use strict';
 SCENES.meeting={title:'프롤로그 · 브리핑룸', async enter(){
+  prefetch(SHIP.list().map(l=>l[0]));      // 회의 동안 함선 파일을 받아 둔다 (풀기는 발사 때)
   await LEVEL.load('meeting'); await SKY.city(-1.1,.9); renderer.toneMappingExposure=1;
   // 방은 조명이 구워져 있고, 사람만 빛을 받는다
   WORLD.add(new THREE.HemisphereLight(0xfff6ea,0x2a2a30,1.05));

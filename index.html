@@ -10,7 +10,7 @@
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+KR:wght@300;400;600&display=swap" rel="stylesheet">
 <script>
 // 고칠 때마다 V 를 올린다 → 디벗 브라우저가 옛 파일을 쓰지 않는다 (화면 디자인 · 맵 .glb 도 같은 번호로 받는다)
-window.V=/[?&]dev/.test(location.search)?String(Date.now()):'11';
+window.V=/[?&]dev/.test(location.search)?String(Date.now()):'12';
 document.write('<link rel="stylesheet" href="web/style.css?v='+V+'">');
 </script>
 </head>
@@ -66,6 +66,8 @@ document.write('<link rel="stylesheet" href="web/style.css?v='+V+'">');
 <div id="holoui"><p class="hd">AR 항법 홀로그램 · 끌어서 돌리기 · 두 손가락(휠)으로 확대</p><div class="btns"></div><button class="close">닫기</button></div>
 
 <div id="fade" class="on"></div>
+<!-- 불러오는 중 (검은 화면 위 진행 줄) -->
+<div id="loading" aria-live="polite"><p class="lb">선내 시스템 동기화</p><div class="bar"><i></i></div></div>
 
 <!-- 시작 화면 -->
 <div id="title">
@@ -79,7 +81,7 @@ document.write('<link rel="stylesheet" href="web/style.css?v='+V+'">');
 
 <script>
 ['vendor/three.r128.min.js','vendor/GLTFLoader.js','vendor/SkeletonUtils.js','engine.js','people.js','sky.js','screens.js','holo.js',
- 'scenes/s0_meeting.js','scenes/s0b_launch.js','scenes/s0c_orbit.js','scenes/ship.js','scenes/s1_cryo.js','scenes/s2_deck.js','scenes/s2b_lounge.js','scenes/s3_bridge.js','main.js']
+ 'scenes/s0_meeting.js','scenes/s0b_launch.js','scenes/s0c_orbit.js','scenes/ship.js','scenes/s1_cryo.js','scenes/s2_deck.js','scenes/s2b_lounge.js','scenes/s3_bridge.js','scenes/s4_rooms.js','main.js']
  .reduce((p,f)=>p.then(()=>new Promise((res,rej)=>{ const s=document.createElement('script'); s.src='web/'+f+'?v='+V; s.onload=res; s.onerror=()=>rej(new Error(f)); document.body.appendChild(s); })),Promise.resolve())
  .catch(e=>{ document.getElementById('start').textContent='불러오기 실패 — '+e.message; });
 </script>

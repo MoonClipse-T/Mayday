@@ -5,6 +5,7 @@
    ============================================================ */
 'use strict';
 SCENES.launch={title:'발사', async enter(){
+  SHIP.preload();                 // 함선(방 여섯 · 복도)을 컷신 동안 미리 풀어 둔다 → 출발 뒤 라운지가 바로 뜬다
   await LEVEL.load('launch',{solid:false}); SKY.clear();
   // 새벽 하늘 : 지평선은 주황, 위로 갈수록 남색 (구 안쪽에 그린다)
   const sky=new THREE.Mesh(new THREE.SphereGeometry(1600,32,16),new THREE.ShaderMaterial({side:THREE.BackSide,depthWrite:false,

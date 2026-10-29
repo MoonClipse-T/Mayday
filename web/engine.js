@@ -64,31 +64,51 @@ function floorAt(x,z){ let y=0; for(const f of FLOORS){ if(x>f.x1&&x<f.x2&&z>f.z
 
 /* ---------------- 몸 충돌 (복셀) ----------------
    맵에 보이는 메시를 가로 10 cm · 세로 5 cm 칸으로 채워 둔다 → 의자 · 탁자 · 벽 · 캡슐 어디에나 부딪힌다
-   몸은 발(P.y) ~ 머리(P.y+BODY). 발 위 STEP 까지의 턱은 그냥 올라서고, 점프하면 더 높은 것도 올라선다 · ?nosolid 끄기 */
+   몸은 발(P.y) ~ 머리(P.y+BODY). 발 위 STEP 까지의 턱은 그냥 올라서고, 점프하면 더 높은 것도 올라선다 · ?nosolid 끄기
+   ★ 칸 채우기는 일꾼(Web Worker)이 화면 뒤에서 한다 — 화면이 멈추지 않는다.
+     맵 묶음마다 한 번만 계산해 두고(SOLID.extract → 칸 목록 캐시), 다시 들어가면 그 목록을 찍기만 한다.
+     장면이 LEVEL.solids 에 넣은 것(캡슐 · 가구)만 매번 새로 계산한다 */
 const BODY=1.75, STEP=.38, GRAV=13, JUMP=4.3;
-const SOLID={g:null,c:.1,cy:.05,
-  reset(box){ this.g=null; if(/[?&]nosolid/.test(location.search)) return; const c=this.c, cy=this.cy;
-    this.x0=box.min.x-c; this.y0=box.min.y-cy; this.z0=box.min.z-c;
-    this.nx=Math.ceil((box.max.x-box.min.x)/c)+3; this.ny=Math.ceil((box.max.y-box.min.y)/cy)+3; this.nz=Math.ceil((box.max.z-box.min.z)/c)+3;
-    if(this.nx*this.ny*this.nz>24e6) return console.warn('SOLID : 맵이 너무 커서 끈다'); this.g=new Uint8Array(this.nx*this.ny*this.nz); },
-  // 물체 하나를 칸에 새긴다 : 삼각형마다 칸보다 촘촘한 점을 찍는다 (뼈대 메시는 기본 자세 그대로)
-  add(obj){ if(!this.g) return; obj.updateMatrixWorld(true); const a=new THREE.Vector3(), b=new THREE.Vector3(), d=new THREE.Vector3(), s=this.c*.7;
-    obj.traverseVisible(o=>{ if(!o.isMesh||o.material===PICK) return; const pos=o.geometry.attributes.position; if(!pos) return; const idx=o.geometry.index, mw=o.matrixWorld;
-      const V=i=>new THREE.Vector3(qv(pos,i,0),qv(pos,i,1),qv(pos,i,2)).applyMatrix4(mw), n=idx?idx.count:pos.count;
-      for(let t=0;t+2<n;t+=3){ const A=V(idx?idx.getX(t):t), B=V(idx?idx.getX(t+1):t+1), C=V(idx?idx.getX(t+2):t+2);
-        if(a.subVectors(B,A).cross(b.subVectors(C,A)).lengthSq()<1e-8) continue;      // 넓이 0 인 삼각형(자르다 남은 선) : 보이지 않는데 막는다
-        const k=Math.max(1,Math.ceil(Math.max(A.distanceTo(B),B.distanceTo(C),C.distanceTo(A))/s)); a.subVectors(B,A).divideScalar(k); b.subVectors(C,A).divideScalar(k);
-        for(let u=0;u<=k;u++) for(let v=0;v<=k-u;v++){ d.copy(A).addScaledVector(a,u).addScaledVector(b,v); this.mark(d.x,d.y,d.z); } } }); },
-  want:false, build(){ this.want=false; const t0=performance.now(), box=new THREE.Box3(); LEVEL.solids.forEach(o=>box.expandByObject(o)); this.reset(box); LEVEL.solids.forEach(o=>this.add(o));
-    console.log('SOLID',LEVEL.key,Math.round(performance.now()-t0)+' ms'); },
-  mark(x,y,z){ const i=Math.floor((x-this.x0)/this.c), j=Math.floor((y-this.y0)/this.cy), k=Math.floor((z-this.z0)/this.c);
-    if(i>=0&&j>=0&&k>=0&&i<this.nx&&j<this.ny&&k<this.nz) this.g[(j*this.nz+k)*this.nx+i]=1; },
+const SOLID={g:null,c:.1,cy:.05,want:false,seq:0,
+  worker:null, jobs:new Map(), jid:0,
+  // 일꾼 : 메시들(정점 · 삼각형 · 행렬)을 받아 막힌 칸 번호 (i,j,k)를 돌려준다 (세계 격자 : 원점 0, 칸 c · cy)
+  run(meshes){ if(!this.worker){ const src=`onmessage=e=>{ const {id,meshes,c,cy}=e.data, seen=new Set(), out=[]; const s=c*.7;
+      const A=[0,0,0],B=[0,0,0],C=[0,0,0];
+      const tf=(m,p,i,o)=>{ const x=p[i*3],y=p[i*3+1],z=p[i*3+2]; o[0]=m[0]*x+m[4]*y+m[8]*z+m[12]; o[1]=m[1]*x+m[5]*y+m[9]*z+m[13]; o[2]=m[2]*x+m[6]*y+m[10]*z+m[14]; };
+      const mark=(x,y,z)=>{ const i=Math.floor(x/c), j=Math.floor(y/cy), k=Math.floor(z/c), key=(i+4096)*16777216+(j+2048)*8192+(k+4096); if(!seen.has(key)){ seen.add(key); out.push(i,j,k); } };
+      for(const {pos,idx,mat} of meshes){ const n=idx?idx.length:pos.length/3; for(const m of mat){
+        for(let t=0;t+2<n;t+=3){ tf(m,pos,idx?idx[t]:t,A); tf(m,pos,idx?idx[t+1]:t+1,B); tf(m,pos,idx?idx[t+2]:t+2,C);
+          const ux=B[0]-A[0],uy=B[1]-A[1],uz=B[2]-A[2], vx=C[0]-A[0],vy=C[1]-A[1],vz=C[2]-A[2];
+          const cx=uy*vz-uz*vy, cyy=uz*vx-ux*vz, cz=ux*vy-uy*vx; if(cx*cx+cyy*cyy+cz*cz<1e-8) continue;      // 넓이 0 삼각형 : 보이지 않는데 막는다
+          const L=Math.max(Math.hypot(ux,uy,uz),Math.hypot(vx,vy,vz),Math.hypot(C[0]-B[0],C[1]-B[1],C[2]-B[2])), k=Math.max(1,Math.ceil(L/s));
+          for(let u=0;u<=k;u++) for(let v=0;v<=k-u;v++){ const a=u/k,b=v/k; mark(A[0]+ux*a+vx*b,A[1]+uy*a+vy*b,A[2]+uz*a+vz*b); } } } }
+      const r=new Int32Array(out); postMessage({id,cells:r},[r.buffer]); };`;
+      this.worker=new Worker(URL.createObjectURL(new Blob([src],{type:'text/javascript'}))); this.worker.onmessage=e=>{ const j=this.jobs.get(e.data.id); this.jobs.delete(e.data.id); j&&j(e.data.cells); }; }
+    return new Promise(res=>{ const id=++this.jid; this.jobs.set(id,res); this.worker.postMessage({id,meshes,c:this.c,cy:this.cy}); }); },
+  // 물체들의 보이는 메시 → 일꾼에게 보낼 꾸러미 (같은 모양은 한 번만, 행렬만 여러 개)
+  pack(objs){ const byGeo=new Map(); objs.forEach(obj=>{ obj.updateMatrixWorld(true); obj.traverseVisible(o=>{ if(!o.isMesh||o.material===PICK) return; const g=o.geometry, pa=g.attributes.position; if(!pa) return;
+      let e=byGeo.get(g); if(!e){ const n=pa.count, pos=new Float32Array(n*3); for(let i=0;i<n;i++){ pos[i*3]=qv(pa,i,0); pos[i*3+1]=qv(pa,i,1); pos[i*3+2]=qv(pa,i,2); }
+        e={pos,idx:g.index?Uint32Array.from(g.index.array):null,mat:[]}; byGeo.set(g,e); } e.mat.push(Array.from(o.matrixWorld.elements)); }); }); return [...byGeo.values()]; },
+  // 맵 묶음의 칸 목록 (캐시) — LEVEL.build 가 부른다
+  extract(objs){ if(/[?&]nosolid/.test(location.search)) return Promise.resolve(new Int32Array(0)); return this.run(this.pack(objs)); },
+  // 지금 세계의 격자를 만든다 : 묶음들의 칸(캐시) + 장면이 넣은 것(새로 계산)
+  async build(){ this.want=false; const my=++this.seq, t0=performance.now(); if(/[?&]nosolid/.test(location.search)){ this.g=null; return; }
+    const stat=await Promise.all(LEVEL.solidTris.map(b=>b.tris)); const dyn=LEVEL.solids.filter(o=>!o.userData.static&&o.parent);
+    const dynCells=dyn.length?await this.run(this.pack(dyn)):new Int32Array(0); if(my!==this.seq) return;
+    // 몸 · 점프가 닿는 높이(4.2 m)까지만 · 한 칸 = 1 비트 (함선 전체 75 × 36 m 도 몇 MB)
+    const JMAX=Math.floor(4.2/this.cy); let lo=[1e9,1e9,1e9], hi=[-1e9,-1e9,-1e9];
+    for(const a of [...stat,dynCells]) for(let t=0;t<a.length;t+=3){ if(a[t+1]>JMAX) continue; for(let d=0;d<3;d++){ const v=a[t+d]; if(v<lo[d]) lo[d]=v; if(v>hi[d]) hi[d]=v; } }
+    if(lo[0]>hi[0]){ this.g=null; return; }
+    const nx=hi[0]-lo[0]+3, ny=hi[1]-lo[1]+3, nz=hi[2]-lo[2]+3; if(nx*ny*nz>400e6) return console.warn('SOLID : 맵이 너무 커서 끈다');
+    const g=new Uint32Array(Math.ceil(nx*ny*nz/32)), i0=lo[0]-1, j0=lo[1]-1, k0=lo[2]-1;
+    for(const a of [...stat,dynCells]) for(let t=0;t<a.length;t+=3){ if(a[t+1]>JMAX) continue; const i=((a[t+1]-j0)*nz+(a[t+2]-k0))*nx+(a[t]-i0); g[i>>>5]|=1<<(i&31); }
+    Object.assign(this,{g,nx,ny,nz,x0:i0*this.c,y0:j0*this.cy,z0:k0*this.c}); console.log('SOLID',Math.round(performance.now()-t0)+' ms',stat.length+' 묶음'); },
   // 둘레 r 안 · 높이 y1~y2 에 막힌 칸이 있나
   hit(x,z,y1,y2,r){ if(!this.g) return false; const c=this.c, rr=(r+c*.35)**2;
     const i1=Math.max(0,Math.floor((x-r-this.x0)/c)), i2=Math.min(this.nx-1,Math.floor((x+r-this.x0)/c)), k1=Math.max(0,Math.floor((z-r-this.z0)/c)), k2=Math.min(this.nz-1,Math.floor((z+r-this.z0)/c));
     const j1=Math.max(0,Math.floor((y1-this.y0)/this.cy)), j2=Math.min(this.ny-1,Math.floor((y2-this.y0)/this.cy));
     for(let k=k1;k<=k2;k++) for(let i=i1;i<=i2;i++){ const dx=this.x0+(i+.5)*c-x, dz=this.z0+(k+.5)*c-z; if(dx*dx+dz*dz>rr) continue;
-      for(let j=j1;j<=j2;j++) if(this.g[(j*this.nz+k)*this.nx+i]) return true; } return false; },
+      for(let j=j1;j<=j2;j++){ const n=(j*this.nz+k)*this.nx+i; if(this.g[n>>>5]>>>(n&31)&1) return true; } } return false; },
   // 발밑 : yMax 아래에서 가장 높은 막힌 칸의 윗면 (없으면 null)
   top(x,z,yMax,r){ if(!this.g) return null; for(let j=Math.min(this.ny-1,Math.floor((yMax-this.y0)/this.cy));j>=0;j--){ const y=this.y0+j*this.cy; if(this.hit(x,z,y+.001,y+.001,r)) return y+this.cy; } return null; },
 };
@@ -191,44 +211,98 @@ function warp(x,z,yaw){ P.x=x; P.z=z; P.y=floorAt(x,z); P.vx=P.vz=0; if(yaw!==un
 const gltfLoader=new THREE.GLTFLoader(), GLB={};
 async function loadGLB(key){ if(!GLB[key]) GLB[key]=fetch('web/assets/'+key+'.glb?v='+(window.V||'')).then(r=>{ if(!r.ok) throw new Error(key+'.glb '+r.status); return r.arrayBuffer(); });
   const buf=await GLB[key]; return new Promise((res,rej)=>gltfLoader.parse(buf,'',g=>{ g.scene.userData.animations=g.animations||[]; res(g.scene); },rej)); }
+// 받아만 두기 (풀지 않는다) : 회의 장면 동안 함선 파일을 내려받아 둔다
+function prefetch(keys){ keys.forEach(key=>{ if(!GLB[key]) GLB[key]=fetch('web/assets/'+key+'.glb?v='+(window.V||'')).then(r=>{ if(!r.ok) throw new Error(key+'.glb '+r.status); return r.arrayBuffer(); }); GLB[key].catch(()=>delete GLB[key]); }); }
 const texLoader=new THREE.TextureLoader();
 function loadTex(file){ return new Promise((res,rej)=>texLoader.load('web/assets/'+file+'?v='+(window.V||''),t=>{ t.encoding=THREE.sRGBEncoding; res(t); },undefined,rej)); }
 
 /* ---------------- 맵 (장면) ----------------
    LEVEL.load(key) : 앞 맵을 비우고 web/assets/<key>.glb 를 읽어 이름 규칙대로 충돌 · 자리 · 조사 대상을 만든다
-   재질 이름이 baked_ 로 시작하면 조명이 그림에 구워진 것 → 빛 계산 없이 그대로 보인다 (태블릿에서 가볍고 실사처럼) */
-const LEVEL={key:null,root:null,spawn:{x:0,z:0,yaw:0},spots:{},items:{},lights:[],
+   재질 이름이 baked_ 로 시작하면 조명이 그림에 구워진 것 → 빛 계산 없이 그대로 보인다 (태블릿에서 가볍고 실사처럼)
+   ★ 맵 하나는 한 번만 푼다 (LEVEL.build → 묶음 캐시) : 다시 들어갈 때는 붙이기만 한다 — 그림 · 모양이 이미 그래픽 메모리에 있어서 바로 뜬다
+     LEVEL.preload(keys) : 컷신 동안 미리 풀어 둔다 (함선) */
+const LEVEL={key:null,root:null,spawn:{x:0,z:0,yaw:0},spots:{},items:{},lights:[],cache:{},
   // solid : 보이는 메시로 몸 충돌을 만든다 (걸어 다니는 맵). 켜면 손으로 둔 COL_ · COLC_ 상자는 쓰지 않는다 (보이지 않는 벽이 생겨서)
-  // prep(root) : 이름 규칙을 읽기 전에 맵을 손볼 때 (예 : 거꾸로 내보낸 의자 돌리기)
+  // prep(root) : 이름 규칙을 읽기 전에 맵을 손볼 때 (예 : 거꾸로 내보낸 의자 돌리기) — 묶음을 처음 만들 때 한 번만
   async load(key,o={}){ this.clear(); const r=await this.add(key,o); Object.assign(this,{key,root:r.root,spawn:r.spawn,spots:r.spots,items:r.items}); return r; },
+  // build : 풀기 · 손보기 · 이름 규칙 읽기 · 배경 합치기까지 해서 묶음(group)으로 둔다. 세계에는 아직 붙이지 않는다
+  build(key,{prep,ox=0,oz=0}={}){ const ck=key+'@'+ox+','+oz; if(this.cache[ck]) return this.cache[ck];
+    return this.cache[ck]=(async()=>{ const root=await loadGLB(key), group=new THREE.Group(); group.name='LV_'+key; group.add(root); root.position.x=ox; root.position.z=oz; shareMats(root); if(prep) prep(root); root.updateMatrixWorld(true);
+      const b={key,ox,oz,group,root,spawn:{x:ox,z:oz,yaw:0},spots:{},items:{},lights:[],cols:[],circs:[],floors:[]};
+      const kill=[], bb=new THREE.Box3(), v=new THREE.Vector3(), q=new THREE.Quaternion(), e=new THREE.Euler();
+      root.traverse(o=>{ const n=o.name||'';
+        if(/^COLC_/.test(n)){ bb.setFromObject(o); b.circs.push({x:(bb.min.x+bb.max.x)/2,z:(bb.min.z+bb.max.z)/2,r:(bb.max.x-bb.min.x)/2}); kill.push(o); return; }
+        if(/^COL_/.test(n)){ bb.setFromObject(o); b.cols.push([bb.min.x,bb.min.z,bb.max.x,bb.max.z]); kill.push(o); return; }
+        if(/^FLOOR_/.test(n)){ bb.setFromObject(o); b.floors.push({x1:bb.min.x,x2:bb.max.x,z1:bb.min.z,z2:bb.max.z,y:bb.max.y}); kill.push(o); return; }
+        if(/^LIGHT_/.test(n)){ const u=o.userData; o.getWorldPosition(v); b.lights.push({c:u.color||'#ffe2c0',i:u.i||1,d:u.d||10,p:v.clone()}); return; }
+        if(n==='SPAWN'||/^SPOT_/.test(n)){ o.getWorldPosition(v); o.getWorldQuaternion(q); e.setFromQuaternion(q,'YXZ'); const p={x:v.x,y:v.y,z:v.z,yaw:e.y};
+          if(n==='SPAWN') b.spawn=p; else b.spots[n.slice(5)]=p; return; }
+        if(/^fog_volume/i.test(n)){ kill.push(o); return; }       // Blender 안개 부피 상자 : 웹에서는 회색 벽이 되고 길을 막는다
+        if(/^IT_/.test(n)){ b.items[n.slice(3)]=o; dequant(o); }
+        if(o.isMesh) (Array.isArray(o.material)?o.material:[o.material]).forEach(m=>{ if(/^baked_/i.test(m.name)) o.material=new THREE.MeshBasicMaterial({map:m.map,name:m.name}); });
+      });
+      kill.forEach(o=>o.parent&&o.parent.remove(o));
+      delete GLB[key];                               // 풀어 둔 묶음이 있으니 내려받은 파일(메모리)은 놓는다
+      b.merged=mergeStatic(root,group); [root,...b.merged].forEach(o=>o.userData.static=ck);
+      b.tris=SOLID.extract([root,...b.merged]);     // 몸 충돌 칸 목록 (일꾼이 화면 뒤에서) — 한 번만
+      return b; })(); },
+  preload(list){ return Promise.all(list.map(([k,o])=>this.build(k,o).catch(e=>console.warn('preload',k,e)))); },
   // add : 지금 세계를 지우지 않고 맵 하나를 더 올린다 (우주선 방들을 한 공간에) · ox = 세계에서 x 로 옮긴 만큼
   //   → 방 r = {key, ox, root, spawn, spots, items(세계 좌표), objs(그 방의 보이는 것들 — 숨기기 · 재질 바꾸기용), add(o)}
-  async add(key,{solid=true,prep,ox=0}={}){
-    const root=await loadGLB(key); root.position.x=ox; WORLD.add(root); if(prep) prep(root); root.updateMatrixWorld(true);
-    const r={key,ox,root,spawn:{x:ox,z:0,yaw:0},spots:{},items:{},objs:[root],add(o){ WORLD.add(o); this.objs.push(o); return o; }};
-    const kill=[], bb=new THREE.Box3(), v=new THREE.Vector3(), q=new THREE.Quaternion(), e=new THREE.Euler();
-    root.traverse(o=>{ const n=o.name||'';
-      if(/^COLC_/.test(n)){ bb.setFromObject(o); if(!solid) CIRC.push({x:(bb.min.x+bb.max.x)/2,z:(bb.min.z+bb.max.z)/2,r:(bb.max.x-bb.min.x)/2}); kill.push(o); return; }
-      if(/^COL_/.test(n)){ bb.setFromObject(o); if(!solid) addBox(bb.min.x,bb.min.z,bb.max.x,bb.max.z); kill.push(o); return; }
-      if(/^FLOOR_/.test(n)){ bb.setFromObject(o); FLOORS.push({x1:bb.min.x,x2:bb.max.x,z1:bb.min.z,z2:bb.max.z,y:bb.max.y}); kill.push(o); return; }
-      if(/^LIGHT_/.test(n)){ const u=o.userData, l=new THREE.PointLight(new THREE.Color(u.color||'#ffe2c0'),u.i||1,u.d||10,1.6); o.getWorldPosition(l.position); r.add(l); this.lights.push(l); return; }
-      if(n==='SPAWN'||/^SPOT_/.test(n)){ o.getWorldPosition(v); o.getWorldQuaternion(q); e.setFromQuaternion(q,'YXZ'); const p={x:v.x,y:v.y,z:v.z,yaw:e.y};
-        if(n==='SPAWN') r.spawn=p; else r.spots[n.slice(5)]=p; return; }
-      if(/^fog_volume/i.test(n)){ kill.push(o); return; }       // Blender 안개 부피 상자 : 웹에서는 회색 벽이 되고 길을 막는다
-      if(/^IT_/.test(n)){ r.items[n.slice(3)]=o; dequant(o); }
-      if(o.isMesh) (Array.isArray(o.material)?o.material:[o.material]).forEach(m=>{ if(/^baked_/i.test(m.name)) o.material=new THREE.MeshBasicMaterial({map:m.map,name:m.name}); });
-    });
-    kill.forEach(o=>o.parent&&o.parent.remove(o));
-    // 충돌 칸은 장면 준비가 끝나고 걷기 시작할 때 만든다 (그 사이 숨긴 것은 빠지고, 장면이 LEVEL.solids 에 넣은 캡슐 · 가구는 들어간다)
-    const merged=mergeStatic(root); r.objs.push(...merged); if(solid){ this.solids.push(root,...merged); SOLID.want=true; } return r; },
-  solids:[],
-  clear(){ SOLID.g=null; SOLID.want=false; this.solids=[]; WORLD.clear(); COL.length=CIRC.length=FLOORS.length=INTER.length=TICK.length=0; this.spots={}; this.items={}; this.lights=[]; hot=null;
+  async add(key,{solid=true,prep,ox=0,oz=0}={}){ const b=await this.build(key,{prep,ox,oz}); WORLD.add(b.group);
+    const r={key,ox,oz,root:b.root,spawn:b.spawn,spots:b.spots,items:b.items,objs:[b.root,...b.merged],add(o){ WORLD.add(o); this.objs.push(o); return o; }};
+    b.lights.forEach(d=>{ const l=new THREE.PointLight(new THREE.Color(d.c),d.i,d.d,1.6); l.position.copy(d.p); r.add(l); this.lights.push(l); });
+    FLOORS.push(...b.floors); if(!solid){ b.cols.forEach(c=>addBox(...c)); CIRC.push(...b.circs); }
+    if(solid){ this.solids.push(b.root,...b.merged); this.solidTris.push(b); SOLID.want=true; } return r; },
+  solids:[], solidTris:[],
+  clear(){ SOLID.g=null; SOLID.want=false; this.solids=[]; this.solidTris=[]; LIGHTPOOL.stop(); if(SKYMASK.on) SKYMASK.set(false); WORLD.clear(); COL.length=CIRC.length=FLOORS.length=INTER.length=TICK.length=0; this.spots={}; this.items={}; this.lights=[]; hot=null;
     if(typeof PEOPLE!=='undefined') PEOPLE.clear(); if(typeof SKY!=='undefined') SKY.clear(); },
+  // 컷신 동안 : 묶음을 따로 만든 장면에 잠깐 올려 그림 · 모양 · 셰이더를 미리 준비한다 (함선과 같은 빛 구성 → 셰이더를 그대로 다시 쓴다)
+  async warmBundles(keys){ const sc=new THREE.Scene(); sc.add(new THREE.HemisphereLight(0xffffff,0x000000,.3)); const d=new THREE.DirectionalLight(0xffffff,1); sc.add(d);
+    for(let i=0;i<LIGHTPOOL.n;i++){ const l=new THREE.PointLight(0xffffff,1,5,1.8); sc.add(l); }
+    const cam=new THREE.PerspectiveCamera(70,1,.05,2000), rt=new THREE.WebGLRenderTarget(32,32);
+    for(const ck of keys){ const b=await this.cache[ck]; if(!b||b.warm||b.group.parent) continue; b.warm=true; const off=[];
+      sc.add(b.group); b.group.traverse(o=>{ if(o.isMesh&&o.frustumCulled){ o.frustumCulled=false; off.push(o); } });
+      const prev=renderer.getRenderTarget(); renderer.setRenderTarget(rt); try{ renderer.compile(sc,cam); renderer.render(sc,cam); }catch(e){ console.warn(e); } renderer.setRenderTarget(prev);
+      off.forEach(o=>o.frustumCulled=true); sc.remove(b.group); await new Promise(r=>{ let d=0; const f=()=>{ if(!d){ d=1; setTimeout(r,30); } }; requestAnimationFrame(f); setTimeout(f,120); }); }
+    rt.dispose(); },
+  // 그림 · 모양을 그래픽 메모리에 미리 올린다 (검은 화면 뒤에서) — 처음 보일 때 멈칫하지 않게
+  warm(){ const rt=new THREE.WebGLRenderTarget(64,64), off=[]; WORLD.traverse(o=>{ if(o.isMesh&&o.frustumCulled){ o.frustumCulled=false; off.push(o); } });
+    const prev=renderer.getRenderTarget(); renderer.setRenderTarget(rt); try{ renderer.compile(scene,camera); renderer.render(scene,camera); }catch(e){ console.warn(e); }
+    renderer.setRenderTarget(prev); off.forEach(o=>o.frustumCulled=true); rt.dispose(); },
 };
+/* 방마다 같은 선체 키트가 따로 들어 있다 → 같은 이름의 키트 재질은 하나만 쓴다 (그림을 그래픽 메모리에 한 번만 올린다) */
+const MATS={}, SHARED_MAT=/^(wall_albedo|base_ram_albedo|base_door|podlaha_albedo|Text_hangar|M_)/;
+function shareMats(root){ root.traverse(o=>{ if(!o.isMesh||Array.isArray(o.material)) return; const m=o.material, k=m.name+'|'+m.type; if(!SHARED_MAT.test(m.name)) return;
+  if(MATS[k]&&MATS[k]!==m){ o.material=MATS[k]; ['map','normalMap','roughnessMap','metalnessMap','emissiveMap','aoMap'].forEach(t=>{ if(m[t]&&m[t]!==MATS[k][t]) m[t].dispose(); }); } else MATS[k]=m; }); }
+/* 빛 묶음 : 함선 안의 점광원은 수십 개 — 태블릿은 빛 하나하나를 모든 화면 점에서 계산한다.
+   진짜 빛은 LIGHTPOOL.n 개만 두고, 맵 · 장면이 만든 빛(보이지 않게 바꾼다)의 색 · 세기 · 자리를 가까운 순으로 옮겨 담는다 (개수가 그대로라 셰이더를 다시 만들지 않는다) */
+const LIGHTPOOL={on:false,n:LITE?6:10,pool:[],acc:0,vl:[],
+  start(){ if(!this.pool.length) for(let i=0;i<this.n;i++){ const l=new THREE.PointLight(0xffffff,0,1,1.8); l.userData.pool=true; scene.add(l); this.pool.push(l); }
+    this.on=true; this.scan(); },
+  stop(){ this.on=false; this.pool.forEach(l=>l.intensity=0); this.vl=[]; },
+  scan(){ WORLD.traverse(o=>{ if(o.isPointLight&&!o.userData.virt){ o.userData.virt=true; o.visible=false; this.vl.push(o); } }); this.vl=this.vl.filter(l=>{ for(let p=l;p;p=p.parent) if(p===WORLD) return true; return false; }); },
+  tick(dt){ if(!this.on) return; this.acc+=dt; if(this.acc>.5){ this.acc=0; this.scan(); }
+    const c=camera.position, w=new THREE.Vector3(), cand=[];
+    for(const l of this.vl){ if(l.intensity<=0) continue; l.getWorldPosition(w); const d=w.distanceTo(c), reach=(l.distance||12)+2.5; if(d>reach) continue; cand.push([l.intensity*(1-d/reach)*(1+(l.distance||12)/8),l,w.clone()]); }
+    cand.sort((a,b)=>b[0]-a[0]);      // 이 자리를 실제로 밝히는 정도가 큰 순 (큰 방의 큰 빛이 작은 문등에 밀리지 않게)
+    this.pool.forEach((p,i)=>{ const e=cand[i]; if(!e){ p.intensity=lerp(p.intensity,0,.3); return; } const [,l,pos]=e; p.position.copy(pos); p.color.copy(l.color); p.distance=l.distance; p.decay=l.decay; p.intensity=l.intensity; }); } };
+/* 별은 창유리로만 : 창(wf_glass…) 모양으로 표시(스텐실)를 남기고, 하늘은 그 표시 안에만 그린다 → 벽 · 천장 틈으로는 우주가 보이지 않는다 */
+const SKYMASK={meshes:[],on:false,
+  set(on){ this.on=on; (SKY.mats?SKY.mats():[]).forEach(m=>{ m.stencilWrite=on; m.stencilRef=7; m.stencilFunc=on?THREE.EqualStencilFunc:THREE.AlwaysStencilFunc; m.stencilFail=m.stencilZFail=m.stencilZPass=THREE.KeepStencilOp; m.needsUpdate=true; });
+    scene.background=new THREE.Color(on?0x07090c:0x020304); },
+  build(){ this.meshes=[]; const mat=new THREE.MeshBasicMaterial({colorWrite:false,depthWrite:false,depthTest:false,stencilWrite:true,stencilRef:7,stencilFunc:THREE.AlwaysStencilFunc,stencilZPass:THREE.ReplaceStencilOp,side:THREE.DoubleSide});
+    WORLD.updateMatrixWorld(true); const found=[]; WORLD.traverse(o=>{ if(o.isMesh&&!o.userData.mask&&(/^wf_glass/.test(o.name)||(o.material&&o.material.name==='M_glass'))) found.push(o); });
+    found.forEach(o=>{ const m=new THREE.Mesh(o.geometry,mat); m.userData.mask=true; o.matrixWorld.decompose(m.position,m.quaternion,m.scale); m.renderOrder=-10; m.frustumCulled=false; WORLD.add(m); this.meshes.push(m); });
+    this.set(true); return found.length; } };
+/* 불러오는 동안 : 검은 화면 아래에 가는 진행 줄 (0.6 초 넘게 걸릴 때만) */
+const LOADING={el:null,t:0,show(label){ clearTimeout(this.t); this.t=setTimeout(()=>{ const e=$('#loading'); if(!e) return; e.querySelector('.lb').textContent=label||'선내 시스템 동기화'; e.classList.add('on'); },600); },
+  set(k){ const e=$('#loading'); if(e) e.querySelector('i').style.width=Math.round(k*100)+'%'; },
+  hide(){ clearTimeout(this.t); const e=$('#loading'); if(e) e.classList.remove('on'); } };
 /* 배경 합치기 (루나랜드 mergeStatic) : 움직이지 않는 메시를 같은 재질끼리 하나로 — 그리기 횟수만 줄고 모양은 그대로. IT_ · 투명 · 뼈대 메시는 빼고 · ?nomerge 끄기 */
 const NQ={Int8Array:127,Uint8Array:255,Int16Array:32767,Uint16Array:65535};
 function qv(a,i,c){ let v=c===0?a.getX(i):c===1?a.getY(i):c===2?a.getZ(i):a.getW(i); if(a.normalized){ const k=NQ[(a.isInterleavedBufferAttribute?a.data.array:a.array).constructor.name]; if(k) v=Math.max(v/k,-1); } return v; }
-function mergeStatic(root){ const made=[]; if(/[?&]nomerge/.test(location.search)) return made; const groups=new Map(), v=new THREE.Vector3(), nv=new THREE.Vector3(), nm=new THREE.Matrix3();
+function mergeStatic(root,parent=WORLD){ const made=[]; if(/[?&]nomerge/.test(location.search)) return made; const groups=new Map(), v=new THREE.Vector3(), nv=new THREE.Vector3(), nm=new THREE.Matrix3();
   root.updateMatrixWorld(true);
   root.traverse(o=>{ if(!o.isMesh||o.isSkinnedMesh||Array.isArray(o.material)||!o.visible) return; for(let p=o;p;p=p.parent) if(/^(IT_|ANIM_)/.test(p.name)) return;
     const g=o.geometry, m=o.material; if(!g.attributes.position||m.transparent||g.attributes.tangent||Object.keys(g.morphAttributes||{}).length) return;
@@ -245,7 +319,7 @@ function mergeStatic(root){ const made=[]; if(/[?&]nomerge/.test(location.search
       if(g.index){ const ia=g.index; for(let t=0;t+2<ia.count;t+=3) tri(ia.getX(t),ia.getX(t+1),ia.getX(t+2)); } else for(let t=0;t+2<n;t+=3) tri(t,t+1,t+2);
       vo+=n; o.parent.remove(o); });
     const geo=new THREE.BufferGeometry(); names.forEach(nn=>geo.setAttribute(nn,new THREE.BufferAttribute(out[nn],g0.attributes[nn].itemSize))); geo.setIndex(new THREE.BufferAttribute(idx,1)); geo.computeBoundingSphere();
-    const m=new THREE.Mesh(geo,list[0].material); WORLD.add(m); made.push(m); }); return made; }
+    const m=new THREE.Mesh(geo,list[0].material); parent.add(m); made.push(m); }); return made; }
 // 재질이 matName 인 메시에서 drop(삼각형 가운데 월드 좌표) 이 참인 삼각형을 지운다 (한 메시에 묶인 소품 일부만 빼기)
 function cutTris(root,matName,drop){ root.updateMatrixWorld(true); const c=new THREE.Vector3(), v=new THREE.Vector3();
   root.traverse(o=>{ if(!o.isMesh||o.material.name!==matName||!o.geometry.index) return; const g=o.geometry, p=g.attributes.position, idx=g.index, keep=[];
@@ -313,7 +387,7 @@ function makeDoor(x,z,rot,label,{w=1.7,h=2.35,y=0,back='',tunnel=true,room=null}
 /* ---------------- 메인 루프 ---------------- */
 let last=performance.now();
 function frame(now){ requestAnimationFrame(frame); const dt=Math.min(.1,(now-last)/1000); last=now; S.t+=dt;
-  tickCam(dt); if(SOLID.want&&S.phase==='play') SOLID.build();
+  tickCam(dt); if(SOLID.want&&S.phase==='play') SOLID.build();      // 일꾼에게 맡기고 바로 돌아온다
   if(P.free&&!S.busy&&!camAnim&&S.phase==='play'){ let fx=0,fz=0; if(keys.KeyW||keys.ArrowUp) fz+=1; if(keys.KeyS||keys.ArrowDown) fz-=1; if(keys.KeyA||keys.ArrowLeft) fx-=1; if(keys.KeyD||keys.ArrowRight) fx+=1;
     if(stick.id!==null){ fx+=stick.dx; fz-=stick.dy; } const m=Math.hypot(fx,fz); if(m>1){ fx/=m; fz/=m; }
     const sp=P.speed*(keys.ShiftLeft||keys.ShiftRight||S.run?1.7:1), s=Math.sin(P.yaw), c=Math.cos(P.yaw);
@@ -330,19 +404,23 @@ function frame(now){ requestAnimationFrame(frame); const dt=Math.min(.1,(now-las
   camera.position.set(P.x,P.y+P.eye+Math.sin(P.bob||0)*(P.bobA||0),P.z); camera.rotation.order='YXZ'; camera.rotation.set(P.pitch,P.yaw,0);
   if(P.free&&!S.busy&&S.phase==='play'){ const it=pick(0,0); if(it!==hot){ hot=it; $('#label').textContent=it?it.name:''; $('#label').classList.toggle('on',!!it); $('#reticle').classList.toggle('hot',!!it); $('#act').classList.toggle('on',!!it); } }
   else if(hot){ hot=null; $('#label').classList.remove('on'); $('#reticle').classList.remove('hot'); $('#act').classList.remove('on'); }
-  TICK.forEach(f=>f(dt)); if(typeof PEOPLE!=='undefined') PEOPLE.tick(dt); if(typeof SKY!=='undefined') SKY.tick(dt); if(typeof SCREEN!=='undefined') SCREEN.tick(dt);
+  TICK.forEach(f=>f(dt)); LIGHTPOOL.tick(dt); if(typeof PEOPLE!=='undefined') PEOPLE.tick(dt); if(typeof SKY!=='undefined') SKY.tick(dt); if(typeof SCREEN!=='undefined') SCREEN.tick(dt);
   renderer.render(scene,camera); }
 
 /* 장면 등록 : SCENES.<key> = {title, async enter(){…}} — main.js 가 순서대로 부른다. 제작용 바로 가기 : 주소 ?s=<key> */
 const SCENES={};
 async function go(key){ S.phase='cut'; P.free=false; P.look=false; await fade(true); P.eye=1.66; camera.fov=70; camera.updateProjectionMatrix(); goal(''); window.dragHook=window.pinchHook=null; SHIPMAP.at(null); await SCENES[key].enter(); }
 
-/* 선내도 : 왼쪽 위 작은 배 그림 — 지금 있는 구역에 불이 들어온다 (우주선 안에서만) */
-const SHIPMAP={rooms:[['bridge','함교',8,40],['deck','거주 구역',56,58],['cryo','동면 C',122,40],['cryoAB','동면 A·B',170,40],['eng','기관',218,34]],
-  at(key){ const el=$('#shipmap'); if(!key){ el.classList.remove('on'); return; }
-    const r=this.rooms.map(([k,n,x,w])=>{ const on=k===key, lock=k==='cryoAB'||k==='eng';
-      return `<rect x="${x}" y="14" width="${w}" height="18" fill="${on?'rgba(255,90,54,.22)':'rgba(233,231,226,.04)'}" stroke="${on?'#ff5a36':'rgba(233,231,226,.35)'}" stroke-width="1"${lock?' stroke-dasharray="2 2"':''}/>`
-        +`<text x="${x+w/2}" y="46" fill="${on?'#ff5a36':'rgba(233,231,226,.55)'}" font-size="9" text-anchor="middle" font-family="IBM Plex Sans KR,sans-serif">${n}</text>`; }).join('');
-    el.innerHTML=`<svg viewBox="0 0 260 52" role="img"><text x="0" y="8" fill="rgba(233,231,226,.4)" font-size="7" font-family="IBM Plex Mono,monospace" letter-spacing="1.4">HUY-2 · DECK PLAN</text>`
-      +`<path d="M4 23 L8 14 M4 23 L8 32" stroke="rgba(233,231,226,.35)" fill="none"/><line x1="48" y1="23" x2="56" y2="23" stroke="rgba(233,231,226,.35)"/><line x1="114" y1="23" x2="122" y2="23" stroke="rgba(233,231,226,.35)"/><line x1="162" y1="23" x2="170" y2="23" stroke="rgba(233,231,226,.35)"/><line x1="210" y1="23" x2="218" y2="23" stroke="rgba(233,231,226,.35)"/>`+r+`</svg>`;
-    el.classList.add('on'); } };
+/* 선내도 : 왼쪽 위 — 배를 위에서 본 실제 배치 (세계 좌표 그대로 줄여 그린다) · 지금 구역에 불 · 내 자리 점 (우주선 안에서만) */
+const SHIPMAP={key:null, K:2.3, OX:7, OZ:9.5,
+  ROOMS:[['bridge','함교',-6.3,-8.85,6.3,8.7],['deck','식당',7.7,-8.85,20.3,8.7],['cryo','동면 C',22.7,-8.85,31.3,8.7],['lab','연구실',32,.5,46.2,8.7],['airlock','에어록',49.1,5.6,51.8,8.7],
+    ['hall','',-3.5,8.9,55.4,12.2],['lobby','라운지',10,12.45,31,27],['engine','기관실',55.5,-1.3,71.1,22]],
+  at(key){ const el=$('#shipmap'); if(!key){ el.classList.remove('on'); this.key=null; return; } if(key===this.key&&el.firstChild) return; this.key=key;
+    const k=this.K, X=x=>((x+this.OX)*k).toFixed(1), Z=z=>((z+this.OZ)*k).toFixed(1);
+    const r=this.ROOMS.map(([id,n,x1,z1,x2,z2])=>{ const on=id===key, hall=id==='hall';
+      return `<rect x="${X(x1)}" y="${Z(z1)}" width="${((x2-x1)*k).toFixed(1)}" height="${((z2-z1)*k).toFixed(1)}" fill="${on?'rgba(255,90,54,.2)':hall?'rgba(233,231,226,.08)':'rgba(233,231,226,.035)'}" stroke="${on?'#ff5a36':'rgba(233,231,226,.32)'}" stroke-width="${on?1.2:.8}"/>`
+        +(n?`<text x="${X((x1+x2)/2)}" y="${Z((z1+z2)/2)}" dy="3" fill="${on?'#ff5a36':'rgba(233,231,226,.6)'}" font-size="8.5" text-anchor="middle" font-family="IBM Plex Sans KR,sans-serif">${n}</text>`:''); }).join('');
+    el.innerHTML=`<svg viewBox="0 0 186 88" role="img" aria-label="선내도"><text x="0" y="6" fill="rgba(233,231,226,.4)" font-size="6.5" font-family="IBM Plex Mono,monospace" letter-spacing="1.4">HUY-2 · DECK PLAN</text>`
+      +`<text x="186" y="6" text-anchor="end" fill="rgba(233,231,226,.32)" font-size="6" font-family="IBM Plex Mono,monospace">▲ 뱃머리 창</text>`+r+`<circle id="smdot" r="2.2" fill="#9fd8ff"/></svg>`;
+    el.classList.add('on'); },
+  dot(x,z){ const d=document.getElementById('smdot'); if(d){ d.setAttribute('cx',((x+this.OX)*this.K).toFixed(1)); d.setAttribute('cy',((z+this.OZ)*this.K).toFixed(1)); } } };
