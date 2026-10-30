@@ -77,14 +77,23 @@ const PEOPLE=(()=>{
     list.push(p); return p; }
 
   const up=new THREE.Vector3(0,1,0);
+  // 사람끼리 겹치지 않게 (걷는 사람만 움직인다) : 같은 쪽으로 가는 앞사람이 가까우면 기다리고, 닿으면 밀어 낸다
+  const others=p=>list.filter(q=>q!==p&&!q.sleep&&q.wrap.visible&&q.wrap.parent);
+  function blocked(p,ux,uz){ const w=p.wrap.position;
+    return others(p).some(q=>{ const ox=q.wrap.position.x-w.x, oz=q.wrap.position.z-w.z, r=Math.hypot(ox,oz); if(r>.9||r<1e-4||(ox*ux+oz*uz)/r<.7) return false;
+      if(!q.path) return false; const [qx,qz]=q.path[0], qd=Math.hypot(qx-q.wrap.position.x,qz-q.wrap.position.z)||1;
+      return ((qx-q.wrap.position.x)*ux+(qz-q.wrap.position.z)*uz)/qd>0; }); }       // 마주 오는 사람은 기다리지 않는다 (서로 기다리면 멈춘다) → apart 가 비켜 준다
+  function apart(p){ const w=p.wrap.position; for(const q of others(p)){ const R=q.pose==='sit'?.6:.5, ox=w.x-q.wrap.position.x, oz=w.z-q.wrap.position.z, r=Math.hypot(ox,oz);
+    if(r>=R) continue; const k=q.path?(R-r)/2:R-r, nx=r>1e-4?ox/r:1, nz=r>1e-4?oz/r:0; w.x+=nx*k; w.z+=nz*k; if(q.path){ q.wrap.position.x-=nx*k; q.wrap.position.z-=nz*k; } } }
   function tick(dt){ for(const p of list){ const {B,wrap}=p; p.ph+=dt;
       p.base.forEach((q,b)=>b.quaternion.copy(q));
-      // 걷기 : 다음 점으로 몸을 돌리며 나간다
+      // 걷기 : 다음 점으로 몸을 돌리며 나간다 (그 점에 누가 서 있으면 가까이 온 것으로 친다)
       if(p.path&&p.path.length){ const [tx,tz,ty]=p.path[0], dx=tx-wrap.position.x, dz=tz-wrap.position.z, d=Math.hypot(dx,dz);
         if(ty!==undefined) wrap.position.y+=(ty-wrap.position.y)*Math.min(1,dt*5);      // 점에 높이가 있으면 (캡슐 바닥 → 복도 바닥)
-        if(d<.08){ p.path.shift(); if(!p.path.length){ p.path=null; p.done&&p.done(); } }
+        if(d<.08||(d<.5&&others(p).some(q=>Math.hypot(q.wrap.position.x-tx,q.wrap.position.z-tz)<.5))){ p.path.shift(); if(!p.path.length){ p.path=null; p.done&&p.done(); } }
         else { const want=Math.atan2(dx,dz); let df=want-wrap.rotation.y; df=Math.atan2(Math.sin(df),Math.cos(df)); wrap.rotation.y+=df*Math.min(1,dt*6);
-          const s=Math.min(d,p.speed*dt); wrap.position.x+=dx/d*s; wrap.position.z+=dz/d*s; } }
+          const s=blocked(p,dx/d,dz/d)?0:Math.min(d,p.speed*dt); wrap.position.x+=dx/d*s; wrap.position.z+=dz/d*s; }
+        apart(p); }
       // 서 있으면 idle, 걸으면 walk 로 부드럽게 바꾼다 (쉬는 동작이 없는 모델은 걸을 때만 움직인다)
       if(p.mixer&&!p.sleep){ p.mw+=((p.path?1:0)-p.mw)*Math.min(1,dt*5); if(p.walkA) p.walkA.setEffectiveWeight(p.mw); if(p.idleA) p.idleA.setEffectiveWeight(p.walkA?1-p.mw:1);
         if(p.idleA||p.mw>.01) p.mixer.update(dt); }

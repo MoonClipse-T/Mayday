@@ -179,3 +179,19 @@ body.talking #holoui.on{opacity:.35;pointer-events:none}
 #quiz .den input{width:6.2em;text-align:right}
 #quiz .den em{font-style:normal;font-size:30px;color:var(--vega);line-height:1}
 #quiz .note{margin:0 0 4px;font-size:14px;color:var(--mute)} #quiz .note b{color:var(--vega);font-weight:600}
+/* 계산기 퀴즈 (라운지) : 왼쪽 식 · 오른쪽 계산기. 칸은 계산기 [칸에 넣기]로만 채운다 */
+#quiz.calc{width:min(780px,calc(100vw - 32px));display:flex;gap:22px;align-items:stretch;padding:20px 22px}
+#quiz.calc .work{flex:1 1 300px;min-width:0}
+#quiz.calc .eq{flex-wrap:wrap;row-gap:10px}
+#quiz.calc .bx{width:7.4em;text-align:right;cursor:pointer;font-family:var(--mono)}
+#quiz.calc .bx.sel{border-color:var(--vega);box-shadow:0 0 0 1px var(--vega) inset}
+#quiz.calc .bx:disabled{opacity:.3;cursor:default}
+#quiz .pad{flex:0 0 252px;display:flex;flex-direction:column;gap:8px}
+#quiz .pad .ex{margin:0;min-height:18px;font-family:var(--mono);font-size:13px;color:var(--mute);text-align:right}
+#quiz .pad .dsp{margin:0;padding:8px 10px;font-family:var(--mono);font-size:22px;text-align:right;background:rgba(0,0,0,.4);border:1px solid var(--hair);overflow:hidden;white-space:nowrap}
+#quiz .keys{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+#quiz .keys button{min-height:48px;padding:0;font-family:var(--mono);font-size:19px;letter-spacing:0;border:1px solid var(--hair);background:rgba(233,231,226,.05)}
+#quiz .keys button[data-k="÷"],#quiz .keys button[data-k="×"],#quiz .keys button[data-k="−"],#quiz .keys button[data-k="+"]{color:var(--vega)}
+#quiz .keys .w2{grid-column:span 2} #quiz .keys .h2{grid-row:span 2;border-color:var(--vega);background:rgba(127,212,255,.12)}
+#quiz .pad .put{min-height:52px;letter-spacing:.06em;border-color:var(--alert);background:rgba(255,90,54,.16)}
+@media (max-width:700px){ #quiz.calc{flex-wrap:wrap;bottom:8px;max-height:calc(100vh - 16px);overflow:auto} #quiz .pad{flex:1 1 100%} }

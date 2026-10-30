@@ -73,39 +73,33 @@ const LOUNGE={P_DEG:11, P_SEC:39600,
       me('그려서 보여 줄게. 종이 좀.'),
       DN('여기요.')]);
     window.dragHook=()=>{}; P.look=false; SHIPMAP.at(null);
-    // 몸을 앞으로 숙여 종이를 본다 — 탁자 건너 다니엘도 보인다
-    await camTo({x:tbl.x,z:tbl.z-.65,yaw:Math.PI,pitch:-.47,eye:1.12},1.4);
-    await TALK.say([me('지구, 가까운 별, 그리고 그 뒤 아주 먼 별들(배경)을 그려 뒀어.')]);
-    toast('지구 · 별 · 배경으로 시차와 연주 시차를 그려서 설명해 보자',4200);
-    // ① 시차 : 1월 · 7월의 지구에서 별을 지나 배경까지 (선 둘, 순서 자유)
-    const seen={E1:false,E2:false};
-    await step('① 시차를 그려 보자','지구 → ★ → 배경 선. 지구 하나에 한 줄씩',s=>{ const a=s[0], b=s[s.length-1];
-        for(const [k,e] of [['E1',E1],['E2',E2]]){ if(seen[k]) continue; const st=near(a,e,90)?a:near(b,e,90)?b:null; if(!st) continue; const en=st===a?b:a;
-          if(passes(s,Star,75)&&en.y<WALL+110){ seen[k]=true; const hit=ext(e,Star,WALL); return ()=>{ line(e,hit,6,'#3a78c8'); dot(hit,13,'#3a78c8'); label(k==='E1'?'1월':'7월',hit.x,WALL-50,40,'#3a78c8'); }; } }
-        return false; },null,()=>!(seen.E1&&seen.E2));
-    const h1=ext(E1,Star,WALL), h2=ext(E2,Star,WALL);
-    done.push(()=>{ line({x:h2.x,y:WALL+18},{x:h1.x,y:WALL+18},7,'#c8382a'); label('시차',(h1.x+h2.x)/2,WALL+62,50,'#c8382a'); }); base();
-    await TALK.say([DN('어? 1월이랑 7월에, 별이 배경 위에서 이만큼 다른 자리에 보이네요.'),
-      me('그게 시차. 보는 자리가 바뀌면, 가까운 별은 먼 배경 앞에서 옮겨 보여. 가까울수록 더 많이.'),
-      DN('그럼 이 옮겨 간 정도로 거리를 알 수 있는 거예요?'),
-      me('각도로 바꾸면. 이번엔 태양에서 보자.')]);
-    // ② 연주 시차 : 태양 → 별, 그리고 각 p
-    await step('② 연주 시차를 그려 보자','태양(주황 점)에서 ★ 까지 한 줄',s=>{ const a=s[0], b=s[s.length-1]; return (near(a,Sun,85)&&near(b,Star,85))||(near(b,Sun,85)&&near(a,Star,85)); },
-      ()=>line(Sun,Star,6,'#2a2f3a'));
-    done.push(()=>{ label('1 AU',(E1.x+Sun.x)/2,Sun.y-34,40,'#3a78c8'); label('d',Sun.x+20,(Sun.y+Star.y)/2+70,52,'#c8382a','left'); }); base();
-    // ③ 연주 시차 p : 별 꼭짓점, 태양–별 선과 1월 지구–별 선 사이 (누르기)
+    // 종이를 화면 가득 : 위에서 내려다본다 (세로 화면이면 더 멀리서)
+    const tf=Math.tan(THREE.MathUtils.degToRad(camera.fov/2)), fit=Math.max((PH/2+.03)/tf,(PW/2+.03)/(tf*camera.aspect));
+    await camTo({x:tbl.x,z:tbl.z-.015,yaw:Math.PI,pitch:-1.54,eye:top+fit},1.4);
+    // 목표는 하나 — 무엇을 어떤 순서로 그릴지는 학생이 정한다. 두 번 틀리면 그때 빠진 것을 짧게 알려 준다
+    const got={E1:false,E2:false,S:false,p:false};
     const aS=Math.atan2(Sun.y-Star.y,Sun.x-Star.x), aE=Math.atan2(E1.y-Star.y,E1.x-Star.x);
-    await step('③ 연주 시차 p 는 어느 각일까','별 꼭짓점 — 태양 쪽 선과 지구 쪽 선 사이',s=>{ const p=s[s.length-1], r=Math.hypot(p.x-Star.x,p.y-Star.y), a=Math.atan2(p.y-Star.y,p.x-Star.x);
-        return r>35&&r<280&&a>Math.min(aS,aE)-.12&&a<Math.max(aS,aE)+.12; },
-      ()=>{ g.strokeStyle='#c8382a'; g.lineWidth=7; g.beginPath(); g.arc(Star.x,Star.y,120,Math.min(aS,aE),Math.max(aS,aE)); g.stroke(); const m=(aS+aE)/2; label('p',Star.x+Math.cos(m)*168,Star.y+Math.sin(m)*168,56,'#c8382a'); });
+    const h1=ext(E1,Star,WALL), h2=ext(E2,Star,WALL);
+    const mark={
+      E:k=>{ const e=k==='E1'?E1:E2, hit=ext(e,Star,WALL); return ()=>{ line(e,hit,6,'#3a78c8'); dot(hit,13,'#3a78c8'); label(k==='E1'?'1월':'7월',hit.x,WALL-50,40,'#3a78c8'); }; },
+      par:()=>{ line({x:h2.x,y:WALL+18},{x:h1.x,y:WALL+18},7,'#c8382a'); label('시차',(h1.x+h2.x)/2,WALL+62,50,'#c8382a'); },
+      S:()=>{ line(Sun,Star,6,'#2a2f3a'); label('1 AU',(E1.x+Sun.x)/2,Sun.y-34,40,'#3a78c8'); label('d',Sun.x+20,(Sun.y+Star.y)/2+70,52,'#c8382a','left'); },
+      p:()=>{ g.strokeStyle='#c8382a'; g.lineWidth=7; g.beginPath(); g.arc(Star.x,Star.y,120,Math.min(aS,aE),Math.max(aS,aE)); g.stroke(); const m=(aS+aE)/2; label('p · 연주 시차',Star.x+Math.cos(m)*170,Star.y+Math.sin(m)*170,46,'#c8382a','right'); } };
+    const hintNow=()=>!(got.E1&&got.E2)?'시차 : 지구에서 ★ 를 지나 배경까지':!got.S?'연주 시차 : 태양과 ★ 도 이어 보자':'연주 시차 : ★ 꼭짓점의 각을 눌러 표시';
+    await step('시차와 연주 시차를 그림에 표시해 보자','',s=>{ const a=s[0], b=s[s.length-1];
+        for(const k of ['E1','E2']){ const e=k==='E1'?E1:E2; if(got[k]) continue; const st=near(a,e,90)?a:near(b,e,90)?b:null; if(!st) continue; const en=st===a?b:a;
+          if(passes(s,Star,75)&&en.y<WALL+110){ got[k]=true; const m=mark.E(k); return got.E1&&got.E2?()=>{ m(); mark.par(); }:m; } }
+        if(!got.S&&((near(a,Sun,85)&&near(b,Star,85))||(near(b,Sun,85)&&near(a,Star,85)))){ got.S=true; return mark.S; }
+        if(!got.p&&got.S&&(got.E1||got.E2)){ const r=Math.hypot(b.x-Star.x,b.y-Star.y), an=Math.atan2(b.y-Star.y,b.x-Star.x);
+          if(r>35&&r<280&&an>Math.min(aS,aE)-.12&&an<Math.max(aS,aE)+.12){ got.p=true; return mark.p; } }
+        want.hint=hintNow(); return false; },null,()=>!(got.E1&&got.E2&&got.S&&got.p));
     done.push(()=>{ label('p = 1″ 이면 d = 1 pc',CW-50,420,36,'#c8382a','right'); label('거리(pc) = 1 ÷ p(″)',CW-50,495,46,'#2a2f3a','right'); }); base();
-    goal(''); window.dragHook=null; SHIPMAP.at('lobby');
-    await TALK.say([me('지구 공전 궤도 반지름(1 AU)을 별에서 본 각 — 이게 연주 시차 p.'),
-      me('연주 시차가 1초(1″)일 때의 거리가 1 파섹, 1 pc. 약 3.26 광년.'),
-      me('그래서 거리를 파섹으로, 연주 시차를 초로 쓰면 — 거리 = 1 ÷ 연주 시차.'),
-      DN('그럼 웜홀도 이걸로 잴 수 있겠네요? 웜홀의 연주 시차는 얼마예요?'),
-      me('반년 간격으로 잰 값이 약 '+this.P_DEG+'°. 아주 가깝다는 뜻이지.'),
-      DN('그럼 웜홀까지 몇 pc 예요? 선장님이 한번 계산해 봐요.')]);
+    goal(''); await sleep(1600);
+    await camTo({x:tbl.x,z:tbl.z-.65,yaw:Math.PI,pitch:-.47,eye:1.12},1.2); window.dragHook=null; SHIPMAP.at('lobby');
+    await TALK.say([me('연주 시차가 1초(1″)일 때의 거리가 1 파섹, 1 pc. 그래서 거리(pc) = 1 ÷ 연주 시차(″).'),
+      DN('웜홀은요?'),
+      me('반년 간격으로 잰 웜홀의 연주 시차가 약 '+this.P_DEG+'°.'),
+      DN('그럼 몇 pc 예요? 여기, 계산기.')]);
     await this.quiz();
     await TALK.say([V('계산을 확인합니다. 1/39,600 pc — 1 pc 는 약 20만 6천 AU 이므로, 약 5.2 AU. 7억 8천만 km 입니다.'),
       V('본 함선의 순항 속도는 초속 42 km. 7억 8천만 km ÷ 42 km/s ≈ 1,860만 초. 약 214일입니다.'),
@@ -114,15 +108,37 @@ const LOUNGE={P_DEG:11, P_SEC:39600,
     removeEventListener('pointermove',move); removeEventListener('pointerup',up); cvs.removeEventListener('pointerdown',down);
     S.phase='cut'; await fade(true,1800); await go('approach'); },
 
-  // 숫자 입력 : 거리(pc) = 1 ÷ [ □ ]″  — pc 는 왼쪽(구하는 것), 칸은 초(″)
-  quiz(){ return new Promise(res=>{ const q=document.createElement('div'); q.id='quiz';
-    q.innerHTML=`<p class="hd">연주 시차로 거리 구하기</p><p class="q">웜홀의 연주 시차 p ≈ ${this.P_DEG}°</p>
-      <div class="eq"><span class="lhs">거리 <b>d</b><small>pc</small></span><span class="op">=</span><span class="frac"><span class="num">1</span><span class="den"><input type="text" inputmode="numeric" autocomplete="off" aria-label="연주 시차 (초)"><em>″</em></span></span></div>
-      <p class="note">칸에는 연주 시차를 <b>초(″)</b> 단위로</p><p class="msg"></p><button>확인</button>`;
-    document.body.appendChild(q); requestAnimationFrame(()=>q.classList.add('on')); const inp=q.querySelector('input'), msg=q.querySelector('.msg'); let tries=0; setTimeout(()=>inp.focus(),300);
-    const check=()=>{ const v=Number(String(inp.value).replace(/[,\s]/g,'')); tries++;
-      if(v===this.P_SEC){ AUDIO.tone(880,.12,'sine',.08); AUDIO.tone(1320,.2,'sine',.07,.1); msg.textContent='정답 — d = 1 ÷ 39,600″ = 약 0.000025 pc'; q.classList.add('ok'); setTimeout(()=>{ q.remove(); res(); },1500); return; }
-      AUDIO.tone(220,.18,'square',.04);
-      msg.textContent=v===this.P_DEG?'칸은 초(″) 단위예요. 도(°)로 넣으면 안 돼요':tries<2?'다시 — 도(°)를 초(″)로':`1° = 60′ = 3600″ 이니까, ${this.P_DEG}° 는?`; };
-    q.querySelector('button').onclick=check; inp.onkeydown=e=>{ if(e.key==='Enter') check(); e.stopPropagation(); }; }); },
+  // 계산 : 거리(pc) = 1 ÷ [p″] = [d]  — 칸은 옆 계산기로만 채운다 (계산기 [칸에 넣기]). ① 11° → 초 ② 1 ÷ p
+  quiz(){ return new Promise(res=>{ const q=document.createElement('div'); q.id='quiz'; q.className='calc';
+    q.innerHTML=`<div class="work"><p class="hd">연주 시차로 거리 구하기</p><p class="q">웜홀의 연주 시차 p ≈ ${this.P_DEG}°</p>
+      <div class="eq"><span class="lhs">거리 <b>d</b><small>pc</small></span><span class="op">=</span><span class="frac"><span class="num">1</span><span class="den"><input class="bx" data-k="p" readonly aria-label="연주 시차 (초)"><em>″</em></span></span>
+        <span class="op">=</span><input class="bx" data-k="d" readonly aria-label="거리 (pc)" disabled></div>
+      <p class="note">칸을 누르고, 계산기 값을 <b>칸에 넣기</b></p><p class="msg"></p></div>
+      <div class="pad"><p class="ex"></p><p class="dsp">0</p><div class="keys">${['C','⌫','÷','×','7','8','9','−','4','5','6','+','1','2','3','=','0','.'].map(k=>`<button data-k="${k}"${k==='0'?' class="w2"':k==='='?' class="h2"':''}>${k}</button>`).join('')}</div>
+        <button class="put">칸에 넣기 ↵</button></div>`;
+    document.body.appendChild(q); requestAnimationFrame(()=>q.classList.add('on'));
+    const dsp=q.querySelector('.dsp'), ex=q.querySelector('.ex'), msg=q.querySelector('.msg'), bx={p:q.querySelector('[data-k=p]'),d:q.querySelector('[data-k=d]')};
+    let cur='0', acc=null, op=null, fresh=false, sel='p', tries=0;
+    const fmt=r=>!isFinite(r)?'오류':String(+r.toPrecision(10)), show=()=>{ dsp.textContent=cur; };
+    const calc=(a,o,b)=>o==='+'?a+b:o==='−'?a-b:o==='×'?a*b:a/b;
+    const key=k=>{ AUDIO.tick();
+      if(/[0-9.]/.test(k)){ if(fresh){ cur='0'; fresh=false; } if(k==='.'&&cur.includes('.')) return; if(cur.length<15) cur=cur==='0'&&k!=='.'?k:cur+k; }
+      else if(k==='C'){ cur='0'; acc=null; op=null; ex.textContent=''; }
+      else if(k==='⌫'){ if(!fresh) cur=cur.length>1?cur.slice(0,-1):'0'; }
+      else if(k==='='){ if(op===null) return; ex.textContent=fmt(acc)+' '+op+' '+cur+' ='; cur=fmt(calc(acc,op,+cur)); op=null; fresh=true; }
+      else { if(op&&!fresh) cur=fmt(calc(acc,op,+cur)); acc=+cur; op=k; fresh=true; ex.textContent=cur+' '+k; }
+      show(); };
+    q.querySelectorAll('.keys button').forEach(b=>b.onclick=()=>key(b.dataset.k));
+    const pick=k=>{ sel=k; Object.values(bx).forEach(b=>b.classList.toggle('sel',b===bx[k])); }; pick('p');
+    Object.entries(bx).forEach(([k,b])=>b.onclick=()=>{ if(!b.disabled) pick(k); });
+    const ok=t=>{ AUDIO.tone(880,.12,'sine',.08); AUDIO.tone(1320,.2,'sine',.07,.1); msg.textContent=t; q.classList.add('ok'); }, no=t=>{ AUDIO.tone(220,.18,'square',.04); q.classList.remove('ok'); msg.textContent=t; };
+    q.querySelector('.put').onclick=()=>{ const v=+cur, b=bx[sel]; if(b.disabled||!isFinite(v)) return; b.value=cur; tries++;
+      if(sel==='p'){ if(v===this.P_SEC){ ok('맞아요 — '+this.P_DEG+'° = '+this.P_SEC.toLocaleString()+'″. 이제 1 ÷ p'); bx.d.disabled=false; pick('d'); tries=0; return; }
+        no(v===this.P_DEG?'칸은 초(″) 단위예요. 도(°)로 넣으면 안 돼요':tries<2?'다시 — 도(°)를 초(″)로':`1° = 60′ = 3600″ 이니까, ${this.P_DEG}° 는?`); return; }
+      const d=1/this.P_SEC; if(Math.abs(v-d)/d<.02){ ok('정답 — d ≈ '+fmt(d)+' pc'); removeEventListener('keydown',kb,true); setTimeout(()=>{ q.remove(); res(); },1800); return; }
+      no(Math.abs(v-1/this.P_DEG)/(1/this.P_DEG)<.02?'p 는 초(″)로 바꾼 값으로 나눠야 해요':v===this.P_SEC?'거리는 1 ÷ p 예요':tries<2?'다시 — 1 ÷ '+this.P_SEC.toLocaleString():'계산기에서 1 ÷ '+this.P_SEC+' = 을 눌러 보자'); };
+    // PC 키보드도 계산기로 (숫자 · + − * / · Enter · Backspace · Esc)
+    const map={'*':'×','/':'÷','-':'−','+':'+','Enter':'=','=':'=','Backspace':'⌫','Escape':'C'};
+    const kb=e=>{ const k=/^[0-9.]$/.test(e.key)?e.key:map[e.key]; if(!k) return; e.preventDefault(); e.stopPropagation(); key(k); };
+    addEventListener('keydown',kb,true); }); },
 };
