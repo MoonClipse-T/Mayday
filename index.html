@@ -10,7 +10,7 @@
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+KR:wght@300;400;600&display=swap" rel="stylesheet">
 <script>
 // 고칠 때마다 V 를 올린다 → 디벗 브라우저가 옛 파일을 쓰지 않는다 (화면 디자인 · 맵 .glb 도 같은 번호로 받는다)
-window.V=/[?&]dev/.test(location.search)?String(Date.now()):'15';
+window.V=/[?&]dev/.test(location.search)?String(Date.now()):'16';
 document.write('<link rel="stylesheet" href="web/style.css?v='+V+'">');
 </script>
 </head>
@@ -80,7 +80,7 @@ document.write('<link rel="stylesheet" href="web/style.css?v='+V+'">');
 </div>
 
 <script>
-['vendor/three.r128.min.js','vendor/GLTFLoader.js','vendor/meshopt_decoder.js','vendor/SkeletonUtils.js','engine.js','people.js','sky.js','screens.js','holo.js',
+['vendor/three.r128.min.js','vendor/GLTFLoader.js','vendor/meshopt_decoder.js','vendor/SkeletonUtils.js','engine.js','people.js','alien.js','sky.js','screens.js','holo.js',
  'scenes/s0_meeting.js','scenes/s0b_launch.js','scenes/s0c_orbit.js','scenes/ship.js','scenes/s1_cryo.js','scenes/s2_deck.js','scenes/s2b_lounge.js','scenes/s3_bridge.js','scenes/s4_rooms.js','main.js']
  .reduce((p,f)=>p.then(()=>new Promise((res,rej)=>{ const s=document.createElement('script'); s.src='web/'+f+'?v='+V; s.onload=res; s.onerror=()=>rej(new Error(f)); document.body.appendChild(s); })),Promise.resolve())
  .catch(e=>{ document.getElementById('start').textContent='불러오기 실패 — '+e.message; });

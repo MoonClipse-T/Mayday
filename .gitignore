@@ -16,3 +16,10 @@ assets/sketchfab/wall_console/
 assets/sketchfab/reactor_core/
 assets/sketchfab/scifi_meeting/
 blender/02_조종실.blend
+assets/sketchfab/cryo_casket/
+
+# 기생체 : 원본 · 중간 파일 (Tripo 리깅 FBX 와 동작 FBX 만 올린다 — 나머지는 tools/retarget.py 로 다시 만든다)
+assets/alien/alien_src.glb
+assets/alien/rigged.zip
+assets/alien/mixamo/
+assets/alien/alien_rig.glb

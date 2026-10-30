@@ -34,6 +34,12 @@ const PEOPLE=(()=>{
   function turn(b,axis,angle){ if(!b||!angle) return; b.parent.updateWorldMatrix(true,false); b.parent.getWorldQuaternion(_p);
     _q.setFromAxisAngle(axis,angle); _r.copy(_p).invert().multiply(_q).multiply(_p); b.quaternion.premultiply(_r); }
 
+  // 제자리 동작으로 : 뿌리 · 골반 이동 중 한쪽으로 계속 나가는 축(걷기의 앞)을 첫 값에 묶는다 → 몸은 엔진이 옮긴다
+  function inPlace(c0){ const c=c0.clone(); c.tracks.forEach(t=>{ if(!/position$/.test(t.name)) return; const v=t.values, n=v.length/3;
+      for(let ax=0;ax<3;ax++){ let lo=1e9,hi=-1e9; for(let i=0;i<n;i++){ lo=Math.min(lo,v[i*3+ax]); hi=Math.max(hi,v[i*3+ax]); }
+        if(Math.abs(v[(n-1)*3+ax]-v[ax])>(hi-lo)*.5&&hi-lo>1e-4) for(let i=0;i<n;i++) v[i*3+ax]=v[ax]; } });
+    return c; }
+
   async function spawn({kind,name,role='',at,face,pose='stand',seatY=.47,clip=null}){
     const src=await load(kind), g=THREE.SkeletonUtils.clone(src), wrap=new THREE.Group(); wrap.add(g); WORLD.add(wrap);
     g.traverse(o=>{ if(o.isMesh){ o.frustumCulled=false; if(o.material){ o.material.envMapIntensity=.6; } } });
@@ -59,11 +65,7 @@ const PEOPLE=(()=>{
         mixer=new THREE.AnimationMixer(g);
         // 동작 고르기 : 이름에 walk · idle 이 있으면 그것 (Tripo), 하나뿐이면 nathan 은 걷기 · 나머지는 서서 쉬기
         const walkC=clips.find(c=>/walk/i.test(c.name))||(kind==='nathan'?clips[0]:null), idleC=clips.find(c=>/idle/i.test(c.name))||(clips[0]!==walkC?clips[0]:null);
-        // 제자리 동작으로 : 뿌리 · 골반 이동 중 한쪽으로 계속 나가는 축(걷기의 앞)을 첫 값에 묶는다 → 몸은 엔진이 옮긴다
-        const play=c0=>{ if(!c0) return null; const c=c0.clone(); c.tracks.forEach(t=>{ if(!/position$/.test(t.name)) return; const v=t.values, n=v.length/3;
-          for(let ax=0;ax<3;ax++){ let lo=1e9,hi=-1e9; for(let i=0;i<n;i++){ lo=Math.min(lo,v[i*3+ax]); hi=Math.max(hi,v[i*3+ax]); }
-            if(Math.abs(v[(n-1)*3+ax]-v[ax])>(hi-lo)*.5&&hi-lo>1e-4) for(let i=0;i<n;i++) v[i*3+ax]=v[ax]; } });
-          const a=mixer.clipAction(c); a.play(); a.time=Math.random()*c.duration; return a; };
+        const play=c0=>{ if(!c0) return null; const c=inPlace(c0); const a=mixer.clipAction(c); a.play(); a.time=Math.random()*c.duration; return a; };
         idleA=play(idleC); walkA=play(walkC); if(walkA) walkA.setEffectiveWeight(0);
       }
     }
@@ -125,5 +127,5 @@ const PEOPLE=(()=>{
   function walk(p,pts,speed=1.25){ return new Promise(res=>{ p.path=pts.map(a=>a.slice()); p.speed=speed; p.done=res; }); }
   // 사람에게 말 걸기 : 이름표 + 대화 함수
   function talkable(p,fn){ return interact(p.pick,'대화 · '+p.name+(p.role?' ('+p.role+')':''),fn,{range:3.2}); }
-  return {spawn,tick,clear,remove,talkable,walk,list};
+  return {spawn,tick,clear,remove,talkable,walk,list,inPlace};
 })();
