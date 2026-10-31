@@ -26,7 +26,7 @@ ROOMS.bridge=async R=>{
     PEOPLE.spawn({kind:'owen',name:'오언 하트',role:'보안',at:sp.door})]);
   [maya,seojun,daniel].forEach(p=>p.watch=true);
   const crew=[maya,seojun,daniel,owen], show=on=>crew.forEach(p=>{ p.wrap.visible=on; p.solid=on; p.pick.visible=on; });
-  show(false); SHIP.crewOnBridge=()=>show(true);
+  show(false); SHIP.crewOnBridge=()=>show(true); SHIP.crew={maya,seojun,daniel,owen};
   const MY=(t,fx)=>({who:'마야',t,npc:maya,fx}), SJ=(t,fx)=>({who:'서준',t,npc:seojun,fx}), DN=(t,fx)=>({who:'다니엘',t,npc:daniel,fx}), OW=t=>({who:'오언',t,npc:owen});
 
   /* ---- 화면들 ---- */
@@ -53,10 +53,10 @@ ROOMS.bridge=async R=>{
   U.mount('comms',it.scr_comms,room,(g,W,H,t)=>{ head(g,W,'COMMS · 통신','지구 · 휴스턴');
     g.strokeStyle=CY; g.beginPath(); for(let x=0;x<W;x+=3){ const y=H*.45+Math.sin(x*.05+t*4)*14*(away?.1:1)+(Math.random()-.5)*(away?30:6); x?g.lineTo(x,y):g.moveTo(x,y); } g.stroke();
     T(g,'지구 링크 (웜홀 경유)',16,H*.72,F(500,15),MUTE); T(g,away?'신호 없음':'지연 43분 12초',16,H*.72+30,M(22,600),away?AL:INK);
-    T(g,'HUY-1 비컨 탐색',W*.55,H*.72,F(500,15),MUTE); T(g,away?'수신 대기…':'—',W*.55,H*.72+30,M(22,600),away?CY:DIM); });
+    T(g,'HUY-1 비컨 탐색',W*.55,H*.72,F(500,15),MUTE); T(g,f.beacon?'수신 중 · 반복':away?'수신 대기…':'—',W*.55,H*.72+30,M(22,600),f.beacon?AL:away?CY:DIM); });
   U.mount('eng',it.scr_eng,room,(g,W,H,t)=>{ head(g,W,'ENGINEERING · 기관','다니엘 로드리게스');
     [['반응로',.82],['이온 엔진 A',.74],['이온 엔진 B',.71],['방열판',.55],['생명 유지',.93]].forEach(([n,v],i)=>{ const y=60+i*((H-80)/5); const vv=v+.02*Math.sin(t*2+i); T(g,n,16,y+14,F(500,15),MUTE); g.fillStyle='rgba(127,212,255,.12)'; g.fillRect(W*.35,y,W*.55,16); g.fillStyle=vv>.9?AL:CY; g.fillRect(W*.35,y,W*.55*vv,16); T(g,Math.round(vv*100)+'%',W-12,y+14,M(14),INK,'right'); }); });
-  U.mount('sci',it.scr_sci,room,(g,W,H,t)=>{ head(g,W,'SCIENCE · 과학','중력 · 분광');
+  U.mount('sci',it.scr_sci,room,(g,W,H,t)=>{ head(g,W,'SCIENCE · 과학',f.photos?'블링크 비교기 · 사진 A · B':'중력 · 분광');
     g.strokeStyle=CY; g.beginPath(); for(let x=0;x<W;x+=2){ const l=380+x/W*320; let v=1; [393,397,486,517,589,656].forEach(c=>{ v-=.6*Math.exp(-Math.pow((l-c*(away?1:1.0))/2.5,2)); }); const y=H*.55-v*60; x?g.lineTo(x,y):g.moveTo(x,y); } g.stroke();
     T(g,'국소 중력 기울기',16,H-46,F(500,15),MUTE); T(g,(away?.02:3.7+Math.sin(t)*.2).toFixed(2)+' μm/s²·m',16,H-18,M(20,600),away?CY:AL); });
   U.mount('top',it.scr_top,room,(g,W,H,t)=>{ g.fillStyle='rgba(127,212,255,.06)'; g.fillRect(0,0,W,H); T(g,'하위헌스 2호 · 출발 '+(away?'215':'214')+'일째',14,H*.38,F(600,22),INK);
@@ -138,9 +138,8 @@ ROOMS.bridge=async R=>{
       SJ('그리고 저기… 저 작은 점. 4억 3천만 광년 밖.'),me('…우리은하.'),V('확인합니다. 현재 위치, 외부 은하 NGC 3500.'),
       MY('창밖은 똑같아 보이는데… 우리 집이 저 점 하나라니.'),OW('선장님. 통신 콘솔에 뭔가 잡힙니다.')]);
     await closeAR(); P.free=false; S.phase='cut';
-    await fade(true,1800); await card('1장 · 깨어남 — 끝','2장 · 건너편','다음 업데이트 : 1호의 구조 비컨 (빛의 세기와 거리)',4600);
-    // 아직 2장이 없다 → 검은 화면에 멈추지 않고 함교로 돌아와 배를 둘러볼 수 있게
-    await fade(false,1400); S.phase='play'; P.free=true; goal('2장은 다음 시간에 · 지금은 함선을 둘러볼 수 있다'); }
+    await fade(true,1800); await card('1장 · 깨어남 — 끝','2장 · 메이데이','',3800);
+    await fade(false,1400); await CH2.start(); }        // 2장은 함교에서 바로 이어진다 (scenes/s5_mayday.js)
 
   /* ---- 대화 ---- */
   PEOPLE.talkable(maya,()=>TALK.say(away?[MY('조종은 안정적이에요. 그런데 어디로 가야 할지를 모르겠네요.')]:[MY('214일 만에 조종간을 잡으니까 손이 떨리네요. 좋은 쪽으로요.')]));
@@ -148,7 +147,7 @@ ROOMS.bridge=async R=>{
   PEOPLE.talkable(daniel,()=>TALK.say([DN(away?'엔진은 멀쩡해요. 웜홀이 배를 씹어 먹진 않았네요.':'반응로 82%. 웜홀 들어가면 응력이 꽤 걸릴 거예요.')]));
   PEOPLE.talkable(owen,()=>TALK.say([OW(away?'…조용하네요. 너무 조용해요.':'함교 출입은 제가 지킵니다.')]));
   // 뒷문 : 웜홀에 들어간 뒤로는 함교를 비울 수 없다
-  SHIP.lock.bridge=()=>f.transit&&!f.where?'지금은 함교를 비우시면 안 됩니다, 선장님.':null;
+  SHIP.lock.bridge=()=>(f.transit&&!f.where)||(f.ch2&&!f.ch2done)?'지금은 함교를 비우시면 안 됩니다, 선장님.':null;
   // 처음 들어오면
   R.onEnter=async()=>{ if(f.bridgeIn||!f.allAwake||SHIP.mode!=='wake') return; f.bridgeIn=true;
     await TALK.say([V('함교에 오신 것을 환영합니다, 선장님. 목성 궤도 진입 완료.'),MY('선장님! 창밖 보세요. 저기가 웜홀이에요.'),me('…가까이서 보니 더 크군.'),

@@ -195,3 +195,17 @@ body.talking #holoui.on{opacity:.35;pointer-events:none}
 #quiz .keys .w2{grid-column:span 2} #quiz .keys .h2{grid-row:span 2;border-color:var(--vega);background:rgba(127,212,255,.12)}
 #quiz .pad .put{min-height:52px;letter-spacing:.06em;border-color:var(--alert);background:rgba(255,90,54,.16)}
 @media (max-width:700px){ #quiz.calc{flex-wrap:wrap;bottom:8px;max-height:calc(100vh - 16px);overflow:auto} #quiz .pad{flex:1 1 100%} }
+
+/* ---------- 블링크 비교기 (2장) : 위쪽 패널 · 아래에는 계산기가 뜬다 ---------- */
+#blink{position:fixed;left:50%;top:calc(var(--pad) + 84px);transform:translate(-50%,-10px);opacity:0;transition:opacity .35s,transform .35s;z-index:29;width:min(1000px,calc(100vw - 32px));
+  padding:12px 16px;background:var(--glass);border-left:2px solid var(--vega);pointer-events:none}
+#blink.on{opacity:1;transform:translate(-50%,0);pointer-events:auto}
+#blink .hd{display:flex;justify-content:space-between;margin:0 0 8px;font-family:var(--mono);font-size:12px;letter-spacing:.16em;color:var(--vega)}
+#blink .ph{color:var(--alert)}
+#blink canvas{display:block;margin:0 auto;width:min(100%,calc((100vh - 290px) * 2.143));height:auto;background:#040506;touch-action:none;cursor:crosshair}
+#blink .bar{display:flex;gap:8px;margin-top:8px}
+#blink .bar button{flex:1;min-height:48px;border:1px solid var(--hair);font-family:var(--mono);font-size:14px;letter-spacing:.1em;background:rgba(233,231,226,.05)}
+#blink .bar button.on{border-color:var(--vega);background:rgba(127,212,255,.16);color:#fff}
+#quiz .u{font-style:normal;font-size:22px;color:var(--vega)}
+#quiz.calc .eq + .eq{margin-top:2px}
+#blink.zoom{width:min(780px,calc(100vw - 32px));top:calc(var(--pad) + 4px)} #blink.zoom .bar{display:none} #blink.zoom canvas{width:100%}

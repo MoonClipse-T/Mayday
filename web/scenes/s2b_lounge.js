@@ -108,37 +108,14 @@ const LOUNGE={P_DEG:11, P_SEC:39600,
     removeEventListener('pointermove',move); removeEventListener('pointerup',up); cvs.removeEventListener('pointerdown',down);
     S.phase='cut'; await fade(true,1800); await go('approach'); },
 
-  // 계산 : 거리(pc) = 1 ÷ [p″] = [d]  — 칸은 옆 계산기로만 채운다 (계산기 [칸에 넣기]). ① 11° → 초 ② 1 ÷ p
-  quiz(){ return new Promise(res=>{ const q=document.createElement('div'); q.id='quiz'; q.className='calc';
-    q.innerHTML=`<div class="work"><p class="hd">연주 시차로 거리 구하기</p><p class="q">웜홀의 연주 시차 p ≈ ${this.P_DEG}°</p>
-      <div class="eq"><span class="lhs">거리 <b>d</b><small>pc</small></span><span class="op">=</span><span class="frac"><span class="num">1</span><span class="den"><input class="bx" data-k="p" readonly aria-label="연주 시차 (초)"><em>″</em></span></span>
-        <span class="op">=</span><input class="bx" data-k="d" readonly aria-label="거리 (pc)" disabled></div>
-      <p class="note">칸을 누르고, 계산기 값을 <b>칸에 넣기</b></p><p class="msg"></p></div>
-      <div class="pad"><p class="ex"></p><p class="dsp">0</p><div class="keys">${['C','⌫','÷','×','7','8','9','−','4','5','6','+','1','2','3','=','0','.'].map(k=>`<button data-k="${k}"${k==='0'?' class="w2"':k==='='?' class="h2"':''}>${k}</button>`).join('')}</div>
-        <button class="put">칸에 넣기 ↵</button></div>`;
-    document.body.appendChild(q); requestAnimationFrame(()=>q.classList.add('on'));
-    const dsp=q.querySelector('.dsp'), ex=q.querySelector('.ex'), msg=q.querySelector('.msg'), bx={p:q.querySelector('[data-k=p]'),d:q.querySelector('[data-k=d]')};
-    let cur='0', acc=null, op=null, fresh=false, sel='p', tries=0;
-    const fmt=r=>!isFinite(r)?'오류':String(+r.toPrecision(10)), show=()=>{ dsp.textContent=cur; };
-    const calc=(a,o,b)=>o==='+'?a+b:o==='−'?a-b:o==='×'?a*b:a/b;
-    const key=k=>{ AUDIO.tick();
-      if(/[0-9.]/.test(k)){ if(fresh){ cur='0'; fresh=false; } if(k==='.'&&cur.includes('.')) return; if(cur.length<15) cur=cur==='0'&&k!=='.'?k:cur+k; }
-      else if(k==='C'){ cur='0'; acc=null; op=null; ex.textContent=''; }
-      else if(k==='⌫'){ if(!fresh) cur=cur.length>1?cur.slice(0,-1):'0'; }
-      else if(k==='='){ if(op===null) return; ex.textContent=fmt(acc)+' '+op+' '+cur+' ='; cur=fmt(calc(acc,op,+cur)); op=null; fresh=true; }
-      else { if(op&&!fresh) cur=fmt(calc(acc,op,+cur)); acc=+cur; op=k; fresh=true; ex.textContent=cur+' '+k; }
-      show(); };
-    q.querySelectorAll('.keys button').forEach(b=>b.onclick=()=>key(b.dataset.k));
-    const pick=k=>{ sel=k; Object.values(bx).forEach(b=>b.classList.toggle('sel',b===bx[k])); }; pick('p');
-    Object.entries(bx).forEach(([k,b])=>b.onclick=()=>{ if(!b.disabled) pick(k); });
-    const ok=t=>{ AUDIO.tone(880,.12,'sine',.08); AUDIO.tone(1320,.2,'sine',.07,.1); msg.textContent=t; q.classList.add('ok'); }, no=t=>{ AUDIO.tone(220,.18,'square',.04); q.classList.remove('ok'); msg.textContent=t; };
-    q.querySelector('.put').onclick=()=>{ const v=+cur, b=bx[sel]; if(b.disabled||!isFinite(v)) return; b.value=cur; tries++;
-      if(sel==='p'){ if(v===this.P_SEC){ ok('맞아요 — '+this.P_DEG+'° = '+this.P_SEC.toLocaleString()+'″. 이제 1 ÷ p'); bx.d.disabled=false; pick('d'); tries=0; return; }
-        no(v===this.P_DEG?'칸은 초(″) 단위예요. 도(°)로 넣으면 안 돼요':tries<2?'다시 — 도(°)를 초(″)로':`1° = 60′ = 3600″ 이니까, ${this.P_DEG}° 는?`); return; }
-      const d=1/this.P_SEC; if(Math.abs(v-d)/d<.02){ ok('정답 — d ≈ '+fmt(d)+' pc'); removeEventListener('keydown',kb,true); setTimeout(()=>{ q.remove(); res(); },1800); return; }
-      no(Math.abs(v-1/this.P_DEG)/(1/this.P_DEG)<.02?'p 는 초(″)로 바꾼 값으로 나눠야 해요':v===this.P_SEC?'거리는 1 ÷ p 예요':tries<2?'다시 — 1 ÷ '+this.P_SEC.toLocaleString():'계산기에서 1 ÷ '+this.P_SEC+' = 을 눌러 보자'); };
-    // PC 키보드도 계산기로 (숫자 · + − * / · Enter · Backspace · Esc)
-    const map={'*':'×','/':'÷','-':'−','+':'+','Enter':'=','=':'=','Backspace':'⌫','Escape':'C'};
-    const kb=e=>{ const k=/^[0-9.]$/.test(e.key)?e.key:map[e.key]; if(!k) return; e.preventDefault(); e.stopPropagation(); key(k); };
-    addEventListener('keydown',kb,true); }); },
+  // 계산 : 거리(pc) = 1 ÷ [p″] = [d]  — 칸은 옆 계산기로만 채운다 (calc.js). ① 11° → 초 ② 1 ÷ p
+  quiz(){ const D=this.P_DEG, P=this.P_SEC, d=1/P;
+    return calcQuiz({order:['p','d'],
+      work:`<p class="hd">연주 시차로 거리 구하기</p><p class="q">웜홀의 연주 시차 p ≈ ${D}°</p>
+        <div class="eq"><span class="lhs">거리 <b>d</b><small>pc</small></span><span class="op">=</span><span class="frac"><span class="num">1</span><span class="den"><input class="bx" data-k="p" aria-label="연주 시차 (초)"><em>″</em></span></span>
+          <span class="op">=</span><input class="bx" data-k="d" aria-label="거리 (pc)"></div>`,
+      check:(k,v,n)=>k==='p'?(v===P?{ok:'맞아요 — '+D+'° = '+P.toLocaleString()+'″. 이제 1 ÷ p'}
+          :{no:v===D?'칸은 초(″) 단위예요. 도(°)로 넣으면 안 돼요':n<2?'다시 — 도(°)를 초(″)로':`1° = 60′ = 3600″ 이니까, ${D}° 는?`})
+        :Math.abs(v-d)/d<.02?{ok:'정답 — d ≈ '+numStr(d)+' pc'}
+          :{no:Math.abs(v-1/D)/(1/D)<.02?'p 는 초(″)로 바꾼 값으로 나눠야 해요':v===P?'거리는 1 ÷ p 예요':n<2?'다시 — 1 ÷ '+P.toLocaleString():'계산기에서 1 ÷ '+P+' = 을 눌러 보자'} }); },
 };

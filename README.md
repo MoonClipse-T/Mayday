@@ -4,15 +4,12 @@
 선장 크리스가 되어 NASA 회의실에서 우주선까지 직접 걸어 다니고, 사람들과 대화하며 웜홀 너머 하위헌스 1호의 마지막 교신 "Mayday, Mayday, we are—"를 쫓는다.
 
 - 게임: https://moonclipse-t.github.io/Mayday/ (제작용 바로 가기: `?s=meeting` · `launch` · `orbit` · `lounge` · `approach` · `cryo` · `deck` · `bridge` · `lab` · `lobby` · `engine`, 고치는 중엔 `&dev` 를 붙이면 캐시 없이 받는다)
-- 단계별 점검 키 (PC, 루나랜드와 같은 방식 — 누르면 그 단계 처음부터 새로 불러온다 · 고치는 중이면 `&dev` 유지)
-  | 키 | 단계 | 주소 |
+- 문제별 점검 키 (PC, 루나랜드와 같은 방식 — 누르면 그 문제가 나오는 장면 처음부터 새로 불러온다 · 고치는 중이면 `&dev` 유지)
+  | 키 | 문제 | 주소 |
   |---|---|---|
-  | Shift+1 | 프롤로그 · 브리핑룸 | `?s=meeting` |
-  | Shift+2 | 발사 · 출발 궤도 | `?s=launch` |
-  | Shift+3 | 라운지 · 시차 그리기 | `?s=lounge` |
-  | Shift+4 | 동면 구역 C · 해동 | `?s=cryo` |
-  | Shift+5 | 함교 · 웜홀 진입 | `?s=bridge` |
-  | Shift+6 | 웜홀 건너편 · 은하 지도 | `?s=away` |
+  | Shift+1 | 1장 · 연주 시차 그리기 · 계산 (라운지) | `?s=lounge` |
+  | Shift+2 | 2장 · 블링크 비교기 · 시차 → 거리 · 광년 | `?s=mayday` |
+  - 이야기 장면은 주소로 : `?s=meeting` · `launch` · `orbit` · `approach` · `cryo` · `bridge` · `away`(웜홀 건너편)
 - 이야기 · 차시 연결: [STORY.md](STORY.md)
 - 아직 별과 우주 아카이브에는 넣지 않았다 (다 만든 뒤에 넣는다).
 
