@@ -159,7 +159,7 @@ $('#jump').addEventListener('pointerdown',e=>{ e.stopPropagation(); P.jump=true;
 /* ---------------- 조사 (레이캐스트) ---------------- */
 const ray=new THREE.Raycaster(); ray.far=4; let hot=null;
 const PICK=new THREE.MeshBasicMaterial({transparent:true,opacity:0,depthWrite:false});     // 보이지 않는 탭 판정용
-function pick(nx,ny){ ray.setFromCamera(new THREE.Vector2(nx,ny),camera); const list=INTER.filter(i=>i.mesh.visible!==false&&(!i.enabled||i.enabled()));
+function pick(nx,ny){ ray.setFromCamera(new THREE.Vector2(nx,ny),camera); ray.camera=camera; const list=INTER.filter(i=>i.mesh.visible!==false&&(!i.enabled||i.enabled()));
   const hits=ray.intersectObjects(list.map(i=>i.mesh),true);
   for(const h of hits){ let o=h.object; while(o){ const it=list.find(i=>i.mesh===o); if(it) return h.distance<=(it.range||2.6)?it:null; o=o.parent; } } return null; }
 function tapAt(cx,cy){ if(!P.free||S.busy) return; const it=pick(cx/innerWidth*2-1,-(cy/innerHeight)*2+1); if(it){ AUDIO.click(); it.fn(); } }
@@ -379,6 +379,9 @@ function makeDoor(x,z,rot,label,{w=1.7,h=2.35,y=0,back='',tunnel=true,room=null}
   g.isOpen=false;
   g.open=()=>new Promise(res=>{ if(g.isOpen) return res(); AUDIO.noise(.9,.2,0,900); AUDIO.tone(140,.5,'sawtooth',.05); let k=0; const fn=dt=>{ k=Math.min(1,k+dt/.8); const e=k*k*(3-2*k);
     leaves.forEach((l,i)=>l.position.x=(i?1:-1)*(w/4+e*(w/2+.1))); if(k>.6) g.isOpen=true; if(k>=1){ const i=TICK.indexOf(fn); if(i>=0) TICK.splice(i,1); res(); } }; TICK.push(fn); });
+  // 닫기 (추격 장면 : 문을 닫아 막는다)
+  g.close=()=>new Promise(res=>{ if(!g.isOpen) return res(); AUDIO.noise(.6,.25,0,700); AUDIO.tone(110,.4,'sawtooth',.05); let k=0; const fn=dt=>{ k=Math.min(1,k+dt/.5); const e=1-k*k*(3-2*k);
+    leaves.forEach((l,i)=>l.position.x=(i?1:-1)*(w/4+e*(w/2+.1))); if(k>.4) g.isOpen=false; if(k>=1){ const i=TICK.indexOf(fn); if(i>=0) TICK.splice(i,1); res(); } }; TICK.push(fn); });
   // 열고 걸어 들어간다 : 문 앞에 서서 통로 쪽을 보고 → 문이 열리면 안으로 걸으며 어두워진다 (다음 구역은 go 로)
   g.enter=async()=>{ P.free=false; const fx=Math.sin(rot), fz=Math.cos(rot);
     await camTo({x:x+fx*1.3,z:z+fz*1.3,yaw:yawTo(x,z),pitch:0},.6); await g.open();

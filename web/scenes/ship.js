@@ -9,20 +9,21 @@
 'use strict';
 const ROOMS={};
 const SHIP={OX:{bridge:0,deck:14,cryo:27,lab:39,lobby:20.5,engine:63.3}, OZ:{lobby:19.725,engine:10.35},
-  HALL:{z1:8.9,z2:12.18,x1:-3.3,x2:55.3,h:2.6}, DOORZ:8.7, rooms:{}, doors:{}, lock:{}, zone:null, mode:'wake',
+  HALL:{z1:8.9,z2:12.18,x1:-3.3,x2:55.3,h:2.6}, DOORZ:8.7, rooms:{}, doors:{}, lock:{}, zone:null, mode:'wake', dim:1, huy1:false,      // dim : 어둠(정전 · 1호) · huy1 : 1호 안
   NAME:{bridge:'함교',deck:'식당 · 의무실',cryo:'동면 구역 C',lab:'연구실',airlock:'에어록',lobby:'라운지 · 전망대',engine:'기관실',hall:'중앙 복도'},
   EXPO:{bridge:.85,deck:.85,cryo:.62,lab:.95,airlock:.7,lobby:1.0,engine:1.05,hall:.8},
   // 하늘은 하나 : 출발 직후(지구가 뒤로 멀어진다) · 목성 앞(웜홀) · 건너편
   sky(){ return S.flags.passed?{dir:[0,.02,1],R:.07,srot:2.4,jupiter:false,sunDir:[-.4,.6,.5]}
     :this.mode==='depart'?{dir:[.05,.04,-1],R:.0005,jdir:[-.22,.06,1],jsize:.12,ptex:'earth_day.jpg',sunDir:[-1,.25,.6]}:{dir:[.05,.04,-1],R:.16,jdir:[-.75,-.12,-.65],jsize:.9,sunDir:[1,.3,.6]}; },
-  when(){ return S.flags.passed?'위치 미상':this.mode==='depart'?'지구 궤도 출발 · 목성까지 214일':S.flags.transit?'웜홀 진입':'출발 214일째 · 목성 궤도'; },
+  when(){ if(this.huy1) return '도킹 · 영하 12도 · 생명 신호 1'; return S.flags.passed?'위치 미상':this.mode==='depart'?'지구 궤도 출발 · 목성까지 214일':S.flags.transit?'웜홀 진입':'출발 214일째 · 목성 궤도'; },
   zoneAt(x,z){ if(x>55.3) return 'engine'; if(z>12.3) return 'lobby'; if(z>this.HALL.z1-.05) return 'hall';
     return x<7?'bridge':x<21?'deck':x<31.6?'cryo':x<47?'lab':'airlock'; },
   // 방 목록 : [키, LEVEL.add 옵션] — 들어갈 때와 미리 풀 때 똑같이 (캐시 키가 같아야 한다)
   list(){ const backDoor=root=>cutTris(root,'base_door',c=>c.z>7), O=this.OX, Z=this.OZ;
     return [['bridge',{ox:O.bridge,prep:root=>{ backDoor(root); ROOMS.bridgePrep(root); }}],['deck',{ox:O.deck,prep:backDoor}],
       ['cryo',{ox:O.cryo,prep:root=>cutTris(root,'base_door',c=>Math.abs(c.z)>7)}],        // 동면 구역은 북쪽(관측창 앞) 문짝도 창을 가려서 함께 지운다
-      ['lab',{ox:O.lab}],['lobby',{ox:O.lobby,oz:Z.lobby}],['engine',{ox:O.engine,oz:Z.engine}],['hall',{}]]; },
+      ['lab',{ox:O.lab}],['lobby',{ox:O.lobby,oz:Z.lobby}],['engine',{ox:O.engine,oz:Z.engine}],['hall',{}],
+      ['story',{solid:false}]]; },              // 이야기 소품 (story.glb · 세계 좌표 그대로 · 몸 충돌 없음)
   preload(){ return this._pre||(this._pre=LEVEL.preload(this.list()).then(()=>LEVEL.warmBundles(this.list().map(([k,o])=>k+'@'+(o.ox||0)+','+(o.oz||0))))); },
 };
 
@@ -40,7 +41,7 @@ SHIP.door=function(R,label,back,{x=R.X(0),z=this.DOORZ,rot=Math.PI,key=R.key}={}
     interact(m,nm,use,{range:3,enabled:()=>!d.isOpen}); }
   return d; };
 
-SCENES.ship={title:'하위헌스 2호', async enter(o={}){ const f=S.flags; SHIP.mode=o.mode||'wake'; SHIP.zone=null; SHIP.lock={}; SHIP.doors={};
+SCENES.ship={title:'하위헌스 2호', async enter(o={}){ const f=S.flags; SHIP.mode=o.mode||'wake'; SHIP.zone=null; SHIP.lock={}; SHIP.doors={}; SHIP.dim=1; SHIP.huy1=false; STORY.spot=null; ALIEN.clear();
   LOADING.show('하위헌스 2호 · 선내 시스템 동기화'); const t0=performance.now();
   LEVEL.clear(); BRIDGEUI.clear();
   const L=SHIP.list(); let done=0; L.forEach(([k,op])=>LEVEL.build(k,op).then(()=>LOADING.set(++done/L.length*.8)));
@@ -53,13 +54,13 @@ SCENES.ship={title:'하위헌스 2호', async enter(o={}){ const f=S.flags; SHIP
   SHIP.door(R.lab,'연구실','중앙 복도',{x:37.43}); SHIP.door(R.lab,'에어록','중앙 복도',{x:50.43,key:'airlock'});
   SHIP.door(R.lobby,'라운지 · 전망대','중앙 복도',{x:14,z:12.45,rot:0}); SHIP.door(R.engine,'기관실','중앙 복도',{x:55.25,z:10.35,rot:Math.PI/2});
   SHIP.lock.airlock=()=>'에어록은 선외 활동 때만 엽니다. 지금은 잠가 둡니다.';
-  await ROOMS.bridge(R.bridge); await ROOMS.deck(R.deck); await ROOMS.cryo(R.cryo); await ROOMS.lab(R.lab); await ROOMS.lobby(R.lobby); await ROOMS.engine(R.engine);
+  STORY.prep(R.story); await ROOMS.bridge(R.bridge); await ROOMS.deck(R.deck); await ROOMS.cryo(R.cryo); await ROOMS.lab(R.lab); await ROOMS.lobby(R.lobby); await ROOMS.engine(R.engine);
   LOADING.set(.9); await SOLID.build();               // 묶음 칸은 미리 계산돼 있다 — 장면이 넣은 것만 일꾼이 새로
   LIGHTPOOL.start(); SKYMASK.build(); LEVEL.warm(); LOADING.set(1);
   console.log('ship ready',Math.round(performance.now()-t0)+' ms');
   // 지금 있는 구역 : 위치 표시 · 선내도 · 밝기(눈이 적응하듯 천천히) · 처음 들어가면 그 방의 이야기
-  TICK.push(dt=>{ const z=SHIP.zoneAt(P.x,P.z); renderer.toneMappingExposure=lerp(renderer.toneMappingExposure,SHIP.EXPO[z],1-Math.pow(.25,dt));
-    if(z===SHIP.zone) return; SHIP.zone=z; stamp('하위헌스 2호 · '+SHIP.NAME[z],SHIP.when()); SHIPMAP.at(z);
+  TICK.push(dt=>{ const z=SHIP.zoneAt(P.x,P.z); renderer.toneMappingExposure=lerp(renderer.toneMappingExposure,SHIP.EXPO[z]*SHIP.dim,1-Math.pow(.25,dt));
+    if(z===SHIP.zone) return; SHIP.zone=z; stamp((SHIP.huy1?'하위헌스 1호 · ':'하위헌스 2호 · ')+SHIP.NAME[z],SHIP.when()); SHIPMAP.at(z);
     const r=SHIP.rooms[z]; if(r&&r.onEnter&&S.phase==='play') r.onEnter(); });
   TICK.push(()=>SHIPMAP.dot(P.x,P.z));
   // 보이는 방만 그린다 : 지금 있는 방 · 복도 · 복도에서 열린(열리는) 문 너머 방 (함교에 있으면 나머지 다섯 방 — 삼각형 수십만 개 — 은 건너뛴다)
@@ -67,7 +68,7 @@ SCENES.ship={title:'하위헌스 2호', async enter(o={}){ const f=S.flags; SHIP
   const doorOf={bridge:['bridge'],deck:['deck'],cryo:['cryo'],lab:['lab','airlock'],lobby:['lobby'],engine:['engine']}, facing={deck:'lobby',lobby:'deck'};
   const near=k=>doorOf[k].some(d=>{ const g=SHIP.doors[d]; return g&&(g.isOpen||Math.hypot(P.x-g.position.x,P.z-g.position.z)<4); });
   TICK.push(()=>{ const z=SHIP.zoneAt(P.x,P.z), here=z==='airlock'?'lab':z;
-    for(const [k,r] of Object.entries(R)) r.root.parent.visible=k===here||((here==='hall'||facing[here]===k)&&near(k)); });
+    for(const [k,r] of Object.entries(R)) if(k!=='story') r.root.parent.visible=k===here||((here==='hall'||facing[here]===k)&&near(k)); });
   AUDIO.hum(1,44); LOADING.hide();
   if(SHIP.mode==='depart') return LOUNGE.start(R.lobby);
   if(o.at&&o.at!=='cryo'){ Object.assign(f,{window:true,thawed:true,allAwake:true}); SHIP.crewOnBridge(); R.cryo.skipWake();

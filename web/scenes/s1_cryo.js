@@ -29,6 +29,7 @@ ROOMS.cryo=async R=>{ const f=S.flags, me=t=>({kind:'me',t}), V=t=>({who:'VEGA',
   // 출발 직후(라운지 대화)에는 크리스와 다니엘의 캡슐이 아직 비어 열려 있다
   const openAtStart=SHIP.mode==='depart'?['pod_L4','pod_R3']:['pod_L4'];
   Object.entries(PODZ).forEach(([k,z])=>{ const m=sp['pod_'+k], s={x:m?m.x:X(k[0]==='L'?-2.9:2.9),z,yaw:m?m.yaw:0}; pods[k]={s,o:place(openAtStart.includes('pod_'+k)?podOpen:pod,s),strip:plinth(s)}; });
+  R.pods=pods; R.podSet=(k,open)=>{ const P0=pods[k]; WORLD.remove(P0.o); P0.o=place(open?podOpen:pod,P0.s); };      // 이야기(5장 1호)에서 캡슐을 다시 닫는다
   if(R.items.c07) R.items.c07.visible=false;
   // 정전 : 선체 세트의 자체 발광(천장 환기구 불빛)을 낮춘다
   R.objs.forEach(r=>r.traverse(o=>{ if(o.isMesh&&o.material&&/wall_albedo|base_ram|base_door/.test(o.material.name)) o.material.emissiveIntensity=.15; }));

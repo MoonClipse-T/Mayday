@@ -39,9 +39,7 @@ const CH2={SHIFT:10, P:5, D:.2, LY:.652,
       SJ('그럼… 지금 들은 녹음은 8개월 전에 출발한 거예요.'),me('8개월 전까지는 살아 있었다는 거군. …지금은?'),OW('…'),
       MY('도약 좌표 넣을게요. 0.2 pc.'),V('도약 거리는 1%만 틀려도 별에 부딪힐 수 있습니다. 비컨 별의 밝기로 거리를 한 번 더 확인할 것을 권합니다.'),
       SJ('밝기요? …저 별 옆에 똑같이 생긴 별이 하나 더 있어요. 둘을 비교하면 될 것 같아요.')]);
-    f.ch2done=true; S.phase='cut'; P.free=false; goal('');
-    await fade(true,1800); await card('2장 · 메이데이 — 끝','3장 · 쌍둥이 별','다음 업데이트 : 별의 밝기와 거리',4600);
-    await fade(false,1400); S.phase='play'; P.free=true; goal('3장은 다음 시간에 · 지금은 함선을 둘러볼 수 있다'); },
+    f.ch2done=true; await STORY.next('2장 · 메이데이 — 끝','3장 · 쌍둥이 별',()=>CH3.start()); },
 
   /* 블링크 비교기 : 화면 위쪽 패널. 사진 A · B 를 번갈아 → 비컨 원 안에서 움직이는 별 누르기 → 확대 눈금 → 계산기 */
   blink(){ return new Promise(async res=>{
