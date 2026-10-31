@@ -10,7 +10,8 @@ const STORY={
   show(k,on){ const o=this.it(k); if(o) o.visible=on; },
   // 소품 준비 : 피 데칼은 바닥 · 벽 위에 떠 보이게, 포드 선실은 안에서 보이게. 1호 장식은 1호에서만
   prep(R){ R.root.traverse(o=>{ if(!o.isMesh) return; const m=o.material;
-      if(/blood/.test(m.name)){ m.depthWrite=false; m.polygonOffset=true; m.polygonOffsetFactor=-4; m.polygonOffsetUnits=-4; o.renderOrder=3; }
+      // 피 : 어둠 속에서도 손전등에 읽히게 살짝 스스로 빛나게
+      if(/blood/.test(m.name)){ m.emissive=new THREE.Color(.5,.03,.02); m.emissiveMap=m.map; m.emissiveIntensity=2.2; m.depthWrite=false; m.polygonOffset=true; m.polygonOffsetFactor=-4; m.polygonOffsetUnits=-4; o.renderOrder=3; }
       if(o.name==='pod_cabin'){ m.side=THREE.DoubleSide; m.color.multiplyScalar(.4); } });
     this.show('h1',false); },
   // 대사 : 함선 대원 (SHIP.crew) · 레아
