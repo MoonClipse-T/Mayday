@@ -71,7 +71,7 @@ SCENES.ship={title:'하위헌스 2호', async enter(o={}){ const f=S.flags; SHIP
   AUDIO.hum(1,44); LOADING.hide();
   if(SHIP.mode==='depart') return LOUNGE.start(R.lobby);
   if(o.at&&o.at!=='cryo'){ Object.assign(f,{window:true,thawed:true,allAwake:true}); SHIP.crewOnBridge(); R.cryo.skipWake();
-    const r=R[o.at]; warp(r.spawn.x,r.spawn.z,r.spawn.yaw); await fade(false,1200); S.phase='play'; P.free=true; return; }
+    const r=R[o.at]; warp(r.spawn.x,r.spawn.z,r.spawn.yaw); await fade(false,1200); S.phase='play'; P.free=true; SHIP.zone=null; return; }      // zone 을 비워 그 방의 첫 이야기(onEnter)가 이제 나오게
   return R.cryo.start(); }};
 // 예전 장면 이름 → 함선 안 자리
 SCENES.cryo={enter:()=>SCENES.ship.enter({at:'cryo'})}; SCENES.deck={enter:()=>SCENES.ship.enter({at:'deck'})}; SCENES.bridge={enter:()=>SCENES.ship.enter({at:'bridge'})};

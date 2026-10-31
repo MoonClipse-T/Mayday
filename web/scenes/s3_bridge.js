@@ -155,3 +155,6 @@ ROOMS.bridge=async R=>{
       SJ('진입 전에 홀로 테이블에서 항로를 같이 확인해요. 가운데 테이블이에요.')]);
     goal(f.route?'홀로 테이블 또는 함장석에서 웜홀 진입을 명령한다':'홀로 테이블에서 웜홀까지의 항로를 확인한다'); };
 };
+// 점검 6 (Shift+6) : 웜홀을 막 지난 함교 — 은하 지도 → 1장 끝
+SCENES.away={title:'웜홀 건너편', async enter(){ Object.assign(S.flags,{route:true,transit:true,passed:true,bridgeIn:true});
+  await SCENES.ship.enter({at:'bridge'}); goal('AR 홀로 테이블에서 은하 지도를 연다'); }};
