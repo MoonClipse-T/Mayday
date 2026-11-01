@@ -22,7 +22,8 @@ const SHIP={OX:{bridge:0,deck:14,cryo:27,lab:39,lobby:20.5,engine:63.3}, OZ:{lob
   list(){ const backDoor=root=>cutTris(root,'base_door',c=>c.z>7), O=this.OX, Z=this.OZ;
     return [['bridge',{ox:O.bridge,prep:root=>{ backDoor(root); ROOMS.bridgePrep(root); }}],['deck',{ox:O.deck,prep:backDoor}],
       ['cryo',{ox:O.cryo,prep:root=>cutTris(root,'base_door',c=>Math.abs(c.z)>7)}],        // 동면 구역은 북쪽(관측창 앞) 문짝도 창을 가려서 함께 지운다
-      ['lab',{ox:O.lab,prep:root=>shove(root,['Object_14004','Object_6002','Object_7002','Object_17001','Object_20001','Object_21001'],-2,0)}],      // 연구실 : 문 바로 안을 막던 실험대(위 물건째)를 서쪽으로 2 m
+      ['lab',{ox:O.lab,prep:root=>{ shove(root,['Object_14004','Object_6002','Object_7002','Object_17001','Object_20001','Object_21001'],-2,0);
+        root.traverse(o=>{ if(o.isMesh&&/^rura_(gwna_baza|glowna_szybka)/.test(o.material.name)) o.visible=false; }); }}],      // 가운데 큰 관(탱크)은 감춘다 → 그 자리에 유리 격리실(story.glb IT_iso)      // 연구실 : 문 바로 안을 막던 실험대(위 물건째)를 서쪽으로 2 m
       ['lobby',{ox:O.lobby,oz:Z.lobby}],
       ['engine',{ox:O.engine,oz:Z.engine,prep:root=>cutTris(root,'eng_rail',c=>c.x<57&&c.z>9.4&&c.z<11.3)}],['hall',{}],      // 기관실 : 문 앞을 가로지르던 난간을 끊어 원자로 단으로 바로 오른다
       ['story',{solid:false}]]; },              // 이야기 소품 (story.glb · 세계 좌표 그대로 · 몸 충돌 없음)
@@ -53,7 +54,7 @@ SCENES.ship={title:'하위헌스 2호', async enter(o={}){ const f=S.flags; SHIP
   const L=SHIP.list(); let done=0; L.forEach(([k,op])=>LEVEL.build(k,op).then(()=>LOADING.set(++done/L.length*.8)));
   const R={}; for(const [k,op] of L.filter(l=>l[0]!=='hall')) R[k]=await LEVEL.add(k,op);
   SHIP.rooms=R; for(const r of Object.values(R)) r.X=x=>x+r.ox;
-  await SKY.space(SHIP.sky());
+  await SKY.space(SHIP.sky()); if(f.jump1&&typeof CH3!=='undefined') CH3.sky();      // 도약 뒤 하늘 (쌍둥이 별)
   WORLD.add(new THREE.HemisphereLight(0xc8d8ee,0x121518,.38));
   await SHIP.hall();
   SHIP.door(R.bridge,'함교','중앙 복도'); SHIP.door(R.deck,'식당 · 의무실','중앙 복도'); SHIP.door(R.cryo,'동면 구역 C','중앙 복도');
@@ -78,6 +79,8 @@ SCENES.ship={title:'하위헌스 2호', async enter(o={}){ const f=S.flags; SHIP
     for(const [k,r] of Object.entries(R)) if(k!=='story') r.root.parent.visible=k===here||((here==='hall'||facing[here]===k)&&near(k)); });
   AUDIO.hum(1,44); LOADING.hide();
   if(SHIP.mode==='depart') return LOUNGE.start(R.lobby);
+  // raw : 이야기 장면이 직접 자리 · 밝기를 정한다 (우주 유영 뒤 에어록 · 1호 안). 화면은 아직 검다
+  if(o.raw){ R.cryo.skipWake(); if(SHIP.mode!=='huy1'){ Object.assign(f,{window:true,thawed:true,allAwake:true}); SHIP.crewOnBridge(); } return; }
   if(o.at&&o.at!=='cryo'){ Object.assign(f,{window:true,thawed:true,allAwake:true}); SHIP.crewOnBridge(); R.cryo.skipWake();
     const r=R[o.at]; warp(r.spawn.x,r.spawn.z,r.spawn.yaw); await fade(false,1200); S.phase='play'; P.free=true; SHIP.zone=null; return; }      // zone 을 비워 그 방의 첫 이야기(onEnter)가 이제 나오게
   return R.cryo.start(); }};

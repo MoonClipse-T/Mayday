@@ -1,15 +1,40 @@
 /* ============================================================
-   7장 · 사냥 — 성운 셋 (앞 창 = 암흑 성운 · 뒤 카메라 = 반사 · 방출 성운) → 소방 도끼 → 오언이 끌려간다 → 숨기 → 달리기 · 문 닫기
+   7장 · 사냥 — 성운 셋 (앞 창 = 암흑 성운 · 뒤 카메라 = 반사 · 방출 성운) → 보안 무기함의 펄스 권총 (맞히면 멈칫할 뿐) → 오언이 끌려간다 → 숨기 → 달리기 · 문 닫기
    8장 · 일어선 것 — 우리은하 지도 (헤일로 · 중심부 · 태양계 자리) → 차단기 파괴 · 암흑 → 서준 → 마야가 동면실 냉각제로 성체를 재우고 → 다니엘 5분 실종
    기생체 : web/alien.js (어린 개체 = 같은 모델을 사람 키로 · 네 발 crawl / 성체 = 2.7 m · 두 발)
    ============================================================ */
 'use strict';
 // 사람 대사 만들기 (그 장에서 새로 세운 사람)
 const sayer=(who,npc)=>t=>({who,t,npc}), ME=t=>({kind:'me',t}), VG=t=>({who:'VEGA',kind:'vega',t}), RADIO=(who,t)=>({who,ch:'무전',kind:'radio',t});
-// 손에 든 도끼 : 화면 오른쪽 아래에 (카메라를 따라간다)
-STORY.hold=function(){ const src=this.it('axe'); if(!src||this.held) return; src.visible=false; const a=src.clone(); a.visible=true; a.scale.setScalar(.72); WORLD.add(a); this.held=a;
-  const q=new THREE.Quaternion().setFromEuler(new THREE.Euler(.5,.2,-.5)), off=new THREE.Vector3(.32,-.42,-.62);
-  TICK.push(()=>{ if(!a.parent) return; a.quaternion.copy(camera.quaternion).multiply(q); a.position.copy(off).applyQuaternion(camera.quaternion).add(camera.position); a.position.y+=Math.sin(P.bob||0)*.01; }); };
+// 손에 든 펄스 권총 (보안 무기함 IT_gun) : F 키 · [사격] 단추. 맞히면 잠깐 멈칫할 뿐 — 쓰러뜨릴 수는 없다. 탄 8발
+STORY.hold=function(){ const src=this.it('gun'); if(!src||this.held) return; src.visible=false; const a=src.clone(); a.visible=true; a.scale.setScalar(1.6); WORLD.add(a); this.held=a; this.ammo=8; this.kick=0;
+  const q=new THREE.Quaternion().setFromEuler(new THREE.Euler(0,Math.PI/2,0)), off=new THREE.Vector3(.26,-.3,-.55);
+  TICK.push(dt=>{ if(!a.parent) return; this.kick=Math.max(0,this.kick-dt*6); a.quaternion.copy(camera.quaternion).multiply(q).multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(0,0,this.kick*.5)));
+    a.position.copy(off).add(new THREE.Vector3(0,this.kick*.04,this.kick*.08)).applyQuaternion(camera.quaternion).add(camera.position); a.position.y+=Math.sin(P.bob||0)*.01; });
+  let b=$('#fire'); if(!b){ b=document.createElement('button'); b.id='fire'; b.className='ring'; $('#hud').appendChild(b); b.addEventListener('pointerdown',e=>{ e.stopPropagation(); STORY.shoot(); }); }
+  b.classList.add('on'); this.ammoShow();
+  if(!this.fk){ this.fk=true; addEventListener('keydown',e=>{ if(e.code==='KeyF'&&!e.repeat) STORY.shoot(); }); }
+  this.dread(); };
+STORY.ammoShow=function(){ const b=$('#fire'); if(b) b.innerHTML='사격<small>'+this.ammo+'</small>'; };
+STORY.unhold=function(){ if(this.held){ WORLD.remove(this.held); this.held=null; } const b=$('#fire'); if(b) b.classList.remove('on'); };
+STORY.shoot=function(){ if(!this.held||S.phase!=='play'||TALK.on) return;
+  if(this.ammo<=0){ AUDIO.tone(1800,.04,'square',.04); toast('찰칵 — 탄이 없다',1500); return; }
+  this.ammo--; this.ammoShow(); this.kick=1; AUDIO.noise(.18,.4,0,3000); AUDIO.tone(140,.25,'sawtooth',.08,0,-90);
+  const fl=new THREE.PointLight(0x9fd8ff,6,8,1.6); fl.position.copy(camera.position); WORLD.add(fl); setTimeout(()=>WORLD.remove(fl),70);
+  const o=camera.position.clone(), d=camera.getWorldDirection(new THREE.Vector3()); let hit=null, best=30;
+  for(const a of ALIEN.list){ const h=(a.h||2.7), c=a.wrap.position.clone().add(new THREE.Vector3(0,h*.45,0)), t=c.clone().sub(o).dot(d); if(t<0||t>best) continue;
+    const r=o.clone().addScaledVector(d,t).distanceTo(c); if(r<Math.max(.5,h*.3)){ hit=a; best=t; } }
+  const end=o.clone().addScaledVector(d,hit?best:30), g=new THREE.BufferGeometry().setFromPoints([this.held.position.clone(),end]);
+  const ln=new THREE.Line(g,new THREE.LineBasicMaterial({color:0xbfe8ff,transparent:true,opacity:.9})); WORLD.add(ln); setTimeout(()=>WORLD.remove(ln),60);
+  if(hit){ hit.stun=.9; hit.openTo=1; setTimeout(()=>hit.openTo=null,900); AUDIO.tone(500,.4,'sawtooth',.06,0,-350); ALIEN.play(hit,'roar',{once:true}).then(()=>{ if(hit.path) ALIEN.play(hit,hit.move||'run'); });
+    for(let k=0;k<10;k++){ const sp=new THREE.Sprite(new THREE.SpriteMaterial({color:0x40ff60,transparent:true,depthWrite:false})); sp.scale.setScalar(.08); sp.position.copy(end); WORLD.add(sp);
+      const v=new THREE.Vector3(Math.random()-.5,Math.random()*.8,Math.random()-.5).multiplyScalar(3); let t=0; const fn=dt=>{ t+=dt; sp.position.addScaledVector(v,dt); v.y-=dt*6; sp.material.opacity=1-t/.6; if(t>.6){ WORLD.remove(sp); TICK.splice(TICK.indexOf(fn),1); } }; TICK.push(fn); } } };
+// 공포 : 가장 가까운 기생체와의 거리로 붉은 가장자리 · 심장 소리 · 흔들림
+STORY.dread=function(){ if(this._dreadFn&&TICK.includes(this._dreadFn)) return; let el=$('#dread'); if(!el){ el=document.createElement('div'); el.id='dread'; document.body.appendChild(el); }
+  let beat=0; TICK.push(this._dreadFn=dt=>{ let d=99; for(const a of ALIEN.list){ const w=a.wrap.position; d=Math.min(d,Math.hypot(P.x-w.x,P.z-w.z)); }
+    const k=Math.max(0,Math.min(1,(13-d)/10)); el.style.opacity=k*.85; beat-=dt;
+    if(k>0&&beat<=0){ beat=1.1-k*.75; AUDIO.tone(48,.18,'sine',.09*(.4+k)); setTimeout(()=>AUDIO.tone(42,.14,'sine',.07*(.4+k)),160); }
+    if(d<3.5&&S.phase==='play'){ camera.position.x+=(Math.random()-.5)*.02*(3.5-d); camera.position.y+=(Math.random()-.5)*.02*(3.5-d); } }); };
 // 쫓아오기 : 기생체가 나를 쫓는다. 닿으면 할퀴고 caught() · 목표 지점에 닿으면 끝
 STORY.chase=function(a,{to,r=1.3,speed=3,clip='run',catchR=1.35,started=()=>true,safe=()=>false}){ return new Promise(res=>{ let busy=false, done=false;
   const fn=async()=>{ if(done||busy||!started()) return; const w=a.wrap.position, d=Math.hypot(P.x-w.x,P.z-w.z);
@@ -37,8 +62,9 @@ const CH7={
     const sp=SHIP.rooms.bridge.spawn; warp(sp.x,sp.z,sp.yaw); SHIP.zone=null;
     STORY.cloud([.05,.03,-1],260,'rgba(0,0,0,.92)',false);                    // 앞 창 : 별이 없는 검은 구름
     await card('','몇 시간 뒤','하위헌스 2호 · 함교 · 귀환 항로',2400);
-    await TALK.say([VG('귀환 항로 위에 성운 셋. 앞 창에는 별이 없는 검은 구름, 뒤 카메라에는 파란 구름과 붉은 구름입니다.'),
-      SJ('셋 다 기체와 먼지 구름인데… 왜 이렇게 다르게 보이죠?'),ME('빛이 어디서 오느냐에 달렸지. 과학 스테이션에 사진을 띄워.')]);
+    await TALK.say([VG('웜홀 출구로 가는 길에 성운 셋. 어느 하나는 지나가야 합니다.'),
+      SJ('검은 구름 안에선 별이 안 보여서 항법이 안 되고, 스스로 빛나는 붉은 구름은 뜨거운 별 둘레라 방사선이 세요. 둘 다 못 들어가요.'),
+      ME('그럼 남은 하나 — 어느 게 어느 건지부터 가려내자. 과학 스테이션에 사진을 띄워.')]);
     goal('과학 스테이션에서 성운 사진 셋을 나눈다');
     await STORY.wait(BRIDGEUI.mesh('sci'),'과학 스테이션 — 성운 사진 셋');
     const pic=k=>{ const cv=document.createElement('canvas'); cv.width=220; cv.height=140; const g=cv.getContext('2d'); g.fillStyle='#05070a'; g.fillRect(0,0,220,140);
@@ -49,19 +75,20 @@ const CH7={
     await STORY.sort('NEBULAE · 성운 셋',`<span class="pics"><img src="${pic(0)}" alt="앞 창"><img src="${pic(1)}" alt="뒤 카메라 1"><img src="${pic(2)}" alt="뒤 카메라 2"></span>그림은 왼쪽부터 앞 창 · 뒤 카메라 1 · 뒤 카메라 2`,['암흑 성운','반사 성운','방출 성운'],
       [['앞 창 — 별이 없는 검은 구름',0],['뒤쪽 별빛을 가린다',0],['뒤 카메라 1 — 밝은 별 둘레의 파란 구름',1],['가까운 별의 빛을 반사한다',1],['뒤 카메라 2 — 붉은 구름',2],['뜨거운 별 빛을 받아 스스로 빛을 낸다',2]],
       i=>[0,1].includes(i)?'검게 보이는 건 빛을 내지도 반사하지도 않고 가리기 때문':[2,3].includes(i)?'파란 구름 가운데 밝은 별 — 그 빛을 되비춘다':'붉은 구름은 스스로 빛을 낸다');
-    goal(''); await TALK.say([SJ('앞은 가리고, 하나는 비추고, 하나는 스스로 빛나고. 항로 확정.'),
+    goal(''); await TALK.say([SJ('반사 성운으로 — 별빛이 보이고 방사선도 약해요. 항로 확정.'),
       VG('경고. 복도 천장 환기구에서 움직임. 크기… 사람만 합니다.'),DN('사람만 하다고요? 하루 만에?'),
-      OW('제가 봅니다. 선장님은 문 옆 소방 도끼를 챙기세요.'),ME('오언, 혼자 가지 마.')]);
+      OW('제가 봅니다. 선장님은 함교 옆 보안 무기함에서 권총을 꺼내세요. 비밀번호는 선장님 지문이에요.'),ME('오언, 혼자 가지 마.')]);
     STORY.seated(true); PEOPLE.remove(ow); c.owen=null;
-    goal('복도 함교 쪽 벽의 소방 도끼를 챙긴다');
-    await STORY.wait(STORY.it('axecase'),'소방 도끼 함 — 도끼를 든다',{range:2.6}); STORY.hold(); AUDIO.noise(.3,.2,0,3000);
+    goal('복도 함교 쪽 벽의 보안 무기함에서 권총을 꺼낸다');
+    await STORY.wait(STORY.it('locker'),'보안 무기함 — 펄스 권총',{range:2.6}); STORY.hold(); AUDIO.noise(.3,.2,0,3000);
     // 오언이 끌려간다 : 복도 가운데, 천장 환기구 아래
     S.phase='cut'; P.free=false; goal('');
     const o2=await PEOPLE.spawn({kind:'owen',name:'오언 하트',role:'보안',at:{x:31,z:10.6,yaw:-Math.PI/2}}); const OW2=sayer('오언',o2);
-    warp(24,10.6,0); await camTo({x:24,z:10.6,yaw:yawTo(34,10.4),pitch:.08,eye:1.66},1.2); P.look=true;
+    warp(28.4,10.4,0); await camTo({x:28.4,z:10.4,yaw:yawTo(33.4,10.8),pitch:-.2,eye:1.66},1.2); P.look=true;
     await TALK.say([OW2('선장님, 환기구 창살이 휘어 있어요. 안쪽에서 밀어낸 것처럼…')]);
     await PEOPLE.walk(o2,[[33.3,10.5]],1.1);
-    const a=await ALIEN.spawn({at:{x:34,y:2.2,z:10.5},face:-Math.PI/2,height:1.75,clip:'jump_attack'}); const vg=STORY.it('vent_hall'), gh=vg&&vg.getObjectByName('vent_grate_hall'); if(gh){ gh.position.set(.4,0,-.3); gh.rotation.set(.8,0,.3); }
+    // 오언 앞쪽(카메라 쪽)으로 떨어진다
+    const a=await ALIEN.spawn({at:{x:32.6,y:2.2,z:11.3},face:-Math.PI/2,height:1.75,clip:'jump_attack'}); const vg=STORY.it('vent_hall'), gh=vg&&vg.getObjectByName('vent_grate_hall'); if(gh){ gh.position.set(.4,0,-.3); gh.rotation.set(.8,0,.3); }
     AUDIO.noise(.5,.3,0,2000); AUDIO.tone(900,.5,'sawtooth',.06,0,-500);
     await new Promise(r=>{ let k=0; const fn=dt=>{ k=Math.min(1,k+dt/.45); a.wrap.position.y=2.2*(1-k*k); if(k>=1){ TICK.splice(TICK.indexOf(fn),1); r(); } }; TICK.push(fn); });
     o2.sleep=true; o2.wrap.rotation.set(-Math.PI/2,0,0); o2.wrap.position.y=.15;

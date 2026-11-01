@@ -50,7 +50,7 @@ const CH9={GAL:[['A',10,12],['B',20,24],['C',40,48],['D',60,72]],
     const ok=await STORY.chase(a,{to:{x:69.6,z:6.2},r:1.6,speed:3.35,clip:'run',catchR:1.5,started:()=>ready});
     if(ok) ALIEN.go(a,[[60,10.3]],{speed:2.2,clip:'walk'}); return ok; },
   // 포드 : 해치를 열고 탄다 → 분리 → 웜홀 → 하얗게
-  async pod(){ goal(''); S.phase='cut'; P.free=false; AUDIO.noise(.8,.2,0,900); await fade(true,700); ALIEN.clear(); if(STORY.held){ WORLD.remove(STORY.held); STORY.held=null; }
+  async pod(){ goal(''); S.phase='cut'; P.free=false; AUDIO.noise(.8,.2,0,900); await fade(true,700); ALIEN.clear(); STORY.unhold();
     STORY.dark(false); SHIP.dim=1; STORY.skyClear(); const pr=SHIP.rooms.story, s1=pr.spots.pod1, s2=pr.spots.pod2;
     PEOPLE.list.slice().forEach(p=>PEOPLE.remove(p)); const dn=await PEOPLE.spawn({kind:'daniel',name:'다니엘 로드리게스',role:'기관',at:{x:s2.x,z:s2.z,yaw:-Math.PI/2},pose:'sit',seatY:.66}); STORY.dn=dn;
     warp(s1.x,s1.z,-Math.PI/2); P.eye=1.25; P.yaw=-Math.PI/2-.3; P.pitch=.06; SHIP.dim=.6; await SKY.space({dir:[1,.02,0],R:.16,jupiter:false,sunDir:[0,.5,1]}); SKYMASK.set(false);      // 포드 창은 배 유리 가림판(SKYMASK) 밖이다

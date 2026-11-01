@@ -239,3 +239,17 @@ body.talking #holoui.on{opacity:.35;pointer-events:none}
 /* 열화상 (에필로그) */
 #thermal{position:fixed;inset:0;z-index:28;background:#0a0630;display:flex;flex-direction:column;align-items:center;justify-content:center;opacity:0;transition:opacity .6s}
 #thermal.on{opacity:1} #thermal canvas{width:min(100vw,177vh);height:auto} #thermal p{position:absolute;top:calc(var(--pad) + 8px);left:calc(var(--pad) + 8px);margin:0;font-family:var(--mono);letter-spacing:.2em;color:#fff36a}
+
+/* 사격 단추 (권총을 들었을 때) · 공포 가장자리 */
+#fire{display:none;right:calc(var(--pad) + 30px);bottom:calc(var(--pad) + 250px);flex-direction:column;border-color:var(--alert);color:#fff;background:rgba(255,90,54,.2)}
+#fire.on{display:flex} #fire small{font-family:var(--mono);font-size:12px;opacity:.8}
+#dread{position:fixed;inset:0;z-index:4;pointer-events:none;opacity:0;background:radial-gradient(circle at 50% 50%,rgba(0,0,0,0) 35%,rgba(140,0,0,.55) 80%,rgba(60,0,0,.9) 100%)}
+/* 우주복 헬멧 (우주 유영) */
+#helmet{position:fixed;inset:0;z-index:6;pointer-events:none;opacity:0;transition:opacity 1s}
+#helmet.on{opacity:1}
+#helmet .rim{position:absolute;inset:-6vmax;border-radius:50%;box-shadow:inset 0 0 0 7vmax rgba(5,7,9,.96),inset 0 0 12vmax 8vmax rgba(0,0,0,.6)}
+#helmet .glare{position:absolute;left:12%;top:8%;width:30%;height:22%;border-radius:50%;background:radial-gradient(ellipse at 40% 40%,rgba(255,255,255,.08),rgba(255,255,255,0) 70%)}
+#helmet .hud{position:absolute;left:50%;bottom:calc(var(--pad) + 120px);transform:translateX(-50%);font-family:var(--mono);font-size:13px;letter-spacing:.14em;color:#9fd8ff;text-align:center}
+#helmet .o2{width:220px;height:6px;background:rgba(159,216,255,.2);margin:6px auto 0} #helmet .o2 i{display:block;height:100%;background:#9fd8ff}
+#helmet.low .o2 i{background:#ff5a36} #helmet.low .hud{color:#ff5a36}
+#thrust{display:none;left:calc(var(--pad) + 30px);right:auto;bottom:calc(var(--pad) + 46px)} #thrust.on{display:flex}
