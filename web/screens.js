@@ -59,7 +59,7 @@ const SCREEN=(()=>{ const W=1600,H=700; let cv,g,tex,mesh,ov,og,otex,oMesh,mode=
       STN.forEach(([n,la,lo],i)=>{ const a=lo*Math.PI/180+clock*.15, z=Math.cos(la*Math.PI/180)*Math.sin(a+Math.PI/2); if(z<0) return; const px=cx+R*Math.cos(la*Math.PI/180)*Math.cos(a+Math.PI/2)*-1, py=cy-R*Math.sin(la*Math.PI/180);
         g.fillStyle=AL; g.globalAlpha=.5+.5*Math.sin(clock*3+i); g.beginPath(); g.arc(px,py,4,0,7); g.fill(); g.globalAlpha=1; });
       T('중력 이상 대응 회의',90,240,F(300,74),INK); T('하위헌스 계획 · 2차 탐사 결정 회의',92,290,F(400,26),MUTE);
-      ['01  지구 중력 이상 현황','02  원인 — 목성 궤도의 비틀림','03  웜홀 관측과 분광 분석','04  하위헌스 1호 마지막 교신','05  2차 탐사 · 승무원'].forEach((s,i)=>T(s,92,380+i*44,M(20),i?MUTE:INK));
+      ['01  지구 중력 이상 현황','02  원인 — 목성 궤도의 비틀림','03  웜홀 관측과 별 배치 대조','04  하위헌스 1호 마지막 교신','05  2차 탐사 · 승무원'].forEach((s,i)=>T(s,92,380+i*44,M(20),i?MUTE:INK));
       T('발표  로버트 그레이 · NASA 탐사 임무국장',92,620,M(16),AL); },
 
     gravity(){ chrome('01','지구 중력 이상 — 관측소 실시간','IGS · 초전도 중력계 412곳'); const k=ease(t/2.5);
@@ -121,23 +121,21 @@ const SCREEN=(()=>{ const W=1600,H=700; let cv,g,tex,mesh,ov,og,otex,oMesh,mode=
       T('2086',1030,630,M(12),DIM); T('2091',1550,630,M(12),DIM,'right'); T('+'+(4.1*k).toFixed(1)+'″',1550,420,M(30,600),AL,'right'); },
 
     wormhole(){ /* 바탕은 WH 렌더 타깃 — 겹친 투명 캔버스에 측정 표시를 그린다 */ },
-    spectrum(){ chrome('03','웜홀 안쪽 빛의 스펙트럼','분광기 VIS-2 · 노출 4,800 s'); const z=.031*ease((t-1.2)/3);
-      const L=[[393.4,'Ca K'],[396.8,'Ca H'],[486.1,'Hβ'],[517.3,'Mg'],[589.0,'Na'],[656.3,'Hα']], X=l=>52+(l-370)/340*1180;
-      const band=(y,s,label)=>{ box(28,y-30,1240,128,label); const gr=g.createLinearGradient(X(380),0,X(700),0); ['#4b2bb5','#2a55ff','#18b3d4','#3fcf58','#f0e036','#ff8a1f','#c21414'].forEach((c,i)=>gr.addColorStop(i/6,c));
-        g.fillStyle=gr; g.fillRect(X(380),y,X(700)-X(380),40); g.fillStyle='#000'; L.forEach(([l])=>{ const x=X(l*(1+s)); if(x<X(700)) g.fillRect(x-2.5,y,5,40); });
-        // 세기 그래프
-        g.strokeStyle=s?AL:INK; g.beginPath(); for(let l=380;l<=700;l+=.5){ let v=1; L.forEach(([c])=>{ v-=.7*Math.exp(-Math.pow((l-c*(1+s))/2.2,2)); }); v+=.03*Math.sin(l*3.1+clock*6)*(s?1:0); const x=X(l), yy=y+88-v*36; l>380?g.lineTo(x,yy):g.moveTo(x,yy); } g.stroke(); };
-      band(110,0,'실험실 기준 (정지한 광원)'); band(300,z,'웜홀 안쪽 빛 (관측)');
-      L.forEach(([l,n])=>{ const x0=X(l), x1=X(l*(1+z)); T(n,x0,282,M(12),DIM,'center'); g.strokeStyle='rgba(255,90,54,.5)'; g.setLineDash([3,4]); g.beginPath(); g.moveTo(x0,250); g.lineTo(x1,300); g.stroke(); g.setLineDash([]); });
-      [400,450,500,550,600,650,700].forEach(l=>T(l+' nm',X(l),448,M(12),DIM,'center'));
-      // 오른쪽 : 계산
+    // 웜홀 안쪽 하늘을 우리 별 목록과 대조 — 맞는 별이 하나도 없다 → 우리은하 밖 (적색 편이는 중2 과정 밖이라 쓰지 않는다)
+    match(){ chrome('03','웜홀 안쪽 하늘 — 별 배치 대조','우주 망원경 WFI · 항성 목록 대조'); const k=ease((t-1)/3);
+      const rnd=i=>{ const s=Math.sin(i*127.1+311.7)*43758.5453; return s-Math.floor(s); };
+      const field=(x0,label,seed,col)=>{ box(x0,72,600,388,label);
+        for(let i=0;i<140;i++){ const r=rnd(seed+i*3), x=x0+20+rnd(seed+i*3+1)*560, y=100+rnd(seed+i*3+2)*340;
+          g.fillStyle=col; g.globalAlpha=.35+r*.65; g.beginPath(); g.arc(x,y,.6+r*r*2.6,0,7); g.fill(); } g.globalAlpha=1; };
+      field(28,'고리 안쪽 하늘 (관측)',1,INK); field(644,'같은 방향 · 우리 하늘 (항성 목록)',500,CY);
+      if(k<1){ const sx=664+(clock*140)%560; g.strokeStyle='rgba(255,90,54,.6)'; g.beginPath(); g.moveTo(sx,98); g.lineTo(sx,456); g.stroke(); }
       box(1290,72,282,276,'NGC 3500'); if(img.gal){ g.save(); g.beginPath(); g.rect(1291,96,280,251); g.clip(); g.drawImage(img.gal,1291-60+Math.sin(clock*.2)*8,96-40,400,330); g.restore(); }
-      box(28,478,1544,182,'계산'); const v=299792*z, d=v/70;
-      T('적색 편이  z = Δλ / λ',52,530,F(500,20),MUTE); T(z.toFixed(3),52,590,M(44,600),AL);
-      T('멀어지는 속도  v = c · z',460,530,F(500,20),MUTE); T(Math.round(v).toLocaleString()+' km/s',460,590,M(40,600),INK);
-      T('거리  d = v / H₀',920,530,F(500,20),MUTE); T(z>.03?'약 4억 3천만 광년':(d*3.26/100).toFixed(1)+' 억 광년',920,590,M(36,600),z>.03?AL:INK);
-      T('흡수선이 모두 같은 비율로 긴 파장 쪽으로 밀렸다 → 우리은하 밖, 멀어지는 은하의 빛',52,640,F(400,17),DIM);
-      box(1290,364,282,100,'판정'); T(z>.03?'외부 은하':'분석 중…',1310,430,F(600,30),z>.03?AL:MUTE); },
+      box(28,478,1544,182,'대조 결과'); const done=k>.98;
+      T('비교한 별',52,530,F(500,20),MUTE); T(Math.round(2412*k).toLocaleString()+' 개',52,590,M(40,600),INK);
+      T('일치한 별',460,530,F(500,20),MUTE); T('0 개',460,590,M(44,600),AL);
+      T('고리 안에 보이는 것',920,530,F(500,20),MUTE); T(done?'나선 은하 하나':'대조 중…',920,590,M(36,600),done?AL:INK);
+      T('고리 안의 별은 우리 하늘 어디와도 맞지 않는다 → 그 너머는 우리은하 밖, 다른 은하',52,640,F(400,17),DIM);
+      box(1290,364,282,100,'판정'); T(done?'외부 은하':'분석 중…',1310,430,F(600,30),done?AL:MUTE); },
 
     mayday(){ chrome('04','하위헌스 1호 — 마지막 수신','DSN 캔버라 70 m · X 밴드 8.42 GHz');
       box(28,72,1100,250,'수신 파형'); const alive=t<5.8, a=alive?.32+.2*Math.sin(t*2.3):.02;
