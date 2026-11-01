@@ -22,10 +22,16 @@ const SHIP={OX:{bridge:0,deck:14,cryo:27,lab:39,lobby:20.5,engine:63.3}, OZ:{lob
   list(){ const backDoor=root=>cutTris(root,'base_door',c=>c.z>7), O=this.OX, Z=this.OZ;
     return [['bridge',{ox:O.bridge,prep:root=>{ backDoor(root); ROOMS.bridgePrep(root); }}],['deck',{ox:O.deck,prep:backDoor}],
       ['cryo',{ox:O.cryo,prep:root=>cutTris(root,'base_door',c=>Math.abs(c.z)>7)}],        // 동면 구역은 북쪽(관측창 앞) 문짝도 창을 가려서 함께 지운다
-      ['lab',{ox:O.lab}],['lobby',{ox:O.lobby,oz:Z.lobby}],['engine',{ox:O.engine,oz:Z.engine}],['hall',{}],
+      ['lab',{ox:O.lab,prep:root=>shove(root,['Object_14004','Object_6002','Object_7002','Object_17001','Object_20001','Object_21001'],-2,0)}],      // 연구실 : 문 바로 안을 막던 실험대(위 물건째)를 서쪽으로 2 m
+      ['lobby',{ox:O.lobby,oz:Z.lobby}],
+      ['engine',{ox:O.engine,oz:Z.engine,prep:root=>cutTris(root,'eng_rail',c=>c.x<57&&c.z>9.4&&c.z<11.3)}],['hall',{}],      // 기관실 : 문 앞을 가로지르던 난간을 끊어 원자로 단으로 바로 오른다
       ['story',{solid:false}]]; },              // 이야기 소품 (story.glb · 세계 좌표 그대로 · 몸 충돌 없음)
   preload(){ return this._pre||(this._pre=LEVEL.preload(this.list()).then(()=>LEVEL.warmBundles(this.list().map(([k,o])=>k+'@'+(o.ox||0)+','+(o.oz||0))))); },
 };
+
+// 맵 안 물체를 세계 좌표로 (dx, dz) 만큼 옮긴다 — 문을 막는 가구 치우기
+function shove(root,names,dx,dz){ root.updateMatrixWorld(true); const w=new THREE.Vector3(), L=[];
+  root.traverse(o=>{ if(names.includes(o.name)) L.push(o); }); L.forEach(o=>{ o.getWorldPosition(w); w.x+=dx; w.z+=dz; o.position.copy(o.parent.worldToLocal(w)); }); }
 
 /* 중앙 복도 : Blender (blender/10_하위헌스2호.blend 의 HALL · HALL_E → web/assets/hall.glb)
    Sketchfab Sci-fi Corridor(corridor_2019) 반쪽을 거울로 온전하게 → 1.45 배 → 다섯 칸 59 m. 북쪽 문 구멍 다섯(함교 · 식당 · 동면 · 연구실 · 에어록) · 남쪽 하나(라운지) · 동쪽 끝(기관실) */
@@ -53,6 +59,7 @@ SCENES.ship={title:'하위헌스 2호', async enter(o={}){ const f=S.flags; SHIP
   SHIP.door(R.bridge,'함교','중앙 복도'); SHIP.door(R.deck,'식당 · 의무실','중앙 복도'); SHIP.door(R.cryo,'동면 구역 C','중앙 복도');
   SHIP.door(R.lab,'연구실','중앙 복도',{x:37.43}); SHIP.door(R.lab,'에어록','중앙 복도',{x:50.43,key:'airlock'});
   SHIP.door(R.lobby,'라운지 · 전망대','중앙 복도',{x:14,z:12.45,rot:0}); SHIP.door(R.engine,'기관실','중앙 복도',{x:55.25,z:10.35,rot:Math.PI/2});
+  SOLID.holes=[[54.4,9.85,55.6,11.15,.2,1.85]];      // 복도 동쪽 끝 문 구멍 (기관실) : 비스듬한 문설주가 칸으로는 0.7 m 라 막혔다
   SHIP.lock.airlock=()=>'에어록은 선외 활동 때만 엽니다. 지금은 잠가 둡니다.';
   STORY.prep(R.story); await ROOMS.bridge(R.bridge); await ROOMS.deck(R.deck); await ROOMS.cryo(R.cryo); await ROOMS.lab(R.lab); await ROOMS.lobby(R.lobby); await ROOMS.engine(R.engine);
   LOADING.set(.9); await SOLID.build();               // 묶음 칸은 미리 계산돼 있다 — 장면이 넣은 것만 일꾼이 새로

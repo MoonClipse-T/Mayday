@@ -50,6 +50,9 @@ ROOMS.engine=async R=>{ const f=S.flags, U=BRIDGEUI, {T,head,F,M,INK,MUTE,DIM,CY
     [['노심 온도','1.2억 K'],['자기장 가둠','99.7 %'],['이온 엔진 추력','2 × 410 kN'],['방열판','정상']].forEach(([a,b],i)=>{ const y=60+i*((H-70)/4); T(g,a,16,y+18,F(500,16),MUTE); T(g,b,W-16,y+18,M(20,600),i===0?AL:INK,'right'); });
     g.strokeStyle=CY; g.beginPath(); for(let x=0;x<W;x+=3){ const y=H-14-10*(1+Math.sin(x*.05+t*2)); x?g.lineTo(x,y):g.moveTo(x,y); } g.stroke(); });
   sc('eng0',it.scr_eng0,'원자로'); sc('eng1',it.scr_eng1,'추진');
+  // 문 앞에서 끊은 난간(ship.js) 양 끝에 기둥 — 난간이 허공에서 끝나지 않게
+  let rail=null; R.root.parent.traverse(m=>{ if(m.isMesh&&m.material&&m.material.name==='eng_rail') rail=m.material; });
+  if(rail) [9.38,11.32].forEach(z=>{ const p=new THREE.Mesh(new THREE.CylinderGeometry(.028,.028,1.42,12),rail); p.position.set(63.3-Math.sqrt(6.9**2-(z-10.35)**2),.71,z); R.add(p); });
   peek(R,63.3,3.5,10.35,7,7,7,'원자로 — 핵융합 · 핵분열 혼합로',()=>[V_('하위헌스 2호의 심장입니다. 수소를 헬륨으로 바꾸는 핵융합으로 에너지를 얻습니다. 별이 빛나는 방식과 같습니다.'),ME_('배 안에 작은 별이 하나 있는 셈이군.')],9);
   R.onEnter=()=>{ if(f.engIn||SHIP.mode!=='wake') return; f.engIn=true;
     TALK.say([V_('기관실입니다. 원자로 주변 노란 선 안으로는 들어가지 마십시오.')]); };

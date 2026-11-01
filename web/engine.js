@@ -70,7 +70,7 @@ function floorAt(x,z){ let y=0; for(const f of FLOORS){ if(x>f.x1&&x<f.x2&&z>f.z
      맵 묶음마다 한 번만 계산해 두고(SOLID.extract → 칸 목록 캐시), 다시 들어가면 그 목록을 찍기만 한다.
      장면이 LEVEL.solids 에 넣은 것(캡슐 · 가구)만 매번 새로 계산한다 */
 const BODY=1.75, STEP=.38, GRAV=13, JUMP=4.3;
-const SOLID={g:null,c:.1,cy:.05,want:false,seq:0,
+const SOLID={g:null,c:.1,cy:.05,want:false,seq:0, holes:[],      // holes : [x1,z1,x2,z2,y1,y2] 몸이 지나갈 길 — 보이는 문틀보다 칸이 두툼해 막히는 곳만 비운다
   worker:null, jobs:new Map(), jid:0,
   // 일꾼 : 메시들(정점 · 삼각형 · 행렬)을 받아 막힌 칸 번호 (i,j,k)를 돌려준다 (세계 격자 : 원점 0, 칸 c · cy)
   run(meshes){ if(!this.worker){ const src=`onmessage=e=>{ const {id,meshes,c,cy}=e.data, seen=new Set(), out=[]; const s=c*.7;
@@ -103,6 +103,9 @@ const SOLID={g:null,c:.1,cy:.05,want:false,seq:0,
     const nx=hi[0]-lo[0]+3, ny=hi[1]-lo[1]+3, nz=hi[2]-lo[2]+3; if(nx*ny*nz>400e6) return console.warn('SOLID : 맵이 너무 커서 끈다');
     const g=new Uint32Array(Math.ceil(nx*ny*nz/32)), i0=lo[0]-1, j0=lo[1]-1, k0=lo[2]-1;
     for(const a of [...stat,dynCells]) for(let t=0;t<a.length;t+=3){ if(a[t+1]>JMAX) continue; const i=((a[t+1]-j0)*nz+(a[t+2]-k0))*nx+(a[t]-i0); g[i>>>5]|=1<<(i&31); }
+    const cl=(v,n)=>Math.max(0,Math.min(n-1,v));
+    for(const [x1,z1,x2,z2,y1,y2] of this.holes) for(let j=cl(Math.floor(y1/this.cy)-j0,ny);j<=cl(Math.floor(y2/this.cy)-j0,ny);j++) for(let k=cl(Math.floor(z1/this.c)-k0,nz);k<=cl(Math.floor(z2/this.c)-k0,nz);k++)
+      for(let i=cl(Math.floor(x1/this.c)-i0,nx);i<=cl(Math.floor(x2/this.c)-i0,nx);i++){ const n=(j*nz+k)*nx+i; g[n>>>5]&=~(1<<(n&31)); }
     Object.assign(this,{g,nx,ny,nz,x0:i0*this.c,y0:j0*this.cy,z0:k0*this.c}); console.log('SOLID',Math.round(performance.now()-t0)+' ms',stat.length+' 묶음'); },
   // 둘레 r 안 · 높이 y1~y2 에 막힌 칸이 있나
   hit(x,z,y1,y2,r){ if(!this.g) return false; const c=this.c, rr=(r+c*.35)**2;
@@ -256,7 +259,7 @@ const LEVEL={key:null,root:null,spawn:{x:0,z:0,yaw:0},spots:{},items:{},lights:[
     FLOORS.push(...b.floors); if(!solid){ b.cols.forEach(c=>addBox(...c)); CIRC.push(...b.circs); }
     if(solid){ this.solids.push(b.root,...b.merged); this.solidTris.push(b); SOLID.want=true; } return r; },
   solids:[], solidTris:[],
-  clear(){ SOLID.g=null; SOLID.want=false; this.solids=[]; this.solidTris=[]; LIGHTPOOL.stop(); if(SKYMASK.on) SKYMASK.set(false); WORLD.clear(); COL.length=CIRC.length=FLOORS.length=INTER.length=TICK.length=0; this.spots={}; this.items={}; this.lights=[]; hot=null;
+  clear(){ SOLID.g=null; SOLID.want=false; SOLID.holes=[]; this.solids=[]; this.solidTris=[]; LIGHTPOOL.stop(); if(SKYMASK.on) SKYMASK.set(false); WORLD.clear(); COL.length=CIRC.length=FLOORS.length=INTER.length=TICK.length=0; this.spots={}; this.items={}; this.lights=[]; hot=null;
     if(typeof PEOPLE!=='undefined') PEOPLE.clear(); if(typeof ALIEN!=='undefined') ALIEN.clear(); if(typeof SKY!=='undefined') SKY.clear(); },
   // 컷신 동안 : 묶음을 따로 만든 장면에 잠깐 올려 그림 · 모양 · 셰이더를 미리 준비한다 (함선과 같은 빛 구성 → 셰이더를 그대로 다시 쓴다)
   async warmBundles(keys){ const sc=new THREE.Scene(); sc.add(new THREE.HemisphereLight(0xffffff,0x000000,.3)); const d=new THREE.DirectionalLight(0xffffff,1); sc.add(d);
