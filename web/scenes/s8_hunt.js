@@ -151,9 +151,15 @@ const CH8={
     await camTo({x:13.4,z:11.4,yaw:yawTo(27,10.2),pitch:.04,eye:1.66},1.4); P.look=true; SHIP.dim=.3;      // 복도에 나와 동쪽을 본다
     const ad=await ALIEN.spawn({at:{x:44,z:10.5},face:-Math.PI/2,height:2.7,clip:'walk'});
     PEOPLE.walk(my,[[14.5,14.5],[14.5,11],[24,10.5],[27,9.6],[27,6]],2.4);
-    await sleep(1800); ALIEN.play(ad,'roar',{once:true}); await sleep(1500); await ALIEN.go(ad,[[28,10.4],[27,8.2]],{speed:2.4,clip:'run'});
-    await SHIP.doors.cryo.close(); PEOPLE.remove(my); ALIEN.clear();
-    const fe=$('#fade'); fe.style.background='#bfe6ff'; AUDIO.noise(2.4,.3,0,6000,'highpass'); await fade(true,500); await sleep(600); await fade(false,1400); fe.style.background='';
+    await sleep(1800); ALIEN.play(ad,'roar',{once:true}); await sleep(1500); await ALIEN.go(ad,[[28,10.4],[27,8.2],[27,5.2]],{speed:2.4,clip:'run'});
+    // 몸으로 : 문 옆 냉각제 밸브는 밖에서만 돌릴 수 있다 — 마야를 안에 둔 채로
+    await TALK.say([RADIO('마야','들어왔어요! 선장님, 문 닫고 — 문 옆 냉각제 밸브! 지금 돌려요!'),ME('마야, 너는…'),RADIO('마야','빨리요!')]);
+    P.look=false; S.phase='play'; P.free=true;
+    await STORY.at(STORY.it('coolant'),'냉각제 밸브 — 동면 구역 C','동면 구역 문 옆 냉각제 밸브를 돌린다',{range:2.4,up:.6});
+    await SHIP.doors.cryo.close(); await STORY.qte('COOLANT · 냉각제 밸브','밸브를 끝까지',3);
+    { const wh=STORY.it('coolant').getObjectByName('cool_wheel'); if(wh) wh.rotation.z+=Math.PI*1.5; }
+    S.phase='cut'; P.free=false; PEOPLE.remove(my); ALIEN.clear();
+    const fe=$('#fade'); fe.style.background='#bfe6ff'; AUDIO.noise(2.4,.3,0,6000,'highpass'); await fade(true,500); await sleep(600); warp(16,15.6,yawTo(21.8,17.6)); await fade(false,1400); fe.style.background='';      // 하얀 냉기 뒤 : 라운지로 돌아와 있다
     await TALK.say([VG('동면 구역 C 냉각제 방출. 내부 온도 영하 160도.'),RADIO('마야','…선장님. 그게… 멈췄어요. 잠들었어요.'),
       RADIO('마야','저도… 너무 졸려요. 문은 열지 마세요. 잘 자요, 크리스.'),ME('마야…')]);
     f.mayaGone=true; P.look=false; await camTo({x:16,z:17,yaw:yawTo(21.8,17.6),pitch:0,eye:1.66},1); S.phase='play'; P.free=true;

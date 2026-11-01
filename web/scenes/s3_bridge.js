@@ -53,7 +53,7 @@ ROOMS.bridge=async R=>{
   U.mount('comms',it.scr_comms,room,(g,W,H,t)=>{ head(g,W,'COMMS · 통신','지구 · 휴스턴');
     g.strokeStyle=CY; g.beginPath(); for(let x=0;x<W;x+=3){ const y=H*.45+Math.sin(x*.05+t*4)*14*(away?.1:1)+(Math.random()-.5)*(away?30:6); x?g.lineTo(x,y):g.moveTo(x,y); } g.stroke();
     T(g,'지구 링크 (웜홀 경유)',16,H*.72,F(500,15),MUTE); T(g,away?'신호 없음':'지연 43분 12초',16,H*.72+30,M(22,600),away?AL:INK);
-    T(g,'HUY-1 비컨 탐색',W*.55,H*.72,F(500,15),MUTE); T(g,f.beacon?'수신 중 · 반복':away?'수신 대기…':'—',W*.55,H*.72+30,M(22,600),f.beacon?AL:away?CY:DIM); });
+    T(g,'HUY-1 구조 신호',W*.55,H*.72,F(500,15),MUTE); T(g,f.beacon?'수신 중 · 반복':away?'수신 대기…':'—',W*.55,H*.72+30,M(22,600),f.beacon?AL:away?CY:DIM); });
   U.mount('eng',it.scr_eng,room,(g,W,H,t)=>{ head(g,W,'ENGINEERING · 기관','다니엘 로드리게스');
     [['반응로',.82],['이온 엔진 A',.74],['이온 엔진 B',.71],['방열판',.55],['생명 유지',.93]].forEach(([n,v],i)=>{ const y=60+i*((H-80)/5); const vv=v+.02*Math.sin(t*2+i); T(g,n,16,y+14,F(500,15),MUTE); g.fillStyle='rgba(127,212,255,.12)'; g.fillRect(W*.35,y,W*.55,16); g.fillStyle=vv>.9?AL:CY; g.fillRect(W*.35,y,W*.55*vv,16); T(g,Math.round(vv*100)+'%',W-12,y+14,M(14),INK,'right'); }); });
   U.mount('sci',it.scr_sci,room,(g,W,H,t)=>{ head(g,W,'SCIENCE · 과학',f.photos?'블링크 비교기 · 사진 A · B':'중력 · 분광');
@@ -82,9 +82,9 @@ ROOMS.bridge=async R=>{
   let inAR=false, back=null;
   async function openAR(first){ if(inAR) return; inAR=true; back={x:P.x,z:P.z,yaw:P.yaw,pitch:P.pitch}; P.free=false; HOLO.root.visible=true; HOLO.spin=.05;
     await camTo({x:hp.x,z:hp.z+1.75,yaw:Math.round(P.yaw/(Math.PI*2))*Math.PI*2,pitch:-.42,eye:2.05},1.2); P.look=true;
-    window.dragHook=(dx,dy)=>{ if(touches.size<2) HOLO.rot(dx*.009,dy*.006); }; window.pinchHook=k=>HOLO.zoom(k); ui.classList.add('on'); cmdShow(); const m0=first||HOLO.mode||'solar'; HOLO.show(m0); arSeen(m0); goal(away?'AR 은하 지도 — 우리는 어디에 있나':'AR — 항로를 확인한 뒤 닫기'); }
-  async function closeAR(){ if(!inAR) return; ui.classList.remove('on'); window.dragHook=null; HOLO.reset(); window.pinchHook=null; P.look=false; HOLO.spin=.12; await camTo({x:back.x,z:back.z,yaw:back.yaw,pitch:0,eye:1.66},.9); inAR=false; P.free=true;
-    if(!away&&f.route) goal('함장석에 앉아, 또는 홀로 테이블에서 웜홀 진입을 명령한다'); else if(!away) goal('홀로 테이블에서 웜홀까지의 항로를 확인한다'); }
+    window.dragHook=(dx,dy)=>{ if(touches.size<2) HOLO.rot(dx*.009,dy*.006); }; window.pinchHook=k=>HOLO.zoom(k); ui.classList.add('on'); cmdShow(); const m0=first||HOLO.mode||'solar'; HOLO.show(m0); arSeen(m0); back.goal=$('#goaltext').textContent; if(!away&&!f.route) goal('AR — 목성 근처를 눌러 진입 항로를 확인한다'); }
+  async function closeAR(){ if(!inAR) return; ui.classList.remove('on'); window.dragHook=null; HOLO.reset(); window.pinchHook=null; P.look=false; HOLO.spin=.12; HOLO.root.visible=false; await camTo({x:back.x,z:back.z,yaw:back.yaw,pitch:0,eye:1.66},.9); inAR=false; P.free=true;
+    if(!away&&f.route&&!f.transit) goal('함장석에 앉아, 또는 홀로 테이블에서 웜홀 진입을 명령한다'); else if(!away&&!f.route) goal('홀로 테이블에서 웜홀까지의 항로를 확인한다'); else if(away&&f.where) goal(back.goal); }
   ui.querySelector('.close').onclick=()=>closeAR();
   const seen={};
   async function arSeen(m){ const k=(away?'a_':'h_')+m; if(seen[k]) return; seen[k]=true;      // 건너편에서는 같은 지도도 처음 보는 것으로
@@ -147,7 +147,7 @@ ROOMS.bridge=async R=>{
   PEOPLE.talkable(daniel,()=>TALK.say([DN(away?'엔진은 멀쩡해요. 웜홀이 배를 씹어 먹진 않았네요.':'반응로 82%. 웜홀 들어가면 응력이 꽤 걸릴 거예요.')]));
   PEOPLE.talkable(owen,()=>TALK.say([OW(away?'…조용하네요. 너무 조용해요.':'함교 출입은 제가 지킵니다.')]));
   // 뒷문 : 웜홀에 들어간 뒤로는 함교를 비울 수 없다
-  SHIP.lock.bridge=()=>(f.transit&&!f.where)||(f.ch2&&!f.ch2done)?'지금은 함교를 비우시면 안 됩니다, 선장님.':null;
+  SHIP.lock.bridge=()=>f.transit&&!f.where?'지금은 함교를 비우시면 안 됩니다, 선장님.':null;
   // 처음 들어오면
   R.onEnter=async()=>{ if(f.bridgeIn||!f.allAwake||SHIP.mode!=='wake') return; f.bridgeIn=true;
     await TALK.say([V('함교에 오신 것을 환영합니다, 선장님. 목성 궤도 진입 완료.'),MY('선장님! 창밖 보세요. 저기가 웜홀이에요.'),me('…가까이서 보니 더 크군.'),

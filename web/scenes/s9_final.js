@@ -55,7 +55,11 @@ const CH9={GAL:[['A',10,12],['B',20,24],['C',40,48],['D',60,72]],
     PEOPLE.list.slice().forEach(p=>PEOPLE.remove(p)); const dn=await PEOPLE.spawn({kind:'daniel',name:'다니엘 로드리게스',role:'기관',at:{x:s2.x,z:s2.z,yaw:-Math.PI/2},pose:'sit',seatY:.66}); STORY.dn=dn;
     warp(s1.x,s1.z,-Math.PI/2); P.eye=1.25; P.yaw=-Math.PI/2-.3; P.pitch=.06; SHIP.dim=.6; await SKY.space({dir:[1,.02,0],R:.16,jupiter:false,sunDir:[0,.5,1]}); SKYMASK.set(false);      // 포드 창은 배 유리 가림판(SKYMASK) 밖이다
     await fade(false,900); const DN=sayer('다니엘',dn), POD=t=>({who:'포드',kind:'vega',ch:'POD-1',t});
-    await TALK.say([POD('탈출 포드 1. 분리합니다.'),DN('2호… 잘 있어.')]);
+    // 몸으로 : 해치를 두드리는 소리 속에서 분리 볼트 셋을 직접 터뜨린다
+    const bang=setInterval(()=>{ AUDIO.noise(.35,.35,0,400); camera.position.x+=(Math.random()-.5)*.03; },900);
+    await TALK.say([POD('자동 분리 실패. 분리 볼트 셋을 수동으로 터뜨려 주십시오.'),DN('해치를 두드려요! 빨리요, 선장님!')]);
+    S.phase='play'; await STORY.qte('RELEASE · 분리 볼트','볼트 셋 — 하나씩',3); clearInterval(bang); S.phase='cut'; P.free=false;
+    await TALK.say([POD('분리.'),DN('2호… 잘 있어.')]);
     let k=0; const shake=dt=>{ k+=dt; const e=Math.min(1,k/9); SKY.U.R.value=.16+e*1.6; SKY.U.tun.value=Math.max(0,(e-.4)/.6); camera.position.x+=(Math.random()-.5)*.02*e; camera.position.y+=(Math.random()-.5)*.02*e; }; TICK.push(shake); AUDIO.hum(1.6,30);
     await TALK.say([VG('…하위헌스 2호, 선체 응력 한계. 선장님, 잘 가십시오.'),ME('고마웠어, 베가.')]);
     while(k<9) await sleep(200);

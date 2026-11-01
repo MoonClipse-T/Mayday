@@ -32,14 +32,24 @@ const CH5={
     warp(50.43,10.4,Math.PI/2); ow.wrap.position.set(51.6,0,10.9); await card('','하위헌스 1호','도킹 · 내부 온도 영하 12도',2600); await fade(false,1600); S.phase='play'; P.free=true;
     STORY.follow(ow); AUDIO.hum(.4,38);
     await TALK.say([OW('…추워요. 입김이 나요.'),me('손전등 켜. 불이 하나도 없군.'),VR('선장님, 생명 신호는 동면 구역 C 쪽입니다.'),
-      OW('동면 구역 문이 잠겨 있으면… 함교에서 전원부터 살려야겠죠.')]);
-    goal('1호 함교에서 전원을 살린다 (복도 서쪽 끝)');
+      OW('동면 구역은 전원이 없으면 안 열려요. 우리 배랑 같다면… 기관실에 비상 발전기가 있어요.')]);
+    // 몸으로 : 1호 기관실 비상 발전기를 손으로 돌린다 → 불이 조금 들어온다
+    const gen=STORY.it('genlever'), arm=gen&&gen.getObjectByName('gen_arm');
+    await STORY.at(gen,'비상 발전기 — 손잡이를 돌린다','1호 기관실(복도 동쪽 끝) 남쪽 벽의 비상 발전기를 돌린다',{range:2.8,up:.9});
+    await STORY.qte('GENERATOR · 비상 발전기','손잡이를 힘껏 — 박자에 맞춰',3);
+    if(arm) arm.rotation.x=-1.2; AUDIO.tone(70,1.6,'sawtooth',.07,0,60); STORY.dark(true,{red:false}); SHIP.dim=.42;
+    await TALK.say([OW('불이… 들어와요. 조금이지만.'),VR('1호 비상 전원 일부 복구. 함교 컴퓨터를 깨울 수 있습니다.')]);
+    goal('1호 함교에서 컴퓨터를 깨운다 (복도 서쪽 끝)');
+    // 복도 천장 환기구 아래를 지날 때 : 위에서 무언가 긁는 소리
+    { const vg=STORY.it('vent_hall'), gr=vg&&vg.getObjectByName('vent_grate_hall'); const fn=()=>{ if(Math.abs(P.x-34)<1.6&&P.z>8.9){ TICK.splice(TICK.indexOf(fn),1); AUDIO.noise(.8,.25,0,900); AUDIO.tone(1400,.3,'sawtooth',.03,0,-900);
+        if(gr){ let k=0; const sh=dt=>{ k+=dt; gr.position.x=Math.sin(k*60)*.02; if(k>.8){ gr.position.x=0; TICK.splice(TICK.indexOf(sh),1); } }; TICK.push(sh); }
+        TALK.say([OW('…방금, 천장에서 뭐가 긁었어요.'),me('계속 가. 멈추지 마.')]); } }; TICK.push(fn); }
     // 지나가며 보는 것 : 끌린 자국 · 시신 가방 (한 번씩)
     const seen=(x,z,r,lines)=>{ const fn=()=>{ if(Math.hypot(P.x-x,P.z-z)<r&&!TALK.on){ TICK.splice(TICK.indexOf(fn),1); TALK.say(lines); } }; TICK.push(fn); };
     seen(27,9.6,2.6,[me('…끌고 간 자국이다. 동면실 쪽으로.'),OW('손자국이… 벽을 짚고 버틴 것 같아요.')]);
     seen(11.6,5.6,2.4,[OW('시신 가방… 셋.'),me('1호 대원은 열둘이었다. 나머지는?'),OW('…모르겠어요.')]);
     const b=SHIP.rooms.bridge.spots.sci||{x:3.2,z:-3.6}, box=new THREE.Mesh(new THREE.BoxGeometry(1.2,1.6,1.2),PICK); box.position.set(b.x,.9,b.z); WORLD.add(box);
-    await STORY.wait(box,'1호 과학 스테이션 — 비상 전원',{range:3});
+    await STORY.at(box,'1호 과학 스테이션 — 비상 전원','1호 함교 과학 스테이션에서 컴퓨터를 깨운다',{range:3});
     await TALK.say([{who:'1호 컴퓨터',kind:'vega',ch:'HUY-1',t:'비상 시동. 항법 기준 소실. 주성을 다시 설정하십시오.'},OW('주성이요?'),
       me('이 배가 도는 별. 창밖의 별 B 를 목록에서 골라 주면 깨어난다는 거야. 색으로 온도를 맞춰 보자.')]);
     await STORY.sim('STAR COLOR · 별빛 색과 표면 온도','밀대로 표면 온도를 바꿔, 실험 별의 색을 <b>창밖의 별 B</b> 와 같게 맞추자',{min:3000,max:30000,step:500,val:15000,unit:' K',fmt:v=>v.toLocaleString()},
@@ -82,15 +92,15 @@ const CH6={
     SHIP.huy1=false; SHIP.zone=null; STORY.show('h1',false); STORY.dark(false); STORY.seated(false);
     ['pilotL','pilotR','nav','comms','eng','sci','top','vega'].forEach(k=>{ const m=BRIDGEUI.mesh(k); if(m) m.visible=true; });
     SHIP.lock={}; PEOPLE.list.filter(p=>p===STORY.leah||p===SHIP.crew.owen).forEach(p=>PEOPLE.remove(p)); SHIP.crew.owen=null;
+    await this.invite();
     // 식당 탁자 (x 13.3 ~ 16, z 0.35 ~ 2.45) 둘레에 선다
     const T={x:14.6,z:1.4}, face=(x,z)=>Math.atan2(x-T.x,z-T.z), at=(x,z)=>({x,z,yaw:face(x,z)});
     const [le,my,sj,dn,ow]=await Promise.all([PEOPLE.spawn({kind:'sophia',name:'레아 문',role:'1호 생물학자',at:at(16.5,.4)}),PEOPLE.spawn({kind:'maya',name:'마야 첸',role:'부선장',at:at(12.7,.9)}),
       PEOPLE.spawn({kind:'seojun',name:'한서준',role:'항법',at:at(12.7,2.0)}),PEOPLE.spawn({kind:'daniel',name:'다니엘 로드리게스',role:'기관',at:at(14.6,3.3)}),PEOPLE.spawn({kind:'owen',name:'오언 하트',role:'보안',at:at(16.5,2.5)})]);
     STORY.leah=le; const C={maya:my,seojun:sj,daniel:dn,owen:ow}; this.cast=C;
     const w=(who,npc)=>t=>({who,t,npc}), me=t=>({kind:'me',t}), V=t=>({who:'VEGA',kind:'vega',t}), LE=w('레아',le), MY=w('마야',my), SJ=w('서준',sj), DN=w('다니엘',dn), OW=w('오언',ow);
-    warp(14.6,-.6,0); P.yaw=Math.PI; SHIP.zone=null; AUDIO.hum(1,44);
-    await card('','하루 뒤','하위헌스 2호 · 식당',2400);
-    await TALK.say([LE('…따뜻하다. 하루 종일 이 말만 하네요.'),MY('천천히 먹어요. 아무도 안 뺏어 가요.'),
+    warp(14.6,-.6,0); P.yaw=Math.PI; SHIP.zone=null; AUDIO.hum(1,44); await fade(false,1200); S.phase='play'; P.free=false; P.look=true;
+    await TALK.say([LE('다들 와 줬네요. …몇 달 만에 사람들이랑 먹는 밥이에요.'),MY('천천히 먹어요. 아무도 안 뺏어 가요.'),
       SJ('레아 씨, 1호는 어떻게 돌아가려고 했어요? 웜홀 출구가 이쪽에선 안 보여요.'),
       LE('1호 항법사가 별무리 두 개로 길을 잡았어요. 웜홀 출구는 그 둘 사이에 있어요. 하나는 엉성한 별무리, 하나는 공처럼 빽빽한 별무리.'),
       me('산개 성단과 구상 성단이군. 둘을 헷갈리면 엉뚱한 데로 간다. 정리해 보자.')]);
@@ -116,6 +126,20 @@ const CH6={
       OW('뭔가 들어갔어요. 고양이만 한 게… 환기구로.'),me('…"차가우면 그것도 잠들까." 레아가 데려온 거야. 몸속에.'),DN('그럼 지금 그게… 이 배 안에 있다고요?')]);
     f.leahDead=true; S.phase='play';
     await STORY.next('6장 · 손님 — 끝','7장 · 사냥',()=>CH7.start()); },
+  // 몸으로 : 저녁 전에 배를 한 바퀴 — 함교 · 연구실 · 라운지 · 기관실의 대원을 직접 불러 온다 (레아는 식당에서 기다린다)
+  async invite(){ const me=t=>({kind:'me',t}), at=(x,z,tx,tz)=>({x,z,yaw:Math.atan2(x-tx,z-tz)});
+    const le=await PEOPLE.spawn({kind:'sophia',name:'레아 문',role:'1호 생물학자',at:at(16.5,.4,14.6,-.6)});
+    const W=[['maya','마야 첸','부선장',0,-1.2,0,-4,'마야','어머, 다 같이요? 좋아요. 조종은 자동으로 걸어 둘게요.'],['seojun','한서준','항법',40.6,4.4,42.7,2.6,'서준','레아 씨 1호 항로 자료 보고 있었어요. 밥 먹으면서 물어봐야겠다.'],
+      ['owen','오언 하트','보안',20.5,17.4,20.5,22,'오언','…레아 씨랑 같이요? 네. 저도 가죠. 가까이 앉을게요.'],['daniel','다니엘 로드리게스','기관',59.2,10.3,63.3,10.35,'다니엘','밥이요?! 원자로는 혼자서도 잘 돌아가요. 바로 갈게요!']];
+    const ppl=await Promise.all(W.map(([k,n,r,x,z,tx,tz])=>PEOPLE.spawn({kind:k,name:n,role:r,at:at(x,z,tx,tz)})));
+    warp(14.6,-.6,0); P.yaw=Math.PI; SHIP.zone=null; await card('','하루 뒤','하위헌스 2호 · 식당',2400); S.phase='play'; P.free=true;
+    await TALK.say([{who:'레아',t:'…따뜻하다. 하루 종일 이 말만 하네요.',npc:le},me('오늘 저녁은 다 같이 먹자. 대원들을 불러올게요. 여기서 기다려요.')]);
+    goal('대원 넷을 저녁 식사에 부른다 — 함교 · 연구실 · 라운지 · 기관실');
+    await new Promise(res=>{ let left=W.length; ppl.forEach((p,i)=>{ const w=W[i], un=STORY.mark(w[3],2.3,w[4]); let done=false;
+      PEOPLE.talkable(p,async()=>{ if(done) return TALK.say([{who:w[7],t:'식당에서 봐요.',npc:p}]); done=true; un(); await TALK.say([me('저녁 같이 먹자. 식당으로.'),{who:w[7],t:w[8],npc:p}]);
+        left--; goal(left?'대원 '+left+'명 남았다 — 함교 · 연구실 · 라운지 · 기관실':''); if(!left) res(); }); }); });
+    await STORY.go(14.6,-.2,'모두 불렀다 — 식당으로 돌아간다',{r:1.6});
+    S.phase='cut'; P.free=false; await fade(true,900); [le,...ppl].forEach(p=>PEOPLE.remove(p)); },
   // 벽의 그림자 : 식당 안쪽 칸 벽(x 19.66)에 비친 레아의 그림자 — 몸이 떨리고, 가슴에서 작은 것이 튀어나와 달아난다 (그림자만)
   shadow(){ return new Promise(res=>{ const W=512, H=600, cv=document.createElement('canvas'); cv.width=W; cv.height=H; const g=cv.getContext('2d'), tex=new THREE.CanvasTexture(cv);
     const pl=new THREE.Mesh(new THREE.PlaneGeometry(2.2,2.6),new THREE.MeshBasicMaterial({map:tex,transparent:true,depthWrite:false,toneMapped:false}));
