@@ -44,11 +44,14 @@ const CH9={GAL:[['A',10,12],['B',20,24],['C',40,48],['D',60,72]],
   // 마지막 추격 : 함교 앞 복도 → 기관실 포드 해치 (x 71 · z 6). 동면 구역 앞을 지나면 성체가 뛰쳐나온다
   async run(){ ['cryo','engine','bridge'].forEach(k=>SHIP.doors[k]&&SHIP.doors[k].open()); STORY.dark(true,{red:true}); SHIP.dim=.3;
     goal('기관실 탈출 포드까지 달린다 (복도 동쪽 끝 → 기관실 동쪽 벽)');
-    const a=await ALIEN.spawn({at:{x:27,z:7.2},face:0,height:2.7,clip:'idle'}); let out=false, ready=false;
-    const trig=async()=>{ if(out||P.x<19) return; out=true; TICK.splice(TICK.indexOf(trig),1); await ALIEN.go(a,[[27,9.8]],{speed:3,clip:'run'}); ALIEN.play(a,'roar',{once:true}); AUDIO.tone(90,1.4,'sawtooth',.09,0,-30); await sleep(900); ready=true; };
+    // 동면 구역 문(x 27)을 지나 몇 걸음 더 간 뒤(x 33)에야 뒤에서 문을 부수고 나온다 → 계속 달리면 따돌린다 (성체 3.1 < 달리기 3.74 m/s)
+    //   앞에서 튀어나오면 좁은 복도에서 비켜 갈 수가 없다 (예전엔 늘 잡혔다)
+    const a=await ALIEN.spawn({at:{x:27,z:7.2},face:0,height:2.7,clip:'idle'}); a.h=2.7; let out=false, ready=false; S.run=true; $('#run').classList.add('on');
+    const trig=async()=>{ if(out||P.x<33) return; out=true; TICK.splice(TICK.indexOf(trig),1); THUD(.6); GROWL(.12); camera.position.y+=.05;
+      await ALIEN.go(a,[[27,10.4]],{speed:3,clip:'run'}); ALIEN.play(a,'roar',{once:true}); AUDIO.tone(90,1.4,'sawtooth',.09,0,-30); toast('뒤에서 — 뛰어!',1600); await sleep(700); ready=true; };
     TICK.push(trig);
-    const ok=await STORY.chase(a,{to:{x:69.6,z:6.2},r:1.6,speed:3.35,clip:'run',catchR:1.5,started:()=>ready});
-    if(ok) ALIEN.go(a,[[60,10.3]],{speed:2.2,clip:'walk'}); return ok; },
+    const ok=await STORY.chase(a,{to:{x:69.6,z:6.2},r:1.8,speed:3.1,clip:'run',catchR:1.4,started:()=>ready});
+    S.run=false; $('#run').classList.remove('on'); if(ok) ALIEN.go(a,[[60,10.3]],{speed:2.2,clip:'walk'}); return ok; },
   // 포드 : 해치를 열고 탄다 → 분리 → 웜홀 → 하얗게
   async pod(){ goal(''); S.phase='cut'; P.free=false; AUDIO.noise(.8,.2,0,900); await fade(true,700); ALIEN.clear(); STORY.unhold();
     STORY.dark(false); SHIP.dim=1; STORY.skyClear(); const pr=SHIP.rooms.story, s1=pr.spots.pod1, s2=pr.spots.pod2;

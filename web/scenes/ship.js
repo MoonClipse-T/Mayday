@@ -60,7 +60,8 @@ SCENES.ship={title:'하위헌스 2호', async enter(o={}){ const f=S.flags; SHIP
   SHIP.door(R.bridge,'함교','중앙 복도'); SHIP.door(R.deck,'식당 · 의무실','중앙 복도'); SHIP.door(R.cryo,'동면 구역 C','중앙 복도');
   SHIP.door(R.lab,'연구실','중앙 복도',{x:37.43}); SHIP.door(R.lab,'에어록','중앙 복도',{x:50.43,key:'airlock'});
   SHIP.door(R.lobby,'라운지 · 전망대','중앙 복도',{x:14,z:12.45,rot:0}); SHIP.door(R.engine,'기관실','중앙 복도',{x:55.25,z:10.35,rot:Math.PI/2});
-  SOLID.holes=[[54.4,9.85,55.6,11.15,.2,1.85]];      // 복도 동쪽 끝 문 구멍 (기관실) : 비스듬한 문설주가 칸으로는 0.7 m 라 막혔다
+  // 복도 칸 이음새(x 31.5)의 문틀도 칸이 두툼해 복도를 통째로 막았다 → 동쪽(연구실 · 에어록 · 기관실)으로 걸어갈 수 없었다
+  SOLID.holes=[[54.4,9.85,55.6,11.15,.2,1.85],[31.1,9.85,32.2,11.15,.2,1.85]];      // 복도 동쪽 끝 문 구멍 (기관실) : 비스듬한 문설주가 칸으로는 0.7 m 라 막혔다
   SHIP.lock.airlock=()=>'에어록은 선외 활동 때만 엽니다. 지금은 잠가 둡니다.';
   STORY.prep(R.story); await ROOMS.bridge(R.bridge); await ROOMS.deck(R.deck); await ROOMS.cryo(R.cryo); await ROOMS.lab(R.lab); await ROOMS.lobby(R.lobby); await ROOMS.engine(R.engine);
   LOADING.set(.9); await SOLID.build();               // 묶음 칸은 미리 계산돼 있다 — 장면이 넣은 것만 일꾼이 새로
