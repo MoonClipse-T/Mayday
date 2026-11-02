@@ -300,7 +300,7 @@ const CH8={
     // 문을 여는 동안 : 등 뒤에서 — 울음 · 마야의 총소리 셋 · 비명 · 정적
     let taken=false; const take=()=>{ if(taken) return; taken=true; SCREAM(1); THUD(.7); FX.shake(.45,.06); const w=my.wrap.position;
       this.lamp=STORY.lampDrop(w.x,w.z); STORY.grate('bd'); STORY.show('gore_bd',true); STORY.drip(w.x,2.5,w.z,4); PEOPLE.remove(my); };
-    const tm=[setTimeout(()=>GROWL(.12),1500),setTimeout(()=>{ PEOPLE.act(my,'shoot'); for(let i=0;i<3;i++) setTimeout(()=>{ AUDIO.noise(.18,.35,0,3000); AUDIO.tone(140,.2,'sawtooth',.06,0,-90); },i*280); },2800),setTimeout(take,4300)];
+    const tm=[setTimeout(()=>GROWL(.12),1500),setTimeout(()=>{ for(let i=0;i<3;i++) setTimeout(()=>{ my.kick=.15; AUDIO.noise(.18,.35,0,3000); AUDIO.tone(140,.2,'sawtooth',.06,0,-90); },i*280); },2800),setTimeout(take,4300)];
     S.phase='play'; await STORY.qte('OVERRIDE · 함교 문 수동 개방','레버 넷 — 뒤돌아보지 말 것',4); tm.forEach(clearTimeout); take();
     S.phase='cut'; P.free=false; bd&&bd.open(); await sleep(700);
     // 돌아본다

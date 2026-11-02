@@ -11,7 +11,8 @@
      PEOPLE.walk(p,[[x,z(,y)],…],speed) → 걸어서 간다 (걷기 클립이 있는 모델만 다리가 움직인다) · p.sleep = true 면 동면 중 (움직임 · 시선 멈춤)
    - 비행복 대원 넷은 Mixamo 동작을 더 갖고 있다 (tools/retarget.py) : 빠르면(2.4 m/s 이상) run · p.armed 면 pistol_run · p.crouch 면 crouch · p.hurt 면 limp
      p.mood = 'scared' | 'nervous' | 'aim' | 'argue' | 'struggle' | 'crawl_back' → 서 있을 때 그 동작 · 말할 때(mood 없음)는 talk 손짓
-     PEOPLE.act(p,'shoot'|'point'|'wave'|'hit',{n}) → 한 번(n 번) 하고 원래 동작으로 (Promise)
+     PEOPLE.act(p,'point'|'wave'|'hit',{n}) → 한 번(n 번) 하고 원래 동작으로 (Promise)
+     p.armed 면 오른손에 총 (web/assets/gun.glb · 쥔 자리 GUN) · p.kick = .15 면 반동
    ============================================================ */
 'use strict';
 const PEOPLE=(()=>{
@@ -84,6 +85,9 @@ const PEOPLE=(()=>{
       pointAt:null,pw:0,lookAt:null,path:null,speed:1.25};
     list.push(p); return p; }
 
+  // 쥔 자리 : 오른손 뼈 기준 위치(m) · 회전(라디안) — 게임에서 보며 맞춘 값
+  const GUN={pos:[0,.06,0],rot:[-3.02,.11,-1.24]}; let gunP=null;
+  const gunFit=g=>{ const ws=g.userData.ws||1; g.position.fromArray(GUN.pos).multiplyScalar(1/ws); g.rotation.fromArray(GUN.rot); };
   const up=new THREE.Vector3(0,1,0);
   // 사람끼리 겹치지 않게 (걷는 사람만 움직인다) : 같은 쪽으로 가는 앞사람이 가까우면 기다리고, 닿으면 밀어 낸다
   const others=p=>list.filter(q=>q!==p&&!q.sleep&&q.wrap.visible&&q.wrap.parent);
@@ -126,6 +130,12 @@ const PEOPLE=(()=>{
         const q0=B.uaR.quaternion.clone(), q1=B.laR.quaternion.clone(); B.uaR.getWorldPosition(_a); const dir=V().copy(tgt).sub(_a).normalize();
         aim(B.uaR,B.laR,V().copy(dir).add(V().set(0,-.55,0))); aim(B.laR,B.hR,dir);
         B.uaR.quaternion.copy(q0.slerp(_s.copy(B.uaR.quaternion),p.pw)); B.laR.quaternion.copy(q1.slerp(_s.copy(B.laR.quaternion),p.pw)); } }
+      // 총 (Sketchfab CC BY · web/assets/gun.glb — 손잡이가 원점 · 총구 +x · 위 +y) : p.armed 면 오른손 뼈에 붙여 보인다
+      if(p.armed&&!p.gun&&B.hR){ p.gun=new THREE.Group(); B.hR.add(p.gun); gunP=gunP||loadGLB('gun');
+        gunP.then(s=>{ const ws=B.hR.getWorldScale(V()).x; p.gun.add(s.clone()); p.gun.scale.setScalar(1/ws); p.gun.userData.ws=ws; gunFit(p.gun); }); }
+      if(p.gun) p.gun.visible=!!p.armed;
+      // 반동 : p.kick = .15 면 오른팔이 잠깐 튀어 오른다 (총 쏘기)
+      if(p.kick>0){ p.kick-=dt; const k=Math.sin(Math.max(0,p.kick)/.15*Math.PI)*.3; turn(B.laR,right,-k); turn(B.hR,right,-k*.6); }
       // 말하기 : 턱 · 고개 끄덕임
       const tj=p.talking?(.06+.07*Math.abs(Math.sin(p.ph*11)*Math.sin(p.ph*4.3))):0; p.jaw+=(tj-p.jaw)*Math.min(1,dt*18);
       turn(B.jaw,right,p.jaw); if(p.talking) turn(B.head,right,Math.sin(p.ph*2.1)*.03);
@@ -141,5 +151,5 @@ const PEOPLE=(()=>{
   function walk(p,pts,speed=1.25){ return new Promise(res=>{ p.path=pts.map(a=>a.slice()); p.speed=speed; p.done=res; }); }
   // 사람에게 말 걸기 : 이름표 + 대화 함수
   function talkable(p,fn){ return interact(p.pick,'대화 · '+p.name+(p.role?' ('+p.role+')':''),fn,{range:3.2}); }
-  return {spawn,tick,clear,remove,talkable,walk,act,list,inPlace};
+  return {spawn,tick,clear,remove,talkable,walk,act,list,inPlace,GUN,gunFit};
 })();
