@@ -71,6 +71,11 @@
   - 공포 도구 (s8_hunt.js) : `FX` 순간 암전 · 붉은 번쩍 · 흔들림 · 조명 깜빡임 / `STORY.scare` 갑툭튀 / `STORY.snatch` 천장에 거꾸로 매달려 붙잡아 끌어올리기 / `STORY.drip` 피 방울 / `STORY.grate` 환기구 창살 / `STORY.lampDrop` 떨어진 손전등
   - 공포 소품은 Blender : `tools/build_horror.py` → `blender/21_공포소품.blend` · `web/assets/horror.glb` (라운지 · 함교 문 앞 천장 환기구, 끌려간 뒤에야 보이는 피 · 손자국 · 할퀸 자국, 마야의 손전등). 10_하위헌스2호.blend 는 집의 새 Blender(5.02.45)로 저장된 것이라 학교 Blender 로 저장하지 않는다
   - 6장 : 함교로 가는 복도 발치를 애벌레가 가로지른다 · 7장 : 오언이 바로 뒤에서 · 8장 : 섬광 셋(서준 → 그 뒤에 선 그것 → 빈자리) · 다니엘 구하기(놓치면 다시) · 마야 · 9장 : 문제를 푸는 내내 함교 문을 친다 · 마지막 추격은 깜빡이고 기관실에 들어서면 암전 + 바로 뒤에서 울음
+- 3.5 (2026-11-02 사용자 : 동료들 움직임이 재미없다 — 같이 뛰고 리깅된 동작을)
+  - 비행복 대원 넷에 Mixamo 동작 15개 : run · pistol_run · scared · nervous · crouch · aim · shoot · point · wave · talk · argue · struggle · crawl_back · hit · limp (`assets/crew/anim/` → `tools/retarget.py` → `web/assets/person_<이름>.glb`)
+  - retarget.py : 팔을 내린 Tripo 쉬는 자세도 맞춘다 · 손이 허벅지에 붙은 무게를 떼어 팔을 벌려도 천이 늘어나지 않게
+  - people.js : 빠르면 달린다 · p.mood(겁먹음 · 두리번 · 겨눔 · 버둥 · 끌려감) · 말할 때 손짓 · PEOPLE.act 한 번 하는 동작. STORY.follow 는 내가 뛰면 같이 뛴다
+  - 장면 : 1호 · 7장 오언은 권총을 겨누고 따라오다 위를 가리킨다 → 버둥대며 끌려 올라간다 / 8장 암전 뒤 마야는 겨누고 다니엘은 굳고 서준은 두리번 → 웅크려 스위치로 / 다니엘은 발목을 잡혀 바닥을 밀며 끌려가고, 구한 뒤엔 절뚝인다 / 마야는 권총을 들고 같이 뛴다
 - 용어 : "비컨" 대신 "구조 신호" (사용자 : 와닿지 않는다)
 - 추격 : `STORY.chase` (닿으면 그 단계부터 다시) · 숨기 = 식당 양쪽 칸막이 뒤
 

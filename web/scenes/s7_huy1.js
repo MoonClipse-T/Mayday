@@ -18,7 +18,7 @@ const starRGB=T=>{ const c=STARCOL; if(T<=c[0][0]) return c[0][1]; for(let i=1;i
 // 따라오기 : 동행하는 사람이 내 뒤 1.5 m 쯤을 따라 걷는다
 STORY.follow=function(p,back=1.6){ const f=()=>{ if(!PEOPLE.list.includes(p)){ TICK.splice(TICK.indexOf(f),1); return; } const w=p.wrap.position, d=Math.hypot(P.x-w.x,P.z-w.z);
     if(d>9){ p.path=null; w.set(P.x+Math.sin(P.yaw)*back,0,P.z+Math.cos(P.yaw)*back); return; }
-    if(d>back+1&&!p.path){ const k=(d-back)/d; PEOPLE.walk(p,[[w.x+(P.x-w.x)*k,w.z+(P.z-w.z)*k]],1.7); } }; TICK.push(f);
+    if(d>back+1&&!p.path){ const k=(d-back)/d; PEOPLE.walk(p,[[w.x+(P.x-w.x)*k,w.z+(P.z-w.z)*k]],S.run||d>back+3?3.6:1.7); } }; TICK.push(f);      // 내가 뛰거나 멀어지면 같이 뛴다
   return ()=>{ const i=TICK.indexOf(f); if(i>=0) TICK.splice(i,1); }; };      // 멈추는 함수
 // 함교 대원 (앉은 셋) 보이기 · 숨기기
 STORY.seated=function(on){ const c=SHIP.crew||{}; ['maya','seojun','daniel'].forEach(k=>{ const p=c[k]; if(p){ p.wrap.visible=on; p.solid=on; p.pick.visible=on; } }); };
@@ -97,7 +97,7 @@ const CH5={
     ['pilotL','pilotR','nav','comms','eng','sci','top','vega'].forEach(k=>{ const m=BRIDGEUI.mesh(k); if(m) m.visible=false; });
     Object.values(SHIP.doors).forEach(d=>d.open()); SHIP.lock={};
     const ow=await PEOPLE.spawn({kind:'owen',name:'오언 하트',role:'보안',at:{x:51.4,z:10.6,yaw:Math.PI/2}}), OW=t=>({who:'오언',t,npc:ow}), me=t=>({kind:'me',t}), VR=t=>({who:'VEGA',ch:'무전 · 2호',kind:'vega',t});
-    warp(50.43,10.2,Math.PI/2); await fade(false,1500); S.phase='play'; P.free=true; STORY.follow(ow); AUDIO.hum(.3,36);
+    ow.armed=true; ow.mood='aim'; warp(50.43,10.2,Math.PI/2); await fade(false,1500); S.phase='play'; P.free=true; STORY.follow(ow);      // 권총을 겨누고 뒤를 본다 AUDIO.hum(.3,36);
     await TALK.say([OW('…추워요. 입김이 나요. 불이 하나도 없어요.'),me('비상 전력도 없군. 문이 전부 열려 있다.'),
       VR('선장님, 1호 항법 칩을 꼭 가져오십시오. 1호가 웜홀을 건너온 길 — 우리가 돌아갈 길이 들어 있습니다.'),VR('그리고… 생명 신호 하나. 동면 구역 쪽입니다.')]);
     // 어둠 속 소리 : 몇 초마다 어딘가에서 (가끔 머리 위 쿵)
@@ -165,7 +165,7 @@ const CH6={
     await TALK.say([V('가슴 안쪽에 국소 고온 반응. …움직입니다.'),SJ('움직인다고요?'),LE('…아… 아, 안 돼… 차가워야… 차가워야 하는데—')]);
     // 피를 토하고 · 가슴에서 · 유리창에 들러붙는다
     S.phase='cut'; P.free=false; await camTo({x:view.x,z:view.z+.3,yaw:0,pitch:-.12,eye:1.66},.6); P.look=true;
-    const larva=await this.birth(le,bed);
+    const larva=await this.birth(le,bed); [my,sj].forEach(p=>p.mood='scared'); ow.armed=true; ow.mood='aim';
     await TALK.say([OW('뭐, 뭐야 저게!'),MY('유리에… 붙었어요!'),V('격리실 소각 장치 — 선장님의 승인이 필요합니다. 패널을 누르십시오!')]);
     P.look=false; S.phase='play'; P.free=true;
     await STORY.at(panel,'격리실 패널 — 소각 승인','격리실 패널에서 소각을 승인한다 — 지금!',{range:2.6,up:.5});

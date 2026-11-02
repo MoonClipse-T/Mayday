@@ -9,6 +9,9 @@
    - PEOPLE.spawn({kind,name,role,at,pose:'stand'|'sit',seatY}) → 사람
      p.talking = true 면 입이 움직인다 · p.pointAt = Vector3 면 오른팔로 가리킨다 · p.lookAt = Vector3 면 그쪽을 본다
      PEOPLE.walk(p,[[x,z(,y)],…],speed) → 걸어서 간다 (걷기 클립이 있는 모델만 다리가 움직인다) · p.sleep = true 면 동면 중 (움직임 · 시선 멈춤)
+   - 비행복 대원 넷은 Mixamo 동작을 더 갖고 있다 (tools/retarget.py) : 빠르면(2.4 m/s 이상) run · p.armed 면 pistol_run · p.crouch 면 crouch · p.hurt 면 limp
+     p.mood = 'scared' | 'nervous' | 'aim' | 'argue' | 'struggle' | 'crawl_back' → 서 있을 때 그 동작 · 말할 때(mood 없음)는 talk 손짓
+     PEOPLE.act(p,'shoot'|'point'|'wave'|'hit',{n}) → 한 번(n 번) 하고 원래 동작으로 (Promise)
    ============================================================ */
 'use strict';
 const PEOPLE=(()=>{
@@ -46,7 +49,7 @@ const PEOPLE=(()=>{
     wrap.position.set(at.x,at.y||0,at.z); wrap.rotation.y=(face??at.yaw)-Math.PI;     // 모델은 블렌더 -y(=three +z)를 본다
     wrap.updateMatrixWorld(true);
     const B={}; for(const k in RE) B[k]=bone(g,RE[k]);
-    const clips=src.userData.animations||[]; let mixer=null, idleA=null, walkA=null;
+    const clips=src.userData.animations||[]; let mixer=null, idleA=null, walkA=null; const acts={};
     // 몸 기준 방향 (x 몸의 왼쪽(+), y 위, z 앞) → 월드
     const toW=(x,y,z)=>new THREE.Vector3(x,y,z).applyQuaternion(wrap.quaternion);
     const side=s=>s==='L'?1:-1;
@@ -67,6 +70,9 @@ const PEOPLE=(()=>{
         const walkC=clips.find(c=>/walk/i.test(c.name))||(kind==='nathan'?clips[0]:null), idleC=clips.find(c=>/idle/i.test(c.name))||(clips[0]!==walkC?clips[0]:null);
         const play=c0=>{ if(!c0) return null; const c=inPlace(c0); const a=mixer.clipAction(c); a.play(); a.time=Math.random()*c.duration; return a; };
         idleA=play(idleC); walkA=play(walkC); if(walkA) walkA.setEffectiveWeight(0);
+        // 나머지 동작 (대원 넷) : 무게 0 으로 틀어 두고 tick 이 하나를 골라 서서히 바꾼다
+        if(idleA) acts.idle=idleA; if(walkA) acts.walk=walkA;
+        clips.forEach(c0=>{ const n=c0.name.replace(/\.\d+$/,''); if(acts[n]||c0===idleC||c0===walkC) return; const a=mixer.clipAction(inPlace(c0)); a.play(); a.setEffectiveWeight(0); acts[n]=a; });
       }
     }
     wrap.updateMatrixWorld(true);
@@ -74,7 +80,7 @@ const PEOPLE=(()=>{
     const hp=V(); g.updateMatrixWorld(true); (B.head||g).getWorldPosition(hp);
     // 탭 판정 원기둥
     const pk=new THREE.Mesh(new THREE.CylinderGeometry(.38,.38,pose==='sit'?1.4:1.9,10),PICK); pk.position.set(0,pose==='sit'?.7-(wrap.position.y-(at.y||0)):.95,0); wrap.add(pk);
-    const p={kind,name,role,wrap,g,B,base,mixer,idleA,walkA,mw:0,pose,headY:hp.y-(at.y||0),talking:false,blinkT:1+Math.random()*3,blink:0,ph:Math.random()*10,look:0,lookP:0,jaw:0,pick:pk,watch:true,
+    const p={kind,name,role,wrap,g,B,base,mixer,idleA,walkA,acts,cur:null,once:null,mood:null,mw:0,pose,headY:hp.y-(at.y||0),talking:false,blinkT:1+Math.random()*3,blink:0,ph:Math.random()*10,look:0,lookP:0,jaw:0,pick:pk,watch:true,
       pointAt:null,pw:0,lookAt:null,path:null,speed:1.25};
     list.push(p); return p; }
 
@@ -96,8 +102,13 @@ const PEOPLE=(()=>{
         else { const want=Math.atan2(dx,dz); let df=want-wrap.rotation.y; df=Math.atan2(Math.sin(df),Math.cos(df)); wrap.rotation.y+=df*Math.min(1,dt*6);
           const s=blocked(p,dx/d,dz/d)?0:Math.min(d,p.speed*dt); wrap.position.x+=dx/d*s; wrap.position.z+=dz/d*s; }
         apart(p); }
+      // 동작이 많은 대원 : 한 번 하는 동작 > 이동(달리기 · 웅크려 걷기 · 절뚝 · 걷기) > 기분 > 말하기 손짓 > 쉬기 — 고른 것만 무게 1 로 서서히
+      if(p.mixer&&!p.sleep&&p.acts.run){ const A=p.acts, has=n=>A[n]&&n;
+        p.cur=p.once||(p.path?(p.speed>=2.4?has(p.armed&&'pistol_run')||'run':has(p.crouch&&'crouch')||has(p.hurt&&'limp')||'walk'):has(p.mood)||(p.talking&&p.pose!=='sit'&&has('talk'))||'idle');
+        const k=Math.min(1,dt*6); for(const n in A){ const a=A[n], w=a.getEffectiveWeight(), t=n===p.cur?1:0; if(w!==t) a.setEffectiveWeight(Math.abs(t-w)<.01?t:w+(t-w)*k); }
+        p.mixer.update(dt); }
       // 서 있으면 idle, 걸으면 walk 로 부드럽게 바꾼다 (쉬는 동작이 없는 모델은 걸을 때만 움직인다)
-      if(p.mixer&&!p.sleep){ p.mw+=((p.path?1:0)-p.mw)*Math.min(1,dt*5); if(p.walkA) p.walkA.setEffectiveWeight(p.mw); if(p.idleA) p.idleA.setEffectiveWeight(p.walkA?1-p.mw:1);
+      else if(p.mixer&&!p.sleep){ p.mw+=((p.path?1:0)-p.mw)*Math.min(1,dt*5); if(p.walkA) p.walkA.setEffectiveWeight(p.mw); if(p.idleA) p.idleA.setEffectiveWeight(p.walkA?1-p.mw:1);
         if(p.idleA||p.mw>.01) p.mixer.update(dt); }
       const right=V().set(1,0,0).applyQuaternion(wrap.quaternion);      // 몸 기준 x 축 (월드) — 이 축으로 + 돌리면 앞으로 숙여진다
       // 숨쉬기 · 몸무게 옮기기
@@ -124,8 +135,11 @@ const PEOPLE=(()=>{
   function clear(){ list.forEach(p=>p.wrap.parent&&p.wrap.parent.remove(p.wrap)); list.length=0; }
   function remove(p){ p.wrap.parent&&p.wrap.parent.remove(p.wrap); const i=list.indexOf(p); if(i>=0) list.splice(i,1); const j=INTER.findIndex(it=>it.mesh===p.pick); if(j>=0) INTER.splice(j,1); }
   // 걸어서 가기 (걷기 클립이 있는 모델은 다리가 움직인다) → 도착하면 Promise
+  // 한 번 하는 동작 : 처음부터 n 번 → 끝나면 원래 동작으로 (그 동작이 없는 사람은 바로 끝)
+  function act(p,n,{times=1}={}){ const a=p.acts&&p.acts[n]; if(!a) return Promise.resolve(); a.reset(); a.setLoop(THREE.LoopRepeat,Infinity); p.once=n;
+    return new Promise(res=>setTimeout(()=>{ if(p.once===n) p.once=null; res(); },a.getClip().duration*times*1000)); }
   function walk(p,pts,speed=1.25){ return new Promise(res=>{ p.path=pts.map(a=>a.slice()); p.speed=speed; p.done=res; }); }
   // 사람에게 말 걸기 : 이름표 + 대화 함수
   function talkable(p,fn){ return interact(p.pick,'대화 · '+p.name+(p.role?' ('+p.role+')':''),fn,{range:3.2}); }
-  return {spawn,tick,clear,remove,talkable,walk,list,inPlace};
+  return {spawn,tick,clear,remove,talkable,walk,act,list,inPlace};
 })();
