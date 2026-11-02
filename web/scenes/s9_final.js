@@ -12,6 +12,8 @@ const CH9={GAL:[['A',10,12],['B',20,24],['C',40,48],['D',60,72]],
     const c=SHIP.crew; if(c.daniel){ c.daniel.wrap.visible=true; c.daniel.solid=true; c.daniel.pick.visible=true; } const DN=sayer('다니엘',c.daniel);
     const sp=SHIP.rooms.bridge.spawn; warp(sp.x,sp.z,sp.yaw); SHIP.zone=null; if(!STORY.held) STORY.hold();
     await card('','다음 날','하위헌스 2호 · 함교 · 남은 사람 둘',2400);
+    // 문제를 푸는 내내 그것이 함교 문을 친다
+    const bang=setInterval(()=>{ if(S.phase==='play'){ THUD(.35+Math.random()*.2); FX.shake(.25,.035); if(Math.random()<.3) GROWL(.06); } },4200+Math.random()*2000);
     await TALK.say([VG('경고. 뒤쪽 웜홀의 반지름이 줄어들고 있습니다.'),DN('줄어들어요? 웜홀이?'),
       VG('웜홀 둘레의 공간이 늘어나고 있습니다. 출발 때와 지금, 주변 은하까지의 거리를 비교해 보십시오.'),ME('우주가 팽창하고 있다는 거군.')]);
     toast('이야기 속 설정 — 웜홀은 아직 실제로 발견된 적이 없다',4200);
@@ -38,7 +40,7 @@ const CH9={GAL:[['A',10,12],['B',20,24],['C',40,48],['D',60,72]],
       {q:'풍선의 어느 점에서 보아도 다른 점들이 멀어졌다. 팽창하는 우주의 중심은?',ans:3,ok:'맞아요 — 공간 전체가 늘어나서, 중심이 따로 없다',hint:(i,n)=>n>=2?'흰 점 하나를 우리라고 해도 똑같이 보인다':'다시 — 다른 점에 서서 보면?'}]);
     await TALK.say([VG('웜홀이 닫히기까지 약 20분. 2호의 엔진으로는 늦습니다. 기관실의 탈출 포드는 웜홀을 지날 수 있습니다. 두 사람이 탈 수 있습니다.'),
       DN('…딱 둘이네요.'),VG('경고. 동면 구역 C 냉각제 소진. 안에서 움직임.'),ME('깨어났다. 다니엘, 기관실로! 뛰어!')]);
-    STORY.seated(false); f.run9=true;
+    clearInterval(bang); STORY.seated(false); f.run9=true;
     while(!(await this.run())){ ALIEN.clear(); warp(2,10.4,-Math.PI/2); await sleep(400); await fade(false,800); S.phase='play'; P.free=true; toast('다시 — 멈추지 말고 달려',2400); }
     await this.pod(); },
   // 마지막 추격 : 함교 앞 복도 → 기관실 포드 해치 (x 71 · z 6). 동면 구역 앞을 지나면 성체가 뛰쳐나온다
@@ -49,8 +51,11 @@ const CH9={GAL:[['A',10,12],['B',20,24],['C',40,48],['D',60,72]],
     const a=await ALIEN.spawn({at:{x:27,z:7.2},face:0,height:2.7,clip:'idle'}); a.h=2.7; let out=false, ready=false; S.run=true; $('#run').classList.add('on');
     const trig=async()=>{ if(out||P.x<33) return; out=true; TICK.splice(TICK.indexOf(trig),1); THUD(.6); GROWL(.12); camera.position.y+=.05;
       await ALIEN.go(a,[[27,10.4]],{speed:3,clip:'run'}); ALIEN.play(a,'roar',{once:true}); AUDIO.tone(90,1.4,'sawtooth',.09,0,-30); toast('뒤에서 — 뛰어!',1600); await sleep(700); ready=true; };
-    TICK.push(trig);
+    TICK.push(trig); const unf=FX.flicker();
+    // 기관실 문을 들어서면 불이 완전히 나간다 — 바로 뒤에서 울음
+    let eng=false; const engT=async()=>{ if(eng||P.x<56.5) return; eng=true; TICK.splice(TICK.indexOf(engT),1); FX.black(1); STING(.7); GROWL(.2); FX.shake(.5,.06); await sleep(1100); FX.black(0); }; TICK.push(engT);
     const ok=await STORY.chase(a,{to:{x:69.6,z:6.2},r:1.8,speed:3.1,clip:'run',catchR:1.4,started:()=>ready});
+    unf(); [trig,engT].forEach(f=>{ const i=TICK.indexOf(f); if(i>=0) TICK.splice(i,1); });
     S.run=false; $('#run').classList.remove('on'); if(ok) ALIEN.go(a,[[60,10.3]],{speed:2.2,clip:'walk'}); return ok; },
   // 포드 : 해치를 열고 탄다 → 분리 → 웜홀 → 하얗게
   async pod(){ goal(''); S.phase='cut'; P.free=false; AUDIO.noise(.8,.2,0,900); await fade(true,700); ALIEN.clear(); STORY.unhold();

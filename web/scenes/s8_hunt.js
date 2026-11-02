@@ -1,6 +1,8 @@
 /* ============================================================
-   7장 · 사냥 — 성운 셋 (앞 창 = 암흑 성운 · 뒤 카메라 = 반사 · 방출 성운) → 보안 무기함의 펄스 권총 (맞히면 멈칫할 뿐) → 오언이 끌려간다 → 숨기 → 달리기 · 문 닫기
-   8장 · 일어선 것 — 우리은하 지도 (헤일로 · 중심부 · 태양계 자리) → 차단기 파괴 · 암흑 → 서준 → 마야가 동면실 냉각제로 성체를 재우고 → 다니엘 5분 실종
+   7장 · 사냥 — 성운 셋 (앞 창 = 암흑 성운 · 뒤 카메라 = 반사 · 방출 성운) → 오언과 함께 무기함의 펄스 권총 (맞히면 멈칫할 뿐) → 깜빡이는 복도 · 머리 위 소리
+     → 뒤따르던 오언이 천장 환기구로 낚아채인다 → 눈앞에 갑툭튀 → 숨기 → 달리기 · 문 닫기
+   8장 · 일어선 것 — 우리은하 지도 (헤일로 · 중심부 · 태양계 자리) → 차단기 파괴 · 완전한 암흑 → 섬광 속 서준 뒤에 선 그것 → 숨기 → 다니엘을 끌고 가는 그것을 쏜다 → 함교 문을 손으로 여는 동안 등 뒤의 마야가 사라진다
+   공포 도구 (2026-11-02) : FX(암전 · 번쩍 · 흔들림 · 깜빡임) · STORY.scare(갑툭튀) · STORY.snatch(천장으로 낚아채기) · STORY.drip · STORY.lampDrop
    기생체 : web/alien.js (어린 개체 = 같은 모델을 사람 키로 · 네 발 crawl / 성체 = 2.7 m · 두 발)
    ============================================================ */
 'use strict';
@@ -22,7 +24,7 @@ STORY.shoot=function(){ if(!this.held||S.phase!=='play'||TALK.on) return;
   this.ammo--; this.ammoShow(); this.kick=1; AUDIO.noise(.18,.4,0,3000); AUDIO.tone(140,.25,'sawtooth',.08,0,-90);
   const fl=new THREE.PointLight(0x9fd8ff,6,8,1.6); fl.position.copy(camera.position); WORLD.add(fl); setTimeout(()=>WORLD.remove(fl),70);
   const o=camera.position.clone(), d=camera.getWorldDirection(new THREE.Vector3()); let hit=null, best=30;
-  for(const a of ALIEN.list){ const h=(a.h||2.7), c=a.wrap.position.clone().add(new THREE.Vector3(0,h*.45,0)), t=c.clone().sub(o).dot(d); if(t<0||t>best) continue;
+  for(const a of ALIEN.list){ const h=(a.h||2.7), c=ALIEN.center(a), t=c.clone().sub(o).dot(d); if(t<0||t>best) continue;
     const r=o.clone().addScaledVector(d,t).distanceTo(c); if(r<Math.max(.5,h*.3)){ hit=a; best=t; } }
   const end=o.clone().addScaledVector(d,hit?best:30), g=new THREE.BufferGeometry().setFromPoints([this.held.position.clone(),end]);
   const ln=new THREE.Line(g,new THREE.LineBasicMaterial({color:0xbfe8ff,transparent:true,opacity:.9})); WORLD.add(ln); setTimeout(()=>WORLD.remove(ln),60);
@@ -35,6 +37,44 @@ STORY.dread=function(){ if(this._dreadFn&&TICK.includes(this._dreadFn)) return; 
     const k=Math.max(0,Math.min(1,(13-d)/10)); el.style.opacity=k*.85; beat-=dt;
     if(k>0&&beat<=0){ beat=1.1-k*.75; AUDIO.tone(48,.18,'sine',.09*(.4+k)); setTimeout(()=>AUDIO.tone(42,.14,'sine',.07*(.4+k)),160); }
     if(d<3.5&&S.phase==='play'){ camera.position.x+=(Math.random()-.5)*.02*(3.5-d); camera.position.y+=(Math.random()-.5)*.02*(3.5-d); } }); };
+/* ---- 공포 도구 (2026-11-02 사용자 : 그것이 2호에 들어온 뒤는 긴장 · 긴박 · 그것의 모습이 핵심. 희생을 지켜보기만 하지 말고 — 옆의 동료가 천장에서 낚아채이고, 갑툭튀) ---- */
+const FXEL=id=>{ let e=document.getElementById(id); if(!e){ e=document.createElement('div'); e.id=id; document.body.appendChild(e); } return e; };
+const STING=(v=1)=>{ AUDIO.noise(.8,.7*v,0,4200); AUDIO.tone(1500,.75,'sawtooth',.13*v,0,-1250); AUDIO.tone(52,1.1,'square',.12*v); AUDIO.tone(2300,.3,'square',.05*v,.05,-800); };
+const SCREAM=(v=1)=>{ AUDIO.tone(620,1.1,'sawtooth',.07*v,0,380); AUDIO.tone(880,.9,'triangle',.05*v,.1,-300); AUDIO.noise(1,.15*v,0,1800); };
+const FX={
+  black(op){ FXEL('blackout').style.opacity=op; },                          // 순간 암전 (1 = 완전히)
+  flash(color='#ff2a10',ms=420){ const e=FXEL('flashfx'); e.style.transition='none'; e.style.background=color; e.style.opacity=.8; setTimeout(()=>{ e.style.transition=`opacity ${ms}ms`; e.style.opacity=0; },30); },
+  shake(dur=.5,amp=.06){ let t=0; const f=dt=>{ t+=dt; const k=amp*Math.max(0,1-t/dur); camera.position.x+=(Math.random()-.5)*k; camera.position.y+=(Math.random()-.5)*k; camera.rotation.z=(Math.random()-.5)*k*.6; if(t>dur){ camera.rotation.z=0; TICK.splice(TICK.indexOf(f),1); } }; TICK.push(f); },
+  // 조명이 이따금 끊긴다 (전기 지지직) → 멈추는 함수
+  flicker(){ let next=1+Math.random()*2, off=0; const f=dt=>{ if(off>0){ off-=dt; if(off<=0) FX.black(0); return; } next-=dt;
+      if(next<=0){ next=1.5+Math.random()*3.5; off=.06+Math.random()*.14; FX.black(.88); AUDIO.noise(.08,.05,0,6000); if(Math.random()<.4) setTimeout(()=>{ FX.black(.88); setTimeout(()=>FX.black(0),70); },off*1000+90); } };
+    TICK.push(f); return ()=>{ const i=TICK.indexOf(f); if(i>=0) TICK.splice(i,1); FX.black(0); }; },
+};
+// 피 방울 : 천장 한 점에서 떨어진다
+STORY.drip=function(x,y,z,dur=4){ const tex=STORY.dropTex||(STORY.dropTex=(()=>{ const c=document.createElement('canvas'); c.width=c.height=32; const g=c.getContext('2d'), r=g.createRadialGradient(16,16,0,16,16,16); r.addColorStop(0,'rgba(120,8,6,1)'); r.addColorStop(.6,'rgba(90,4,3,.9)'); r.addColorStop(1,'rgba(60,0,0,0)'); g.fillStyle=r; g.fillRect(0,0,32,32); return new THREE.CanvasTexture(c); })());
+  let t=0, n=0; const f=dt=>{ t+=dt; if(t>dur){ TICK.splice(TICK.indexOf(f),1); return; } n+=dt*(6-t); while(n>1){ n--; const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,depthWrite:false})); sp.scale.setScalar(.03+Math.random()*.03); sp.position.set(x+(Math.random()-.5)*.25,y,z+(Math.random()-.5)*.25); WORLD.add(sp);
+      let v=0; const g=dt=>{ v+=dt*9.8; sp.position.y-=v*dt; if(sp.position.y<.02){ WORLD.remove(sp); TICK.splice(TICK.indexOf(g),1); } }; TICK.push(g); } }; TICK.push(f); };
+// 천장 환기구 창살이 젖혀져 매달린다 (horror.glb vent_grate_<key> · story.glb vent_grate_hall)
+STORY.grate=function(key){ const it=this.it('vent_'+key), g=it&&it.getObjectByName('vent_grate_'+key); if(!g) return; g.position.set(0,-.36,.34); g.rotation.set(1.25,0,.15); AUDIO.noise(.25,.3,0,2600); AUDIO.tone(1900,.25,'triangle',.03,0,-600); };
+// 떨어진 손전등 (horror.glb IT_lamp — Blender) : 바닥에서 빙글 돌다 멈춘다 (userData.stop 이면 그 자리에)
+STORY.lampDrop=function(x,z){ const g=new THREE.Group(), src=this.it('lamp'), body=src?src.clone():new THREE.Mesh(new THREE.CylinderGeometry(.025,.03,.22,10),new THREE.MeshStandardMaterial({color:0x222428}));
+  body.visible=true; body.position.set(0,0,0); if(!src) body.rotation.z=Math.PI/2; const sl=new THREE.SpotLight(0xfff1dc,3,14,.35,.5,1.3), tg=new THREE.Object3D(); tg.position.set(1,0,0); sl.target=tg; g.add(body,sl,tg); g.position.set(x,.03,z); WORLD.add(g);
+  let w=7; const f=dt=>{ if(!g.parent){ TICK.splice(TICK.indexOf(f),1); return; } if(g.userData.stop) return; w=Math.max(.6,w-dt*3); g.rotation.y+=w*dt; }; TICK.push(f); AUDIO.noise(.3,.12,0,2500); return g; };
+// 갑툭튀 : 바로 눈앞에 그것이 — 얼굴이 갈라지며 울부짖는다 · 번쩍 · 쾅 · 흔들림. keep 이 아니면 어둠 속으로 사라진다
+STORY.scare=async function({a=null,dist=1.35,height=2.7,clip='roar',keep=false,hold=900}={}){ const d=camera.getWorldDirection(new THREE.Vector3()); d.y=0; d.normalize();
+  const x=P.x+d.x*dist, z=P.z+d.z*dist, face=Math.atan2(P.x-x,P.z-z);
+  if(a){ ALIEN.stop(a); a.flip=false; a.wrap.rotation.set(0,face,0); a.wrap.position.set(x,0,z); } else { a=await ALIEN.spawn({at:{x,z},face,height,clip}); a.h=height; }
+  ALIEN.play(a,clip,{once:true,fade:0}); a.open=a.openTo=1; STING(); FX.flash(); FX.shake(.6,.08); THUD(.7);
+  await sleep(hold); a.openTo=null; if(!keep){ FX.black(1); await sleep(160); ALIEN.remove(a); FX.black(0); } return a; };
+// 낚아채기 : 사람 바로 위 천장에서 그것이 거꾸로 내려와 → 붙잡고 → 천장 속으로 끌어올린다 (천장 아래로는 상체만 보인다)
+STORY.snatch=async function(p,{ceil=2.57,height=1.75,up=1.1}={}){ const w=p.wrap.position, top=1.5; p.path=null; p.watch=false; p.solid=false;      // top : 머리가 내려오는 높이 (사람 얼굴 높이)
+  const a=await ALIEN.spawn({at:{x:w.x,y:top+height+.7,z:w.z},face:0,height,clip:'swipe'}); a.h=height; a.flip=true; a.wrap.rotation.set(Math.PI,P.yaw,0); a.open=a.openTo=1;
+  THUD(.6); STING(.8); FX.flash('#ff2a10',300);
+  await new Promise(r=>{ let k=0; const f=dt=>{ k=Math.min(1,k+dt/.22); a.wrap.position.y=top+height+.7*(1-k); if(k>=1){ TICK.splice(TICK.indexOf(f),1); r(); } }; TICK.push(f); });
+  SCREAM(); p.sleep=true;
+  await new Promise(r=>{ let k=0; const f=dt=>{ k+=dt; p.wrap.rotation.z=Math.sin(S.t*38)*.2; w.y=Math.min(.35,k*.8); if(k>.55){ TICK.splice(TICK.indexOf(f),1); r(); } }; TICK.push(f); });      // 붙잡고 버둥 (반 초)
+  await new Promise(r=>{ let k=0; const y0=w.y, a0=a.wrap.position.y; const f=dt=>{ k=Math.min(1,k+dt/up); const e=k*k; a.wrap.position.y=a0+e*2.6; w.y=y0+e*2.6; p.wrap.rotation.z=Math.sin(S.t*40)*.25*(1-k); if(k>=1){ TICK.splice(TICK.indexOf(f),1); r(); } }; TICK.push(f); });
+  this.drip(w.x,ceil-.05,w.z,5); PEOPLE.remove(p); ALIEN.remove(a); AUDIO.noise(1.2,.25,0,300); };
 // 쫓아오기 : 기생체가 나를 쫓는다. 닿으면 할퀴고 caught() · 목표 지점에 닿으면 끝
 STORY.chase=function(a,{to,r=1.3,speed=3,clip='run',catchR=1.35,started=()=>true,safe=()=>false}){ return new Promise(res=>{ let busy=false, done=false;
   const fn=async()=>{ if(done||busy||!started()) return; const w=a.wrap.position, d=Math.hypot(P.x-w.x,P.z-w.z);
@@ -77,25 +117,27 @@ const CH7={
       i=>[0,1].includes(i)?'검게 보이는 건 빛을 내지도 반사하지도 않고 가리기 때문':[2,3].includes(i)?'파란 구름 가운데 밝은 별 — 그 빛을 되비춘다':'붉은 구름은 스스로 빛을 낸다');
     goal(''); await TALK.say([SJ('반사 성운으로 — 별빛이 보이고 방사선도 약해요. 항로 확정.'),
       VG('경고. 복도 천장 환기구에서 움직임. 크기… 사람만 합니다.'),DN('사람만 하다고요? 하루 만에?'),
-      OW('제가 봅니다. 선장님은 함교 옆 보안 무기함에서 권총을 꺼내세요. 비밀번호는 선장님 지문이에요.'),ME('오언, 혼자 가지 마.')]);
+      OW('같이 가시죠. 무기함은 함교 옆 복도예요. 뒤는 제가 봅니다.')]);
     STORY.seated(true); PEOPLE.remove(ow); c.owen=null;
+    // 오언이 바로 뒤를 따라온다
+    const bs=SHIP.rooms.bridge.spawn, o2=await PEOPLE.spawn({kind:'owen',name:'오언 하트',role:'보안',at:{x:bs.x+.8,z:bs.z+1.2,yaw:bs.yaw}}); const OW2=sayer('오언',o2), unfollow=STORY.follow(o2,1.4);
     goal('복도 함교 쪽 벽의 보안 무기함에서 권총을 꺼낸다');
     await STORY.wait(STORY.it('locker'),'보안 무기함 — 펄스 권총',{range:2.6}); STORY.hold(); AUDIO.noise(.3,.2,0,3000);
-    // 오언이 끌려간다 : 복도 가운데, 천장 환기구 아래
-    S.phase='cut'; P.free=false; goal('');
-    const o2=await PEOPLE.spawn({kind:'owen',name:'오언 하트',role:'보안',at:{x:31,z:10.6,yaw:-Math.PI/2}}); const OW2=sayer('오언',o2);
-    warp(28.4,10.4,0); await camTo({x:28.4,z:10.4,yaw:yawTo(33.4,10.8),pitch:-.2,eye:1.66},1.2); P.look=true;
-    await TALK.say([OW2('선장님, 환기구 창살이 휘어 있어요. 안쪽에서 밀어낸 것처럼…')]);
-    await PEOPLE.walk(o2,[[33.3,10.5]],1.1);
-    // 오언 앞쪽(카메라 쪽)으로 떨어진다
-    const a=await ALIEN.spawn({at:{x:32.6,y:2.2,z:11.3},face:-Math.PI/2,height:1.75,clip:'jump_attack'}); const vg=STORY.it('vent_hall'), gh=vg&&vg.getObjectByName('vent_grate_hall'); if(gh){ gh.position.set(.4,0,-.3); gh.rotation.set(.8,0,.3); }
-    AUDIO.noise(.5,.3,0,2000); AUDIO.tone(900,.5,'sawtooth',.06,0,-500);
-    await new Promise(r=>{ let k=0; const fn=dt=>{ k=Math.min(1,k+dt/.45); a.wrap.position.y=2.2*(1-k*k); if(k>=1){ TICK.splice(TICK.indexOf(fn),1); r(); } }; TICK.push(fn); });
-    o2.sleep=true; o2.wrap.rotation.set(-Math.PI/2,0,0); o2.wrap.position.y=.15;
-    await TALK.say([OW2('으아아—!'),ME('오언!')]);
-    ALIEN.play(a,'crawl_run'); const drag=dt=>{ a.wrap.position.x+=dt*3.2; o2.wrap.position.x=a.wrap.position.x+.9; a.wrap.rotation.y=Math.PI/2; }; TICK.push(drag);
-    await sleep(2400); TICK.splice(TICK.indexOf(drag),1); PEOPLE.remove(o2); ALIEN.clear(); f.owenGone=true; P.look=false;
-    await TALK.say([RADIO('마야','선장님! 오언 신호가 끊겼어요!'),VG('그것이 복도를 돌아 서쪽으로 옵니다. 숨으십시오 — 식당 안쪽 칸막이 뒤로.')]);
+    await TALK.say([OW2('환기구는 복도 가운데, 동면 구역 지나서예요. 불이 깜빡이면 멈추세요.')]);
+    // 복도 : 불이 끊기고, 머리 위를 무언가 따라 기어 온다 (소리가 점점 가까이)
+    const unflick=FX.flicker(); let crawl=0; const above=dt=>{ crawl-=dt; const near=Math.max(0,1-Math.abs(P.x-34)/22); if(crawl<=0){ crawl=1.6-near; THUD(.06+near*.18); if(Math.random()<.3) AUDIO.noise(.4,.04+near*.06,0,900); } }; TICK.push(above);
+    // 내가 환기구를 지나 한 걸음 → 뒤따르던 오언은 바로 그 아래 (조금 어긋나 있으면 맞춘다 — 나는 앞을 보고 있다)
+    await STORY.go(36.2,10.5,'오언과 함께 복도 가운데 천장 환기구를 확인한다 (동면 구역 너머)',{r:1.1});
+    TICK.splice(TICK.indexOf(above),1); unflick(); unfollow(); S.phase='cut'; P.free=false; goal(''); o2.path=null; o2.wrap.position.set(34,0,10.5); o2.wrap.rotation.y=-Math.PI/2-Math.PI;
+    await TALK.say([{...OW2('선장님, 위에—'),auto:150}]);
+    const vg=STORY.it('vent_hall'), gh=vg&&vg.getObjectByName('vent_grate_hall'); if(gh){ gh.position.set(.4,-.9,-.3); gh.rotation.set(1.2,0,.4); AUDIO.noise(.25,.3,0,2600); }
+    camTo({yaw:yawTo(o2.wrap.position.x,o2.wrap.position.z),pitch:.18},.28); P.look=true;
+    await STORY.snatch(o2,{height:1.75,up:1.0}); STORY.show('gore_hall',true); f.owenGone=true;
+    await TALK.say([ME('오언! 오언!')]);
+    // 정적 … 피 방울 … 그리고 바로 앞 천장에서
+    await camTo({yaw:yawTo(39,10.5),pitch:0},.6); await sleep(1500); THUD(.3); await sleep(900);
+    const j=await STORY.scare({dist:1.5,height:1.75,clip:'jump_attack',keep:true,hold:800}); ALIEN.play(j,'crawl_run'); ALIEN.go(j,[[48,10.5]],{speed:5,clip:'crawl_run'}).then(()=>ALIEN.remove(j));
+    P.look=false; await TALK.say([RADIO('마야','선장님! 오언 신호가 끊겼어요! 무슨 소리예요?!'),VG('그것이 복도를 돌아 서쪽으로 옵니다. 숨으십시오 — 식당 안쪽 칸막이 뒤로.')]);
     S.phase='play'; P.free=true;
     // 숨기 → 달리기 (잡히면 그 단계부터 다시)
     while(!(await this.hide())) await this.retry(24,10.6);
@@ -135,15 +177,18 @@ STORY.map=function(hd,draw,qs){ return new Promise(res=>{ const p=this.panel(hd)
 const CH8={
   async start(){ const f=S.flags; f.ch8=true; Object.assign(f,{leahDead:true,owenGone:true}); STORY.crew(); STORY.clearCast(); if(!f.jump1){ f.jump1=true; CH3.sky(); }
     SHIP.huy1=false; STORY.show('h1',false); STORY.dark(false); SHIP.dim=.7; SHIP.lock={lobby:()=>'지금은 문을 열면 안 된다.'};
-    STORY.seated(false); const c=SHIP.crew; if(c.seojun){ c.seojun.wrap.visible=true; c.seojun.solid=true; }            // 서준은 함교에 혼자 남아 항법을 본다
+    STORY.seated(false);                                            // 남은 넷이 모두 라운지에 숨어 있다
     const at=(x,z,tx,tz)=>({x,z,yaw:Math.atan2(x-tx,z-tz)});      // 사람 yaw 는 카메라와 같다 (앞 = −sin, −cos)
-    const [my,dn]=await Promise.all([PEOPLE.spawn({kind:'maya',name:'마야 첸',role:'부선장',at:at(19.2,17.4,20.5,19)}),PEOPLE.spawn({kind:'daniel',name:'다니엘 로드리게스',role:'기관',at:at(21.8,17.6,20.5,19)})]);
-    const MY=sayer('마야',my), DN=sayer('다니엘',dn), SJR=t=>RADIO('서준',t);
+    const scr=new THREE.Vector3(); new THREE.Box3().setFromObject(BRIDGEUI.mesh('lounge')).getCenter(scr);
+    const sjx=scr.x+(20.5-scr.x)*.22, sjz=scr.z+(19-scr.z)*.22;
+    const [my,dn,sj]=await Promise.all([PEOPLE.spawn({kind:'maya',name:'마야 첸',role:'부선장',at:at(19.2,17.4,20.5,19)}),PEOPLE.spawn({kind:'daniel',name:'다니엘 로드리게스',role:'기관',at:at(21.8,17.6,20.5,19)}),
+      PEOPLE.spawn({kind:'seojun',name:'한서준',role:'항법',at:at(sjx,sjz,20.5,19)})]);
+    const MY=sayer('마야',my), DN=sayer('다니엘',dn), SJ=sayer('서준',sj); this.my=my; this.dn=dn;
     warp(20.5,19.6,Math.PI); SHIP.zone=null; if(!STORY.held){ STORY.hold(); }
     await card('','세 시간 뒤','하위헌스 2호 · 라운지 · 문을 잠갔다',2400);
     await TALK.say([MY('문은 잠갔어요. 그게 환기구로 다니면 소용없겠지만.'),DN('오언이… 오언이 그렇게 될 줄은.'),
-      SJR('선장님, 서준이에요. 항법 컴퓨터가 계속 흔들려요. 집으로 갈 좌표를 우리은하 지도에 다시 찍어야 해요.'),
-      SJR('지도를 라운지 화면으로 보낼게요. 은하 구조부터 같이 짚어 주세요.')]);
+      SJ('선장님, 항법 컴퓨터가 계속 흔들려요. 집으로 갈 좌표를 우리은하 지도에 다시 찍어야 해요.'),
+      SJ('바 뒤 화면에 지도 띄웠어요. 은하 구조부터 같이 짚어 주세요.')]);
     goal('라운지 바 뒤 화면에서 우리은하 지도를 짚는다');
     await STORY.wait(BRIDGEUI.mesh('lounge'),'라운지 화면 — 우리은하 지도',{range:3.6});
     // 옆에서 본 은하 (왼쪽) · 위에서 본 은하 (오른쪽)
@@ -165,25 +210,40 @@ const CH8={
         hit:(x,y)=>((x-S1.x)/60)**2+((y-S1.y)/40)**2<1,hint:n=>n>=2?'납작한 원반 한가운데 볼록한 곳':'가운데를 보자'},
       {q:'위에서 본 은하 — <b>태양계</b> 자리를 누른다 (중심에서 약 3만 광년 · 나선팔 위)',mark:'태양계',ok:'태양계 — 중심에서 약 3만 광년, 나선팔 위',
         hit:(x,y)=>{ const d=Math.hypot(x-S2.x,y-S2.y)/RD*50000; return x>600&&d>22000&&d<36000; },hint:n=>n>=2?'막대 5만 광년의 반보다 조금 더 바깥':'중심도 가장자리도 아니에요 — 축척 막대를 보자'}]);
-    goal(''); await TALK.say([SJR('좋아요, 좌표 들어갑니다… 태양계, 나선팔 위. 계산이 끝나면 바로 웜홀로—'),VG('경고. 주 차단기 함이 열렸습니다. 기관실 앞 복도.')]);
-    // 차단기 파괴 · 암흑 · 서준
+    goal(''); await TALK.say([SJ('좋아요, 좌표 들어갑니다… 태양계, 나선팔 위. 계산이 끝나면 바로 웜홀로—'),VG('경고. 주 차단기 함이 열렸습니다. 기관실 앞 복도.'),
+      MY('열렸다고요? 저절로?'),ME('…여는 법을 아는 거다.')]);
+    // 차단기 파괴 → 완전한 암흑 (손전등만)
     const bd=STORY.it('breaker'), door=bd&&bd.getObjectByName('brk_door'); if(door){ door.rotation.z=-1.9; door.position.z-=.02; }
-    AUDIO.noise(1,.35,0,1200); AUDIO.tone(50,1.2,'sawtooth',.08); STORY.dark(true,{red:true}); SHIP.dim=.32;
-    await TALK.say([MY('불이…!'),SJR('선장님! 함교 앞에 그게… 그게 일어섰어요. 두 발로. 크, 커요—'),SJR('오지 마세요! 오지—'),{who:'무전',kind:'radio',t:'…치지직…'},ME('서준! 서준!')]);
-    f.seojunGone=true; STORY.crew();
-    // ---- 버티기 : 그것이 라운지로 계속 찾아온다 — 숨고(①) · 쏘아 쫓고(②) · 달린다(③) ----
+    AUDIO.noise(1,.35,0,1200); AUDIO.tone(50,1.2,'sawtooth',.08); FX.black(1); STORY.dark(true); SHIP.dim=.28; await sleep(1400); FX.black(0);
+    await TALK.say([DN('아무것도 안 보여요!'),SJ('비상등 스위치가 문 옆에 있어요. 제가 켤게요—')]);
+    sj.solid=false; await camTo({yaw:yawTo(16.2,14.6),pitch:0},.6); await PEOPLE.walk(sj,[[16.2,14.6]],1.4);      // 손전등 빛 속으로 걸어간다 (문 옆 · 천장 환기구 IT_vent_sj 아래)
+    // 섬광 셋 : 서준 → 서준 뒤에 선 그것(처음으로 두 발로) → 아무도 없다
+    await this.strobe(sj); f.seojunGone=true; STORY.crew();
+    await TALK.say([DN('서, 서준이 형…? 형!'),MY('…서 있었어요. 두 발로. 사람보다 컸어요.'),ME('다들 숨어. 소리 내지 마.')]);
+    // ---- 버티기 : 숨고(①) · 다니엘을 끌고 가는 그것을 쏘고(②) · 함교 문을 손으로 연다(③) ----
     this.DN=DN; my.wrap.position.set(11.0,0,23.0); dn.wrap.position.set(12.0,0,23.4); [my,dn].forEach(p=>{ p.solid=false; });
     while(!(await this.hide())) await this.again();
-    await TALK.say([DN('…갔어요. 갔어.'),MY('또 올 거예요. 냄새를 맡고 있어요.')]);
-    while(!(await this.drive())) await this.again();
-    f.danielBit=true; await TALK.say([DN('윽— 목이… 긁혔어요. 괜찮아요, 괜찮아.'),ME('다니엘, 피가—'),DN('괜찮다니까요! 그보다 또 와요.')]);
-    await TALK.say([MY('여기 있으면 셋 다 죽어요. 제가 저걸 기관실 쪽으로 끌어낼게요.'),ME('마야, 안 돼.'),MY('선장님은 다니엘이랑 함교로. 집에 가는 좌표, 거기 있잖아요.'),MY('…잘 가요, 크리스.')]);
-    while(!(await this.flee(my,dn))) await this.again();
+    await TALK.say([DN('…갔어요. 갔어.'),MY('아니요. 위에 있어요. 소리가 안 멈췄어요.')]);
+    while(!(await this.grab())) await this.again();
+    f.danielBit=true; await TALK.say([DN('윽— 목이… 물렸어요. 괜찮아요, 괜찮아.'),ME('다니엘, 피가—'),DN('괜찮다니까요!'),
+      MY('여긴 끝났어요. 함교로 가요 — 문이 제일 두꺼워요. 전력이 없으니 손으로 열어야 해요.')]);
+    while(!(await this.flee())) await this.again();
     f.mayaGone=true;
-    await TALK.say([VG('함교 문 잠금.'),RADIO('마야','…선장님, 들려요? 끌어냈어요. 기관실까지— 아, 아아—'),{who:'무전',kind:'radio',t:'…치지직…'},DN('…마야.'),ME('…좌표는 들어갔다. 다니엘, 끝까지 간다.')]);
+    await TALK.say([VG('함교 문 잠금. …마야 첸 대원의 생체 신호 — 없습니다.'),DN('마야 누나가… 바로 뒤에 있었는데…'),ME('…좌표는 들어갔다. 다니엘, 끝까지 간다.')]);
     await STORY.next('8장 · 일어선 것 — 끝','9장 · 증발하는 웜홀',()=>CH9.start()); },
-  // 잡혔으면 그 단계 처음으로
-  async again(){ ALIEN.clear(); P.eye=1.66; await sleep(300); await fade(false,800); S.phase='play'; P.free=true; toast('다시 — 숨거나, 쏘거나, 달려라',2600); },
+  // 잡혔으면 그 단계 처음으로 (다니엘 · 마야는 제자리로)
+  async again(){ ALIEN.clear(); P.eye=1.66; FX.black(0); const dn=this.dn; if(dn){ dn.sleep=false; dn.wrap.rotation.set(0,dn.wrap.rotation.y,0); dn.wrap.position.y=0; }
+    await sleep(300); await fade(false,800); S.phase='play'; P.free=true; toast('다시 — 숨거나, 쏘거나, 달려라',2600); },
+  // 섬광 셋 : 어둠 속에서 서준 → 그 뒤에 선 그것 → 빈자리와 떨어지는 피
+  async strobe(sj){ S.phase='cut'; P.free=false; goal(''); const w=sj.wrap.position.clone(); await camTo({yaw:yawTo(w.x,w.z),pitch:.02},.5); P.look=true;
+    const lit=async ms=>{ FX.black(0); renderer.toneMappingExposure=1.0; AUDIO.noise(.06,.1,0,5000); await sleep(ms); FX.black(1); };      // 비상등이 번쩍 — 방 전체가 잠깐 보인다
+    FX.black(1); await sleep(900); THUD(.3);
+    await lit(150); await sleep(850); GROWL(.1);
+    const d=Math.hypot(w.x-P.x,w.z-P.z), bx=w.x+(w.x-P.x)/d*.9, bz=w.z+(w.z-P.z)/d*.9;
+    const a=await ALIEN.spawn({at:{x:bx,z:bz},face:Math.atan2(P.x-bx,P.z-bz),height:2.7,clip:'idle'}); a.h=2.7; a.open=a.openTo=.6;
+    await lit(320); STING(.8); FX.shake(.4,.05);
+    await sleep(450); SCREAM(); THUD(.7); ALIEN.remove(a); PEOPLE.remove(sj); STORY.grate('sj'); STORY.show('gore_sj',true); STORY.drip(w.x,6.3,w.z,5);      // 위로 — 천장 환기구 속으로
+    await sleep(1100); await lit(260); await sleep(500); FX.black(0); P.look=false; },
   // 숨을 곳 : 바 뒤 · 소파 뒤 (가까이 가면 몸을 웅크린다). 그것과 나 사이를 가구가 막고 있어야 숨은 것
   spots:[[11.4,22.4,'바 뒤'],[19.4,20.7,'소파 뒤']],
   see(a){ const w=a.wrap.position, d=Math.hypot(P.x-w.x,P.z-w.z); if(d>9) return false; const n=Math.ceil(d/.25);
@@ -204,30 +264,53 @@ const CH8={
     if(r==='gone'){ ALIEN.clear(); await SHIP.doors.lobby.close(); return true; }
     ALIEN.stop(a); toast('들켰다!',1400); ALIEN.play(a,'roar',{once:true}); await sleep(600);
     return STORY.chase(a,{to:{x:-99,z:0},speed:3.4,clip:'run'}); },
-  // ② 쫓아내기 : 천장 환기구에서 떨어져 천천히 다가온다 → 세 번 맞히면 물러난다
-  async drive(){ const DN=this.DN; STORY.ammo=Math.max(STORY.ammo||0,6); STORY.ammoShow(); goal('');
-    await TALK.say([DN('…위에서 소리가 나요.'),VG('천장 환기구! 바로 위입니다!')]);
-    const sx=P.x+(P.x<20?4.5:-4.5), sz=Math.min(24.5,Math.max(14,P.z+1.5)); const a=await ALIEN.spawn({at:{x:sx,y:3.6,z:sz},face:Math.atan2(P.x-sx,P.z-sz),height:2.7,clip:'jump_attack'}); a.h=2.7;
-    await new Promise(r=>{ let k=0; const fn=dt=>{ k=Math.min(1,k+dt/.4); a.wrap.position.y=3.6*(1-k*k); if(k>=1){ TICK.splice(TICK.indexOf(fn),1); r(); } }; TICK.push(fn); }); THUD(.6); camera.position.y+=.05;
-    ALIEN.play(a,'roar',{once:true}); goal('쏴서 쫓아낸다 — F 또는 [사격] · 세 번'); await sleep(900);
-    let hits=0; return new Promise(res=>{ let done=false;
-      const fn=()=>{ if(done) return; if(a.stun>0&&!a._counted){ a._counted=true; hits++; goal('쏴서 쫓아낸다 — '+hits+' / 3'); } if(!(a.stun>0)) a._counted=false;
-        const w=a.wrap.position, d=Math.hypot(P.x-w.x,P.z-w.z);
-        if(hits>=3){ done=true; TICK.splice(TICK.indexOf(fn),1); ALIEN.stop(a); ALIEN.play(a,'roar',{once:true}).then(async()=>{ await ALIEN.go(a,[[14,13.4],[14,10.4]],{speed:3,clip:'run'}); ALIEN.clear(); }); goal(''); return res(true); }
-        if(d<1.6&&S.phase==='play'){ done=true; TICK.splice(TICK.indexOf(fn),1); ALIEN.stop(a); ALIEN.play(a,'swipe',{once:true}); P.free=false; sleep(500).then(()=>fade(true,300)).then(()=>res(false)); return; }
-        if(!(a.stun>0)&&(!a.path||Math.hypot(a.path[0][0]-P.x,a.path[0][1]-P.z)>.8)) ALIEN.go(a,[[P.x,P.z]],{speed:1.25,clip:'walk'}); };
+  // ② 다니엘을 덮친다 : 천장에서 떨어져 다니엘을 끌고 라운지 문으로 (7초 남짓) → 그 안에 세 번 맞혀야 놓는다. 놓치면 그 단계 다시
+  async grab(){ const DN=this.DN, dn=this.dn; STORY.ammo=Math.max(STORY.ammo||0,6); STORY.ammoShow(); goal('');
+    // 다니엘이 숨은 곳에서 나와 라운지 안쪽 천장 환기구(horror.glb IT_vent_dn) 아래로 — 그 위에서 떨어진다
+    const x=16, z=24.5; dn.sleep=false; dn.wrap.position.y=0; dn.wrap.rotation.set(0,dn.wrap.rotation.y,0); await PEOPLE.walk(dn,[[x,z]],1.3); dn.wrap.rotation.y=Math.atan2(x-P.x,z-P.z)-Math.PI;
+    await TALK.say([DN('…선장님. 위에서— 위에서 소리가—')]); THUD(.5); await sleep(450); STORY.grate('dn');
+    const a=await ALIEN.spawn({at:{x:x+.35,y:5.6,z},face:Math.atan2(P.x-x,P.z-z),height:2.7,clip:'jump_attack'}); a.h=2.7; a.open=a.openTo=1;
+    await new Promise(r=>{ let k=0; const f=dt=>{ k=Math.min(1,k+dt/.45); a.wrap.position.y=5.6*(1-k*k); if(k>=1){ TICK.splice(TICK.indexOf(f),1); r(); } }; TICK.push(f); });
+    THUD(.8); STING(); FX.flash(); FX.shake(.5,.07); SCREAM(.7); dn.sleep=true; dn.wrap.rotation.set(-Math.PI/2,0,0); dn.wrap.position.y=.15; a.openTo=null;
+    goal('다니엘을 끌고 가는 그것을 쏴라! — 0 / 3'); S.phase='play'; P.free=true;
+    ALIEN.go(a,[[14,14.4],[14,11.4]],{speed:.95,clip:'walk'});
+    const drag=()=>{ const r=a.wrap.rotation.y, w=a.wrap.position; dn.wrap.position.set(w.x-Math.sin(r)*.95,.15,w.z-Math.cos(r)*.95); }; TICK.push(drag);
+    let hits=0; return new Promise(res=>{ let done=false; const end=ok=>{ done=true; TICK.splice(TICK.indexOf(fn),1); TICK.splice(TICK.indexOf(drag),1); goal(''); res(ok); };
+      const fn=()=>{ if(done) return; if(a.stun>0&&!a._counted){ a._counted=true; hits++; goal('다니엘을 끌고 가는 그것을 쏴라! — '+hits+' / 3'); } if(!(a.stun>0)) a._counted=false;
+        if(hits>=3){ ALIEN.stop(a); a.openTo=1; ALIEN.play(a,'roar',{once:true}).then(async()=>{ a.openTo=null; await ALIEN.go(a,[[14,13.4],[14,10.4]],{speed:3.4,clip:'run'}); ALIEN.remove(a); });
+          dn.sleep=false; dn.wrap.position.y=0; dn.wrap.rotation.set(0,Math.atan2(dn.wrap.position.x-P.x,dn.wrap.position.z-P.z)-Math.PI,0); return end(true); }
+        const w=a.wrap.position; if(Math.hypot(P.x-w.x,P.z-w.z)<1.4&&S.phase==='play'){ ALIEN.stop(a); ALIEN.play(a,'swipe',{once:true}); P.free=false; sleep(500).then(()=>fade(true,300)).then(()=>end(false)); done=true; return; }
+        if(!a.path&&!(a.stun>0)){ toast('다니엘을 놓쳤다',1800); P.free=false; fade(true,500).then(()=>end(false)); done=true; } };
       TICK.push(fn); }); },
-  // ③ 달리기 : 마야가 그것을 동쪽으로 끌어낸다 → 다니엘과 함교로. 늦으면 그것이 돌아선다
-  async flee(my,dn){ const sp=SHIP.rooms.bridge.spawn; SHIP.lock={}; await SHIP.doors.lobby.open(); SHIP.doors.bridge&&SHIP.doors.bridge.open();
-    if(PEOPLE.list.includes(my)){ PEOPLE.walk(my,[[14,13.5],[14,10.6],[44,10.6]],3.2).then(()=>{ if(PEOPLE.list.includes(my)) PEOPLE.remove(my); }); }
-    const a=await ALIEN.spawn({at:{x:30,z:10.6},face:-Math.PI/2,height:2.7,clip:'run'}); a.h=2.7; ALIEN.go(a,[[44,10.6]],{speed:2.6,clip:'run'});
-    STORY.follow(dn,1.8); S.run=true; $('#run').classList.add('on'); goal('함교로 — 뛰어! (복도 서쪽 끝)'); GROWL(.1);
-    await sleep(9000);
-    // 마야를 놓친 그것이 돌아선다
-    GROWL(.12); toast('…돌아온다!',1600); ALIEN.play(a,'roar',{once:true}); await sleep(700);
-    const ok=await STORY.chase(a,{to:{x:sp.x,z:sp.z+.5},r:1.6,speed:3.1,clip:'run'});
-    S.run=false; $('#run').classList.remove('on'); if(!ok){ PEOPLE.list.filter(p=>p.name==='마야 첸').forEach(p=>PEOPLE.remove(p)); return false; }
-    await SHIP.doors.bridge.close(); SHIP.lock.bridge=()=>'열면 안 된다.'; ALIEN.go(a,[[0,10.4]],{speed:3,clip:'run'}).then(()=>{ THUD(.6); setTimeout(()=>ALIEN.clear(),1500); }); return true; },
+  // ③ 함교로 : 전력이 없어 함교 문은 손으로 연다. 마야가 등 뒤를 지키다 — 비명. 돌아보면 바닥에서 도는 손전등 빛 속에 그것
+  async flee(){ const dn=this.dn, sp=SHIP.rooms.bridge.spawn, bd=SHIP.doors.bridge; let my=this.my;
+    if(!PEOPLE.list.includes(my)) my=this.my=await PEOPLE.spawn({kind:'maya',name:'마야 첸',role:'부선장',at:{x:P.x+1,z:P.z+1,yaw:P.yaw}});
+    const MY=sayer('마야',my); my.solid=false; SHIP.lock={}; await SHIP.doors.lobby.open(); if(bd&&bd.isOpen) await bd.close();
+    SHIP.lock.bridge=()=>'전력이 없다 — 문 앞에서 손으로 열어야 한다';
+    STORY.follow(my,1.4); STORY.follow(dn,2.6); const un=FX.flicker(); S.run=true; $('#run').classList.add('on');
+    let t=0; const amb=dt=>{ t+=dt; if(t>2){ t=Math.random(); THUD(.12+Math.random()*.18); } }; TICK.push(amb);      // 천장 속을 따라오는 소리
+    const dx=bd?bd.position.x:sp.x; await STORY.go(dx,10.4,'함교로 — 뛰어! (복도 서쪽 끝 · 함교 문)',{r:1.5});
+    TICK.splice(TICK.indexOf(amb),1); un(); S.run=false; $('#run').classList.remove('on');
+    S.phase='cut'; P.free=false; await camTo({yaw:yawTo(dx,bd?bd.position.z:8.7),pitch:0},.35);
+    my.path=null; my.wrap.position.set(2.8,0,10.4); my.wrap.rotation.y=Math.PI/2-Math.PI; STORY.show('gore_bd',false);      // 내 등 뒤, 천장 환기구(IT_vent_bd) 아래에서 복도 동쪽을 본다
+    await TALK.say([MY('제가 뒤를 볼게요. 선장님은 문을! 뒤돌아보지 마세요!')]);
+    // 문을 여는 동안 : 등 뒤에서 — 울음 · 마야의 총소리 셋 · 비명 · 정적
+    let taken=false; const take=()=>{ if(taken) return; taken=true; SCREAM(1); THUD(.7); FX.shake(.45,.06); const w=my.wrap.position;
+      this.lamp=STORY.lampDrop(w.x,w.z); STORY.grate('bd'); STORY.show('gore_bd',true); STORY.drip(w.x,2.5,w.z,4); PEOPLE.remove(my); };
+    const tm=[setTimeout(()=>GROWL(.12),1500),setTimeout(()=>{ for(let i=0;i<3;i++) setTimeout(()=>{ AUDIO.noise(.18,.35,0,3000); AUDIO.tone(140,.2,'sawtooth',.06,0,-90); },i*280); },2800),setTimeout(take,4300)];
+    S.phase='play'; await STORY.qte('OVERRIDE · 함교 문 수동 개방','레버 넷 — 뒤돌아보지 말 것',4); tm.forEach(clearTimeout); take();
+    S.phase='cut'; P.free=false; bd&&bd.open(); await sleep(700);
+    // 돌아본다
+    await camTo({yaw:yawTo(P.x+10,10.4),pitch:-.05},.55); await sleep(900);
+    const a=await STORY.scare({dist:2.3,height:2.7,keep:true,hold:650}); const lp=this.lamp; if(lp){ const w=a.wrap.position; lp.userData.stop=true; lp.rotation.y=Math.atan2(-(w.z-lp.position.z),w.x-lp.position.x); }
+    dn.wrap.position.set(sp.x+.8,0,sp.z); dn.path=null;                // 다니엘은 먼저 함교 안으로
+    ALIEN.play(a,'roar',{once:true}); await camTo({yaw:yawTo(bd?bd.position.x:sp.x,sp.z),pitch:0},.3);      // 몸을 돌려 문 쪽으로 — 그것은 등 뒤
+    goal('함교 안으로! — 뛰어!'); S.phase='play'; P.free=true; S.run=true; $('#run').classList.add('on');
+    const t0=performance.now();
+    const ok=await STORY.chase(a,{to:{x:sp.x,z:sp.z+.5},r:1.6,speed:2.2,clip:'run',started:()=>performance.now()-t0>1200}); S.run=false; $('#run').classList.remove('on');
+    if(this.lamp){ WORLD.remove(this.lamp); this.lamp=null; }
+    if(!ok) return false;
+    await bd.close(); SHIP.lock.bridge=()=>'열면 안 된다.'; THUD(.8); FX.shake(.3,.05); setTimeout(()=>{ THUD(.6); ALIEN.clear(); },1200); return true; },
 };
 
 SCENES.ch7={title:'7장 · 사냥', async enter(){ Object.assign(S.flags,{route:true,transit:true,passed:true,bridgeIn:true,where:true,ch2:true,ch2done:true,ch3:true,ch4:true,ch5:true,leahSaved:true,ch6:true,leahDead:true});

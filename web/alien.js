@@ -39,7 +39,7 @@ const ALIEN=(()=>{ const list=[]; let proto=null;
     return new Promise(res=>a.done=res); }
 
   function tick(dt){ for(const a of list){ a.mixer.update(dt); face(a,dt);
-    if(a.glow){ const r=a.wrap.rotation.y; a.glow.position.set(a.wrap.position.x+Math.sin(r)*.5,a.wrap.position.y+a.h*.75,a.wrap.position.z+Math.cos(r)*.5); a.glow.intensity=1.2+a.open*1.8; }
+    if(a.glow){ const r=a.wrap.rotation.y; a.glow.position.set(a.wrap.position.x+Math.sin(r)*.5,a.wrap.position.y+(a.flip?-1:1)*a.h*.75,a.wrap.position.z+Math.cos(r)*.5); a.glow.intensity=1.2+a.open*1.8; }
     if(a.stun>0){ a.stun-=dt; continue; }               // 총에 맞으면 잠깐 멈칫 (죽지는 않는다)
     if(!a.path) continue; const w=a.wrap.position, [tx,tz]=a.path[0], dx=tx-w.x, dz=tz-w.z, d=Math.hypot(dx,dz);
     if(d<.1){ a.path.shift(); if(!a.path.length){ a.path=null; play(a,'idle'); const r=a.done; a.done=null; r&&r(); } continue; }
@@ -47,8 +47,11 @@ const ALIEN=(()=>{ const list=[]; let proto=null;
     let dy=Math.atan2(dx,dz)-a.wrap.rotation.y; dy=Math.atan2(Math.sin(dy),Math.cos(dy)); a.wrap.rotation.y+=dy*Math.min(1,dt*6); } }
 
   function stop(a){ a.path=null; a.done=null; }
-  function clear(){ list.forEach(a=>{ a.wrap.parent&&a.wrap.parent.remove(a.wrap); a.glow&&a.glow.parent&&a.glow.parent.remove(a.glow); }); list.length=0; }
-  return {spawn,play,go,stop,tick,clear,list};
+  function remove(a){ a.wrap.parent&&a.wrap.parent.remove(a.wrap); a.glow&&a.glow.parent&&a.glow.parent.remove(a.glow); const i=list.indexOf(a); if(i>=0) list.splice(i,1); }
+  function clear(){ list.slice().forEach(remove); }
+  // 몸 가운데 (쏘기 · 거리) — 천장에 거꾸로 매달린 것(a.flip)은 아래쪽
+  const center=a=>a.wrap.position.clone().add(new THREE.Vector3(0,(a.flip?-1:1)*a.h*.45,0));
+  return {spawn,play,go,stop,tick,clear,remove,center,list};
 })();
 
 // 시험 장면 : 중앙 복도 순찰 → 6 m 안이면 울부짖고 쫓아온다 → 1.6 m 안이면 할퀸다

@@ -18,7 +18,8 @@ const starRGB=T=>{ const c=STARCOL; if(T<=c[0][0]) return c[0][1]; for(let i=1;i
 // 따라오기 : 동행하는 사람이 내 뒤 1.5 m 쯤을 따라 걷는다
 STORY.follow=function(p,back=1.6){ const f=()=>{ if(!PEOPLE.list.includes(p)){ TICK.splice(TICK.indexOf(f),1); return; } const w=p.wrap.position, d=Math.hypot(P.x-w.x,P.z-w.z);
     if(d>9){ p.path=null; w.set(P.x+Math.sin(P.yaw)*back,0,P.z+Math.cos(P.yaw)*back); return; }
-    if(d>back+1&&!p.path){ const k=(d-back)/d; PEOPLE.walk(p,[[w.x+(P.x-w.x)*k,w.z+(P.z-w.z)*k]],1.7); } }; TICK.push(f); };
+    if(d>back+1&&!p.path){ const k=(d-back)/d; PEOPLE.walk(p,[[w.x+(P.x-w.x)*k,w.z+(P.z-w.z)*k]],1.7); } }; TICK.push(f);
+  return ()=>{ const i=TICK.indexOf(f); if(i>=0) TICK.splice(i,1); }; };      // 멈추는 함수
 // 함교 대원 (앉은 셋) 보이기 · 숨기기
 STORY.seated=function(on){ const c=SHIP.crew||{}; ['maya','seojun','daniel'].forEach(k=>{ const p=c[k]; if(p){ p.wrap.visible=on; p.solid=on; p.pick.visible=on; } }); };
 // 소리 : 멀리서 울음 · 머리 위 쿵
@@ -175,6 +176,10 @@ const CH6={
       me('…"차가우면 잠든다." 레아는 몸속의 그것을 재우려고 동면 캡슐에 들어갔던 거다.'),MY('그럼 지금 그게… 이 배 환기구 안에 있다는 거예요?'),
       me('집으로 간다. 지금 당장. 서준, 1호 칩의 귀환 항로.'),SJ('항법 화면으로 띄울게요. 웜홀 출구는… 별무리 둘 사이에 있대요.')]);
     P.look=false; S.phase='play'; P.free=true; [my,sj,ow].forEach(p=>PEOPLE.remove(p)); STORY.seated(true);
+    // 함교로 가는 복도 : 발치를 무언가가 가로질러 벽 틈으로 (갑툭튀)
+    const dart=()=>{ if(P.x>29||P.x<4||P.z<8.9||P.z>12.2) return; TICK.splice(TICK.indexOf(dart),1);
+      (async()=>{ const x=P.x-2.4; const l=await ALIEN.spawn({at:{x,z:12},face:Math.PI,height:.6,clip:'crawl_run'}); l.h=.6; l.open=l.openTo=1; STING(.55); FX.shake(.3,.04);
+        await ALIEN.go(l,[[x-.4,9]],{speed:6,clip:'crawl_run'}); ALIEN.remove(l); AUDIO.noise(.3,.2,0,1500); })(); }; TICK.push(dart);
     // 왜 푸나 : 1호 기록은 '젊고 엉성한 별무리'와 '늙고 빽빽한 별무리' 사이 — 어느 것이 어느 것인지 가려야 항로가 잡힌다
     await STORY.at(BRIDGEUI.mesh('nav'),'항법 화면 — 1호 귀환 항로','함교 항법 화면에서 1호 귀환 항로의 별무리 둘을 가려낸다');
     const thumb=(kind)=>{ const c=document.createElement('canvas'); c.width=220; c.height=140; const g=c.getContext('2d'); g.fillStyle='#05070a'; g.fillRect(0,0,220,140);

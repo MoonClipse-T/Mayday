@@ -243,6 +243,9 @@ body.talking #holoui.on{opacity:.35;pointer-events:none}
 /* 사격 단추 (권총을 들었을 때) · 공포 가장자리 */
 #fire{display:none;right:calc(var(--pad) + 30px);bottom:calc(var(--pad) + 250px);flex-direction:column;border-color:var(--alert);color:#fff;background:rgba(255,90,54,.2)}
 #fire.on{display:flex} #fire small{font-family:var(--mono);font-size:12px;opacity:.8}
+/* 공포 : 순간 암전(#blackout — 자막 · HUD 아래) · 번쩍(#flashfx) */
+#blackout{position:fixed;inset:0;z-index:7;pointer-events:none;opacity:0;background:#000}
+#flashfx{position:fixed;inset:0;z-index:8;pointer-events:none;opacity:0;mix-blend-mode:screen}
 #dread{position:fixed;inset:0;z-index:4;pointer-events:none;opacity:0;background:radial-gradient(circle at 50% 50%,rgba(0,0,0,0) 35%,rgba(140,0,0,.55) 80%,rgba(60,0,0,.9) 100%)}
 /* 우주복 헬멧 (우주 유영) */
 #helmet{position:fixed;inset:0;z-index:6;pointer-events:none;opacity:0;transition:opacity 1s}

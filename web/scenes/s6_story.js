@@ -6,14 +6,14 @@
    ============================================================ */
 'use strict';
 const STORY={
-  it(k){ const r=SHIP.rooms.story; return r&&r.items[k]; },
+  it(k){ const r=SHIP.rooms.story, h=SHIP.rooms.horror; return (r&&r.items[k])||(h&&h.items[k]); },      // story.glb · horror.glb
   show(k,on){ const o=this.it(k); if(o) o.visible=on; },
   // 소품 준비 : 피 데칼은 바닥 · 벽 위에 떠 보이게, 포드 선실은 안에서 보이게. 1호 장식은 1호에서만
   prep(R){ R.root.traverse(o=>{ if(!o.isMesh) return; const m=o.material;
       // 피 : 어둠 속에서도 손전등에 읽히게 살짝 스스로 빛나게
       if(/blood/.test(m.name)){ m.emissive=new THREE.Color(.5,.03,.02); m.emissiveMap=m.map; m.emissiveIntensity=2.2; m.depthWrite=false; m.polygonOffset=true; m.polygonOffsetFactor=-4; m.polygonOffsetUnits=-4; o.renderOrder=3; }
       if(o.name==='pod_cabin'){ m.side=THREE.DoubleSide; m.color.multiplyScalar(.4); } });
-    this.show('h1',false); },
+    ['h1','gore_hall','gore_sj','gore_bd','lamp'].forEach(k=>this.show(k,false)); },      // 피(gore_)는 끌려간 뒤에야 · 손전등(lamp)은 복제해서 쓴다
   // 대사 : 함선 대원 (SHIP.crew) · 레아
   L(){ const c=SHIP.crew||{}, w=(who,npc)=>t=>({who,t,npc});
     return {me:t=>({kind:'me',t}),V:t=>({who:'VEGA',kind:'vega',t}),MY:w('마야',c.maya),SJ:w('서준',c.seojun),DN:w('다니엘',c.daniel),OW:w('오언',c.owen),LE:w('레아',this.leah)}; },

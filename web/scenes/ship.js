@@ -26,7 +26,8 @@ const SHIP={OX:{bridge:0,deck:14,cryo:27,lab:39,lobby:20.5,engine:63.3}, OZ:{lob
         root.traverse(o=>{ if(o.isMesh&&/^rura_(gwna_baza|glowna_szybka)/.test(o.material.name)) o.visible=false; }); }}],      // 가운데 큰 관(탱크)은 감춘다 → 그 자리에 유리 격리실(story.glb IT_iso)      // 연구실 : 문 바로 안을 막던 실험대(위 물건째)를 서쪽으로 2 m
       ['lobby',{ox:O.lobby,oz:Z.lobby}],
       ['engine',{ox:O.engine,oz:Z.engine,prep:root=>cutTris(root,'eng_rail',c=>c.x<57&&c.z>9.4&&c.z<11.3)}],['hall',{}],      // 기관실 : 문 앞을 가로지르던 난간을 끊어 원자로 단으로 바로 오른다
-      ['story',{solid:false}]]; },              // 이야기 소품 (story.glb · 세계 좌표 그대로 · 몸 충돌 없음)
+      ['story',{solid:false}],                 // 이야기 소품 (story.glb · 세계 좌표 그대로 · 몸 충돌 없음)
+      ['horror',{solid:false}]]; },            // 공포 소품 (horror.glb ← tools/build_horror.py · blender/21_공포소품.blend) : 천장 환기구 · 끌려간 뒤의 피 · 마야의 손전등
   preload(){ return this._pre||(this._pre=LEVEL.preload(this.list()).then(()=>LEVEL.warmBundles(this.list().map(([k,o])=>k+'@'+(o.ox||0)+','+(o.oz||0))))); },
 };
 
@@ -63,7 +64,7 @@ SCENES.ship={title:'하위헌스 2호', async enter(o={}){ const f=S.flags; SHIP
   // 복도 칸 이음새(x 31.5)의 문틀도 칸이 두툼해 복도를 통째로 막았다 → 동쪽(연구실 · 에어록 · 기관실)으로 걸어갈 수 없었다
   SOLID.holes=[[54.4,9.85,55.6,11.15,.2,1.85],[31.1,9.85,32.2,11.15,.2,1.85]];      // 복도 동쪽 끝 문 구멍 (기관실) : 비스듬한 문설주가 칸으로는 0.7 m 라 막혔다
   SHIP.lock.airlock=()=>'에어록은 선외 활동 때만 엽니다. 지금은 잠가 둡니다.';
-  STORY.prep(R.story); await ROOMS.bridge(R.bridge); await ROOMS.deck(R.deck); await ROOMS.cryo(R.cryo); await ROOMS.lab(R.lab); await ROOMS.lobby(R.lobby); await ROOMS.engine(R.engine);
+  STORY.prep(R.story); STORY.prep(R.horror); await ROOMS.bridge(R.bridge); await ROOMS.deck(R.deck); await ROOMS.cryo(R.cryo); await ROOMS.lab(R.lab); await ROOMS.lobby(R.lobby); await ROOMS.engine(R.engine);
   LOADING.set(.9); await SOLID.build();               // 묶음 칸은 미리 계산돼 있다 — 장면이 넣은 것만 일꾼이 새로
   LIGHTPOOL.start(); SKYMASK.build(); LEVEL.warm(); LOADING.set(1);
   console.log('ship ready',Math.round(performance.now()-t0)+' ms');
@@ -77,7 +78,7 @@ SCENES.ship={title:'하위헌스 2호', async enter(o={}){ const f=S.flags; SHIP
   const doorOf={bridge:['bridge'],deck:['deck'],cryo:['cryo'],lab:['lab','airlock'],lobby:['lobby'],engine:['engine']}, facing={deck:'lobby',lobby:'deck'};
   const near=k=>doorOf[k].some(d=>{ const g=SHIP.doors[d]; return g&&(g.isOpen||Math.hypot(P.x-g.position.x,P.z-g.position.z)<4); });
   TICK.push(()=>{ const z=SHIP.zoneAt(P.x,P.z), here=z==='airlock'?'lab':z;
-    for(const [k,r] of Object.entries(R)) if(k!=='story') r.root.parent.visible=k===here||((here==='hall'||facing[here]===k)&&near(k)); });
+    for(const [k,r] of Object.entries(R)) if(k!=='story'&&k!=='horror') r.root.parent.visible=k===here||((here==='hall'||facing[here]===k)&&near(k)); });
   AUDIO.hum(1,44); LOADING.hide();
   if(SHIP.mode==='depart') return LOUNGE.start(R.lobby);
   // raw : 이야기 장면이 직접 자리 · 밝기를 정한다 (우주 유영 뒤 에어록 · 1호 안). 화면은 아직 검다
