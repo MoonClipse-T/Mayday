@@ -181,7 +181,7 @@ const CH8={
     const at=(x,z,tx,tz)=>({x,z,yaw:Math.atan2(x-tx,z-tz)});      // 사람 yaw 는 카메라와 같다 (앞 = −sin, −cos)
     const scr=new THREE.Vector3(); new THREE.Box3().setFromObject(BRIDGEUI.mesh('lounge')).getCenter(scr);
     const sjx=scr.x+(20.5-scr.x)*.22, sjz=scr.z+(19-scr.z)*.22;
-    const [my,dn,sj]=await Promise.all([PEOPLE.spawn({kind:'maya',name:'마야 첸',role:'부선장',at:at(19.2,17.4,20.5,19)}),PEOPLE.spawn({kind:'daniel',name:'다니엘 로드리게스',role:'기관',at:at(21.8,17.6,20.5,19)}),
+    const [my,dn,sj]=await Promise.all([PEOPLE.spawn({kind:'maya',name:'마야 첸',role:'부선장',at:at(18.8,19.1,20.5,19)}),PEOPLE.spawn({kind:'daniel',name:'다니엘 로드리게스',role:'기관',at:at(21.8,17.6,20.5,19)}),
       PEOPLE.spawn({kind:'seojun',name:'한서준',role:'항법',at:at(sjx,sjz,20.5,19)})]);
     const MY=sayer('마야',my), DN=sayer('다니엘',dn), SJ=sayer('서준',sj); this.my=my; this.dn=dn;
     warp(20.5,19.6,Math.PI); SHIP.zone=null; if(!STORY.held){ STORY.hold(); }
@@ -269,7 +269,8 @@ const CH8={
   // ② 다니엘을 덮친다 : 천장에서 떨어져 다니엘을 끌고 라운지 문으로 (7초 남짓) → 그 안에 세 번 맞혀야 놓는다. 놓치면 그 단계 다시
   async grab(){ const DN=this.DN, dn=this.dn; STORY.ammo=Math.max(STORY.ammo||0,6); STORY.ammoShow(); goal('');
     // 다니엘이 숨은 곳에서 나와 라운지 안쪽 천장 환기구(horror.glb IT_vent_dn) 아래로 — 그 위에서 떨어진다
-    const x=16, z=24.5; dn.sleep=false; dn.mood=null; dn.crouch=true; dn.wrap.position.y=0; dn.wrap.rotation.set(0,dn.wrap.rotation.y,0); await PEOPLE.walk(dn,[[x,z]],1.0); dn.crouch=false; dn.mood='nervous'; dn.wrap.rotation.y=Math.atan2(x-P.x,z-P.z)-Math.PI;
+    const x=16.3, z=24.1; dn.sleep=false;      // 환기구(16, 24.5) 바로 밑은 가구라 조금 비켜 선다
+    dn.mood=null; dn.crouch=true; dn.wrap.position.y=0; dn.wrap.rotation.set(0,dn.wrap.rotation.y,0); await PEOPLE.walk(dn,[[x,z]],1.0); dn.crouch=false; dn.mood='nervous'; dn.wrap.rotation.y=Math.atan2(x-P.x,z-P.z)-Math.PI;
     await TALK.say([DN('…선장님. 위에서— 위에서 소리가—')]); THUD(.5); await sleep(450); STORY.grate('dn');
     const a=await ALIEN.spawn({at:{x:x+.35,y:5.6,z},face:Math.atan2(P.x-x,P.z-z),height:2.7,clip:'jump_attack'}); a.h=2.7; a.open=a.openTo=1;
     await new Promise(r=>{ let k=0; const f=dt=>{ k=Math.min(1,k+dt/.45); a.wrap.position.y=5.6*(1-k*k); if(k>=1){ TICK.splice(TICK.indexOf(f),1); r(); } }; TICK.push(f); });

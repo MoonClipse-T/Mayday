@@ -12,6 +12,7 @@
    - 비행복 대원 넷은 Mixamo 동작을 더 갖고 있다 (tools/retarget.py) : 빠르면(2.4 m/s 이상) run · p.armed 면 pistol_run · p.crouch 면 crouch · p.hurt 면 limp
      p.mood = 'scared' | 'nervous' | 'aim' | 'argue' | 'struggle' | 'crawl_back' → 서 있을 때 그 동작 · 말할 때(mood 없음)는 talk 손짓
      PEOPLE.act(p,'point'|'wave'|'hit',{n}) → 한 번(n 번) 하고 원래 동작으로 (Promise)
+     걷는 사람은 가구(몸 충돌 칸 SOLID)를 비켜 돌고, 서 있는데 가구 속이면 가까운 빈자리로 나온다 (앉음 · 동면 · 끌려가는 중 · 캡슐 안은 빼고)
      p.armed 면 오른손에 총 (web/assets/gun.glb · 쥔 자리 GUN) · p.kick = .15 면 반동
    ============================================================ */
 'use strict';
@@ -97,15 +98,34 @@ const PEOPLE=(()=>{
       return ((qx-q.wrap.position.x)*ux+(qz-q.wrap.position.z)*uz)/qd>0; }); }       // 마주 오는 사람은 기다리지 않는다 (서로 기다리면 멈춘다) → apart 가 비켜 준다
   function apart(p){ const w=p.wrap.position; for(const q of others(p)){ const R=q.pose==='sit'?.6:.5, ox=w.x-q.wrap.position.x, oz=w.z-q.wrap.position.z, r=Math.hypot(ox,oz);
     if(r>=R) continue; const k=q.path?(R-r)/2:R-r, nx=r>1e-4?ox/r:1, nz=r>1e-4?oz/r:0; w.x+=nx*k; w.z+=nz*k; if(q.path){ q.wrap.position.x-=nx*k; q.wrap.position.z-=nz*k; } } }
+  // 가구 · 벽 (engine 의 몸 충돌 칸 SOLID) : 발 위 STEP ~ 머리 사이에 막힌 칸이 있나 — 탁자 · 식탁 한가운데 서지 않게
+  const solidAt=(x,z,y)=>SOLID.hit(x,z,y+STEP,y+1.6,.2);
+  // 막힌 자리면 가장 가까운 빈자리 (1.5 m 안 · 없으면 null)
+  function freeNear(x,z,y){ for(let r=.15;r<=1.5;r+=.15) for(let a=0;a<12;a++){ const t=a/12*Math.PI*2+r, fx=x+Math.sin(t)*r, fz=z+Math.cos(t)*r; if(!solidAt(fx,fz,y)) return [fx,fz]; } return null; }
   function tick(dt){ for(const p of list){ const {B,wrap}=p; p.ph+=dt;
       p.base.forEach((q,b)=>b.quaternion.copy(q));
       // 걷기 : 다음 점으로 몸을 돌리며 나간다 (그 점에 누가 서 있으면 가까이 온 것으로 친다)
-      if(p.path&&p.path.length){ const [tx,tz,ty]=p.path[0], dx=tx-wrap.position.x, dz=tz-wrap.position.z, d=Math.hypot(dx,dz);
+      if(p.path&&p.path.length){ const pt=p.path[0];
+        if(p._pt!==pt){ p._pt=pt; p.side=0; p.best=1e9; p.nogo=0; }      // 새 점 : 비켜 돌기 처음부터
+        // 가려는 점이 가구 속이면 옆 빈자리로 바꾼다 (STORY.follow 가 탁자 너머를 고를 때)
+        if(pt._ok!==SOLID.g&&pt[2]===undefined){ pt._ok=SOLID.g; if(solidAt(pt[0],pt[1],wrap.position.y)){ const f=freeNear(pt[0],pt[1],wrap.position.y); if(f){ pt[0]=f[0]; pt[1]=f[1]; } } }
+        const [tx,tz,ty]=pt, dx=tx-wrap.position.x, dz=tz-wrap.position.z, d=Math.hypot(dx,dz);
         if(ty!==undefined) wrap.position.y+=(ty-wrap.position.y)*Math.min(1,dt*5);      // 점에 높이가 있으면 (캡슐 바닥 → 복도 바닥)
         if(d<.08||(d<.5&&others(p).some(q=>Math.hypot(q.wrap.position.x-tx,q.wrap.position.z-tz)<.5))){ p.path.shift(); if(!p.path.length){ p.path=null; p.done&&p.done(); } }
-        else { const want=Math.atan2(dx,dz); let df=want-wrap.rotation.y; df=Math.atan2(Math.sin(df),Math.cos(df)); wrap.rotation.y+=df*Math.min(1,dt*6);
-          const s=blocked(p,dx/d,dz/d)?0:Math.min(d,p.speed*dt); wrap.position.x+=dx/d*s; wrap.position.z+=dz/d*s; }
+        else { let ang=Math.atan2(dx,dz); const s=blocked(p,dx/d,dz/d)?0:Math.min(d,p.speed*dt), x=wrap.position.x, z=wrap.position.z, y=wrap.position.y;
+          // 앞이 가구면 옆으로 비켜 돈다 : 덜 꺾어도 되는 쪽(p.side)을 골라 그 점까지는 그쪽으로 (35° 씩) — 그쪽이 다 막혀야 반대쪽
+          // 이미 끼어 있거나(캡슐에서 나올 때) 3 초 동안 그 점에 가까워지지 않으면 예전처럼 그냥 간다 — 장면이 멈추지 않게
+          if(d<p.best-.05){ p.best=d; p.nogo=0; } else p.nogo+=dt;
+          if(s>0&&p.nogo<3&&!solidAt(x,z,y)){ const ok=a=>!solidAt(x+Math.sin(a)*Math.max(s,.12),z+Math.cos(a)*Math.max(s,.12),y), O=[.6,1.2,1.8,2.4];
+            if(!ok(ang)){ if(!p.side){ const n=sd=>O.findIndex(o=>ok(ang+sd*o))>>>0; p.side=n(1)<=n(-1)?1:-1; } const k=O.find(o=>ok(ang+p.side*o));
+              if(k!==undefined) ang+=p.side*k; else { p.side=-p.side; ang=null; } } }
+          let df=Math.atan2(dx,dz)-wrap.rotation.y; if(ang!==null) df=ang-wrap.rotation.y; df=Math.atan2(Math.sin(df),Math.cos(df)); wrap.rotation.y+=df*Math.min(1,dt*6);
+          if(ang!==null){ wrap.position.x+=Math.sin(ang)*s; wrap.position.z+=Math.cos(ang)*s; } }
         apart(p); }
+      // 서 있는데 가구 속이면 (처음 놓인 자리 · 밀려난 자리) 가까운 빈자리로 미끄러져 나온다 — 앉음 · 동면 · 끌려가는 중 · 바닥보다 높은 곳(캡슐 안)은 빼고
+      else if(SOLID.g&&!p.sleep&&p.pose!=='sit'&&p.mood!=='struggle'&&p.mood!=='crawl_back'&&wrap.parent&&Math.abs(wrap.position.y-floorAt(wrap.position.x,wrap.position.z))<.15){
+        p.chk=(p.chk||0)-dt; if(p.chk<0){ p.chk=.5; p.out=solidAt(wrap.position.x,wrap.position.z,wrap.position.y)?freeNear(wrap.position.x,wrap.position.z,wrap.position.y):null; }
+        if(p.out){ const k=Math.min(1,dt*4); wrap.position.x+=(p.out[0]-wrap.position.x)*k; wrap.position.z+=(p.out[1]-wrap.position.z)*k; } }
       // 동작이 많은 대원 : 한 번 하는 동작 > 이동(달리기 · 웅크려 걷기 · 절뚝 · 걷기) > 기분 > 말하기 손짓 > 쉬기 — 고른 것만 무게 1 로 서서히
       if(p.mixer&&!p.sleep&&p.acts.run){ const A=p.acts, has=n=>A[n]&&n;
         p.cur=p.once||(p.path?(p.speed>=2.4?has(p.armed&&'pistol_run')||'run':has(p.crouch&&'crouch')||has(p.hurt&&'limp')||'walk'):has(p.mood)||(p.talking&&p.pose!=='sit'&&has('talk'))||'idle');
