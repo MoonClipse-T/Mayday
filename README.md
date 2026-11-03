@@ -1,48 +1,29 @@
 # MAYDAY — 별과 우주 방탈출
 
-1인칭 3D 방탈출 (three.js r128 · 디벗 터치 / 키보드). 과학2 Ⅷ. 별과 우주(1~6차시).
-선장 크리스가 되어 NASA 회의실에서 우주선까지 직접 걸어 다니고, 사람들과 대화하며 웜홀 너머 하위헌스 1호의 마지막 교신 "Mayday, Mayday, we are—"를 쫓는다.
+1인칭 3D 공포 방탈출 (three.js r128 · 디벗 터치 / 키보드). 과학2 Ⅷ. 별과 우주.
+크리스는 혼자 1인 구조정을 타고 웜홀 너머 하위헌스 1호를 찾아간다. 1호는 이미 전멸했고, 시신마다 애벌레가 들어 있다. 총으로 애벌레를 없애고, 성체를 피해 숨고 도망치며, 1호를 몰고 웜홀로 돌아와야 한다. (4판 · 2026-11-03 — 동료 · 장 구분 · 문제는 뺐다. 문제는 나중에 하나씩 끼운다)
 
-- 게임: https://moonclipse-t.github.io/Mayday/ (제작용 바로 가기: `?s=meeting` · `launch` · `orbit` · `lounge` · `approach` · `cryo` · `deck` · `bridge` · `lab` · `lobby` · `engine`, 고치는 중엔 `&dev` 를 붙이면 캐시 없이 받는다)
-- 문제별 점검 키 (PC, 루나랜드와 같은 방식 — 누르면 그 문제가 나오는 장면 처음부터 새로 불러온다 · 고치는 중이면 `&dev` 유지)
-  | 키 | 문제 | 주소 |
-  |---|---|---|
-  | Shift+1 | 1장 · 연주 시차 그리기 · 계산 (라운지) | `?s=lounge` |
-  | Shift+2 | 2장 · 블링크 비교기 · 시차 → 거리 · 광년 | `?s=mayday` |
-  | Shift+3 | 3장 · 빛의 세기와 거리 (빛 퍼짐 실험 · 9배 어둡다 → 3배 멀다) | `?s=ch3` |
-  | Shift+4 | 4장 · 겉보기 · 절대 등급 (1호 항로 기록) | `?s=ch4` |
-  | Shift+5 | 5장 · 별의 색과 표면 온도 (1호 · 온도 밀대 · 별 목록) | `?s=ch5` |
-  | Shift+6 | 6장 · 산개 · 구상 성단 (식당 · 벽의 그림자) | `?s=ch6` |
-  | Shift+7 | 7장 · 성운 셋 (도끼 · 숨기 · 달리기) | `?s=ch7` |
-  | Shift+8 | 8장 · 우리은하 지도 (암흑 · 마야) | `?s=ch8` |
-  | Shift+9 | 9장 · 우주 팽창 (거리표 · 풍선 · 탈출 포드) | `?s=ch9` |
-  - 이야기 장면은 주소로 : `?s=meeting` · `launch` · `orbit` · `approach` · `cryo` · `bridge` · `away`(웜홀 건너편) · `epilogue`(목성 궤도 · 열화상)
-- 이야기 · 차시 연결: [STORY.md](STORY.md)
+- 게임: https://moonclipse-t.github.io/Mayday/ (고치는 중엔 `&dev` 를 붙이면 캐시 없이 받는다)
+- 제작용 바로 가기 `?s=` : `cockpit`(처음 · 구조정) · `board`(1호 에어록) · `survivor`(생존자) · `hunt`(애벌레 사냥) · `engine`(기관실 · 성체) · `bridge`(함교 · 출발)
+- 이야기 · 흐름: [STORY.md](STORY.md)
 - 아직 별과 우주 아카이브에는 넣지 않았다 (다 만든 뒤에 넣는다).
 
 ## 조작
-- 디벗: 왼쪽 끌기 이동 · 오른쪽 끌기 둘러보기 · 사람이나 물건을 눌러 대화와 조사 · 오른쪽 아래 [조사] [달리기] [점프]
-- PC: W A S D 이동 · 마우스 끌기 · E 또는 클릭 · Shift 달리기 · Space 점프(대화 중에는 대사 넘기기)
-- 함교 AR 홀로그램: 끌어서 돌리기 · 위아래로 기울이기 · 두 손가락(PC 는 휠)으로 확대
+- 디벗: 왼쪽 끌기 이동 · 오른쪽 끌기 둘러보기 · [사격] · [웅크림] · [달리기] · 물건을 눌러 조사
+- PC: W A S D 이동 · 마우스 끌기 · F 사격 · C 웅크리기 · Shift 달리기 · E 조사 · Space 대사 넘기기
 
 ## 폴더 (이 폴더 = GitHub 저장소 Mayday, OneDrive 에도 그대로)
 ```
 index.html            게임 화면 틀 (바이저 HUD · 교신 자막 · 장 카드 · 시작 화면)
 web/
-  engine.js           엔진 : 이동 · 충돌 · 조사 · 교신 자막 TALK · 장 카드 · LEVEL.load(맵 바꾸기)
-  people.js           실사 인물 : 팔 내린 자세 · 숨쉬기 · 고개 돌려 보기 · 눈 깜빡임 · 말할 때 턱 (뼈로)
-  sky.js              창밖 : 밤 도시 / 실제 별지도 + 웜홀 렌즈 + 목성 · WH(회의실 화면용 웜홀)
-  screens.js          회의실 대형 화면 (실시간 관제 대시보드)
-  holo.js             함교 AR 홀로그램(태양계 · 목성 · 은하 지도) · 함교 화면 UI
-  scenes/s0_meeting.js  프롤로그 · NASA 브리핑룸 (앉아서 듣는 브리핑)
-  scenes/s0b_launch.js  발사 컷신
-  scenes/s0c_orbit.js   궤도 · 출발 컷신 (우주에서 본 2호)
-  scenes/ship.js        함선 = 하나의 건물 : 중앙 복도(59 m) 북쪽에 함교 · 식당 · 동면 C · 연구실 · 에어록, 남쪽에 라운지(전망대), 동쪽 끝에 기관실
-  scenes/s1_cryo.js     1장 · 동면 구역 C (캡슐 안 대원 넷 → 한 번에 해동 → 걸어 나와 함교로)
-  scenes/s2_deck.js     거주 구역 (의무실 · 식당 · 라운지)
-  scenes/s2b_lounge.js  출발 직후 라운지(전망대) : 다니엘과 대화 · A4 종이에 시차 · 연주 시차 그리기 · 퀴즈 d(pc) = 1 ÷ p(″) (1차시)
-  scenes/s3_bridge.js   함교 (AR · 웜홀 통과)
-  scenes/s4_rooms.js    연구실 · 라운지 · 기관실
+  engine.js           엔진 : 이동 · 충돌 · 조사 · 교신 자막 TALK · 장 카드 · LEVEL(맵) · SOLID(몸 충돌 칸)
+  people.js           실사 인물 (생존자 레아) : 뼈로 자세 · 숨쉬기 · 턱
+  sky.js              창밖 : 실제 별지도 + 웜홀 렌즈 + 행성
+  creatures.js        애벌레(LARVA) · 성체(BEAST : 보고 · 듣고 · 쫓고 · 찾기) · 길 찾기(문 둘) · 가구 비켜 돌기
+  scenes/tools.js     이야기 도구 : 소품 · 손전등 · 목표 표지 · 문제 화면(나중에) · 공포 연출 · 피 · 권총 · 체력 · 웅크리기
+  scenes/ship.js      1호 = 하나의 건물 : 중앙 복도(59 m) 북쪽에 함교 · 식당 · 동면 C · 연구실 · 에어록, 남쪽에 라운지, 동쪽 끝에 기관실
+  scenes/rooms.js     방마다 보이는 것 (꺼진 화면 · 비상등 · 캡슐 · 원자로 재가동)
+  scenes/game.js      한 흐름 : 구조정 → 1호 → 생존자 → 애벌레 사냥 → 기관실 성체 → 함교 출발 (저장 지점)
   main.js             시작
   style.css           화면 디자인
   vendor/             three.js r128 · GLTFLoader · SkeletonUtils
@@ -93,18 +74,17 @@ Blender 의 `fog_volume`(안개 부피 상자)은 웹에서 회색 벽이 되므
 - 학교 망에서 Sketchfab 받기 : `.blend` 안 텍스트 블록 `mr_net` 의 `sf_search` / `sf_import` (Blender 의 인증서 검사가 학교 망에서 막혀서 Windows 통신을 쓴다)
 
 ## 출처
-- 회의실: [Meeting room](https://sketchfab.com/3d-models/meeting-room-3fd65e8b05da4b9a94d287ae3f676fd1) by Titank · 인물: Renderpeople [Eric](https://sketchfab.com/3d-models/eric-rigged-001-rigged-3d-business-man-a46bc9f67aaa415bb4f3241eef900e7f) · [Carla](https://sketchfab.com/3d-models/carla-rigged-001-rigged-3d-business-women-acf520f450d14dd799f98a6fede3edf5) · [Claudia](https://sketchfab.com/3d-models/claudia-rigged-002-3d-rigged-business-women-c659bd0accab47c6bbe390cf822a2b92) — CC BY 4.0 (작가는 `assets/sketchfab/*/CREDIT.txt`)
 - 우주선: [Sci-fi corridor](https://sketchfab.com/3d-models/sci-fi-corridor-5e6240c9b30145b0bf81fd02287985e3) by 3dhdscan · [Stasis / Clone Chamber](https://sketchfab.com/3d-models/stasis-clone-chamber-with-animations-8738f78ae4ec4630ac35a4783303ea95) by TampaJoey — CC BY 4.0
-- 마야 · 한서준 · 다니엘 · 오언: Tripo Studio 로 직접 생성 (`assets/tripo/` 원본) + 동작 Adobe Mixamo (`assets/crew/anim/`) → `tools/retarget.py` → `web/assets/person_<이름>.glb` (텍스처 1024)
-- 기생체: Tripo Studio 로 직접 생성 · 자동 리깅 (`assets/alien/rigged/`) + 동작 Adobe Mixamo (`assets/alien/anim/`) → `tools/retarget.py` → `web/assets/alien.glb`
-- 대원 권총: [Sci-fi Pistol Game-Ready](https://sketchfab.com/3d-models/sci-fi-pistol-game-ready-1613f084d05d461ca9dd87dde66cdb3b) by Ali haghshenas — CC BY 4.0 → `web/assets/gun.glb`
+- **애벌레**: [Lurker - Rigged and Animated](https://sketchfab.com/3d-models/28b3e1a216904de7ad212368fb9d8f59) by HighPolyDensity → `web/assets/larva.glb` · **성체**: [Nightmare Creature 1#](https://sketchfab.com/3d-models/9fb509d207d744babeb5d87a486f7de1) by Mr.Prizz → `beast.glb` — CC BY 4.0
+- **시신**: [Dead Hazmat Female](https://sketchfab.com/3d-models/2e879c914d6b4e15a05f8496977854fd) by OHR3D · [Low Poly Dead Body Covered](https://sketchfab.com/3d-models/1e6ae13f6c2e46429eaca4d22d8bdbaa) by -Arthur- · [Corpse](https://sketchfab.com/3d-models/be9b034525c246cebab3620acb5a8027) by Tamal De Quezo → `corpse_a/b/c.glb` · **구조정 조종석**: [Spacefighter Cockpit (Wasp Interdictor)](https://sketchfab.com/3d-models/db4aa67fe1164ec088083d7dac2d273f) by Comrade1280 → `cockpit.glb` — CC BY 4.0
+- 권총(내 손): [Sci-fi Pistol Game-Ready](https://sketchfab.com/3d-models/sci-fi-pistol-game-ready-1613f084d05d461ca9dd87dde66cdb3b) by Ali haghshenas — CC BY 4.0 → `web/assets/gun.glb`
 - 공포 소품(천장 환기구 · 피 · 할퀸 자국 · 손전등): Blender 로 직접 제작 — `tools/build_horror.py` → `blender/21_공포소품.blend` · `web/assets/horror.glb` (피 그림은 `blender/tex_story/`)
-- 인물 추가: Renderpeople [Nathan](https://sketchfab.com/3d-models/nathan-animated-003-walking-3d-man-143a2b1ea5eb4385ae90a73657aca3bc) · [Sophia](https://sketchfab.com/3d-models/sophia-animated-003-animated-3d-woman-dc448c3be0e74f96a55fb475a13433cf) · [Manuel](https://sketchfab.com/3d-models/manuel-animated-001-3d-dancing-man-e65e0fef4e0743868c8d5bff36d61116) · [Security Guard](https://sketchfab.com/3d-models/security-guard-rigged-3d-model-1e3307732bbf4453b30f021bfec5bcaf) by Q.SARDOR — CC BY 4.0
+- 생존자 레아: Renderpeople [Sophia](https://sketchfab.com/3d-models/sophia-animated-003-animated-3d-woman-dc448c3be0e74f96a55fb475a13433cf) — CC BY 4.0
 - 함교 소품: [Sci-Fi Pilot Seat](https://sketchfab.com/3d-models/sci-fi-pilot-seat-52770448cb1149319d1d39ca5c254330) · [Hologram Table](https://sketchfab.com/3d-models/hologram-table-ab0c01198e314786a2c26b152b6cee51) · [Sci Fi Wall Bridge With Monitor](https://sketchfab.com/3d-models/sci-fi-wall-bridge-with-monitor-8875469bba4d47ea855b5d289ed135bb) — CC BY 4.0 (작가는 각 CREDIT.txt)
-- 발사 · 외부: [Space Center Realistic Launch Facility](https://sketchfab.com/3d-models/space-center-realistic-launch-facility-4c87468c552243ec815251b7cb24bc04) by Nikoleta.Zhecheva · [Deep Space Science / Survey Vessel](https://sketchfab.com/3d-models/deep-space-science-survey-vessel-psx-lo-fi-925a09ef43fe4675acd0a935d61dcd43) by Vaportrash — CC BY 4.0 · 지구 지도: Solar System Scope (CC BY 4.0)
+- 1호 겉모습: [Deep Space Science / Survey Vessel](https://sketchfab.com/3d-models/deep-space-science-survey-vessel-psx-lo-fi-925a09ef43fe4675acd0a935d61dcd43) by Vaportrash — CC BY 4.0 · 행성 지도: Solar System Scope (CC BY 4.0)
 - 거주 구역 가구: Poly Haven 모델 (CC0) · 중앙 복도: [Sci-fi corridor 2019](assets/sketchfab/corridor_2019/CREDIT.txt) (CC BY 4.0)
 - 연구실: [Sci-fi lab](https://sketchfab.com/3d-models/sci-fi-lab-a676e149e343403bb5e57686f3d31da5) by Agata Wilczek · [Sci-Fi Microscope](https://sketchfab.com/3d-models/sci-fi-microscope-ab7e120d948a468da31f9a410d205000) by Tomek Suchodolski · [Sci-fi Lab Cell](https://sketchfab.com/3d-models/sci-fi-lab-cell-0bd8e745f008419ca7097395ad697d16) by LxNazarov — CC BY 4.0 · [An optical spectrometer](https://sketchfab.com/3d-models/an-optical-spectrometer-1cb673f9f1044907a6261e4bb8a63464) by Virtual Museums of Małopolska — CC0
 - 기관실: [Large Fission/Fusion Hybrid Reactor](https://sketchfab.com/3d-models/large-fissionfusion-hybrid-reactor-c331666c133042c1a73c438857ce0149) by Lynxon — CC BY 4.0
 - 라운지: Poly Haven 모델 · 재질 (소파 · 바 의자 · 붐박스 · 화분 · 나무 바닥 · 가죽 · 천, CC0)
-- 재질 · 밤 도시: Poly Haven (CC0) · 별지도: NASA/Goddard SVS Deep Star Maps 2020 · 목성 지도: Solar System Scope (CC BY 4.0) · 사진: NASA 아폴로 17호, NASA/ESA 허블(목성)
+- 재질: Poly Haven (CC0) · 별지도: NASA/Goddard SVS Deep Star Maps 2020 · 목성 지도: Solar System Scope (CC BY 4.0) · 사진: NASA 아폴로 17호, NASA/ESA 허블(목성)
 - 엔진 기법: 루나랜드(같은 선생님 프로젝트)의 충돌 · 조사 · 태블릿 GPU 안전장치 · 배경 합치기 · three.js r128 (MIT)

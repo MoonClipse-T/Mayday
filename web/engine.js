@@ -427,7 +427,7 @@ const SHIPMAP={key:null, K:2.3, OX:7, OZ:9.5,
     const r=this.ROOMS.map(([id,n,x1,z1,x2,z2])=>{ const on=id===key, hall=id==='hall';
       return `<rect x="${X(x1)}" y="${Z(z1)}" width="${((x2-x1)*k).toFixed(1)}" height="${((z2-z1)*k).toFixed(1)}" fill="${on?'rgba(255,90,54,.2)':hall?'rgba(233,231,226,.08)':'rgba(233,231,226,.035)'}" stroke="${on?'#ff5a36':'rgba(233,231,226,.32)'}" stroke-width="${on?1.2:.8}"/>`
         +(n?`<text x="${X((x1+x2)/2)}" y="${Z((z1+z2)/2)}" dy="3" fill="${on?'#ff5a36':'rgba(233,231,226,.6)'}" font-size="8.5" text-anchor="middle" font-family="IBM Plex Sans KR,sans-serif">${n}</text>`:''); }).join('');
-    el.innerHTML=`<svg viewBox="0 0 186 88" role="img" aria-label="선내도"><text x="0" y="6" fill="rgba(233,231,226,.4)" font-size="6.5" font-family="IBM Plex Mono,monospace" letter-spacing="1.4">HUY-2 · DECK PLAN</text>`
+    el.innerHTML=`<svg viewBox="0 0 186 88" role="img" aria-label="선내도"><text x="0" y="6" fill="rgba(233,231,226,.4)" font-size="6.5" font-family="IBM Plex Mono,monospace" letter-spacing="1.4">HUY-1 · DECK PLAN</text>`
       +`<text x="186" y="6" text-anchor="end" fill="rgba(233,231,226,.32)" font-size="6" font-family="IBM Plex Mono,monospace">▲ 뱃머리 창</text>`+r+`<circle id="smdot" r="2.2" fill="#9fd8ff"/></svg>`;
     el.classList.add('on'); },
   dot(x,z){ const d=document.getElementById('smdot'); if(d){ d.setAttribute('cx',((x+this.OX)*this.K).toFixed(1)); d.setAttribute('cy',((z+this.OZ)*this.K).toFixed(1)); } } };
