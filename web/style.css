@@ -256,3 +256,36 @@ body.talking #holoui.on{opacity:.35;pointer-events:none}
 #helmet .o2{width:220px;height:6px;background:rgba(159,216,255,.2);margin:6px auto 0} #helmet .o2 i{display:block;height:100%;background:#9fd8ff}
 #helmet.low .o2 i{background:#ff5a36} #helmet.low .hud{color:#ff5a36}
 #thrust{display:none;left:calc(var(--pad) + 30px);right:auto;bottom:calc(var(--pad) + 46px)} #thrust.on{display:flex}
+/* 4.2 · 구조정 비행 · 도킹 계기 (#flight) — 조종석 유리에 비친 듯한 얇은 선 */
+body.flying #act,body.flying #run,body.flying #jump,body.flying #reticle,body.flying #fire,body.flying #crouch{display:none!important}
+#flight{position:fixed;inset:0;z-index:6;pointer-events:none;opacity:0;transition:opacity .8s;font-family:var(--mono);color:var(--vega)}
+#flight.on{opacity:1}
+#flight .hud{position:absolute;left:50%;top:calc(var(--pad) + 46px);transform:translateX(-50%);text-align:center;font-size:14px;letter-spacing:.12em;text-shadow:0 0 6px rgba(0,0,0,.8)}
+#flight .hud p{margin:.25em 0} #flight .hud .w{color:var(--alert)}
+#flight .bracket{position:absolute;transform:translate(-50%,-50%);display:none}
+#flight .bracket i{position:absolute;width:16px;height:16px;border:1.5px solid rgba(159,216,255,.8)}
+#flight .bracket i:nth-child(1){left:0;top:0;border-right:0;border-bottom:0} #flight .bracket i:nth-child(2){right:0;top:0;border-left:0;border-bottom:0}
+#flight .bracket i:nth-child(3){left:0;bottom:0;border-right:0;border-top:0} #flight .bracket i:nth-child(4){right:0;bottom:0;border-left:0;border-top:0}
+#flight .bracket b{position:absolute;left:100%;top:0;margin-left:8px;font-weight:500;font-size:12px;white-space:nowrap;letter-spacing:.14em}
+#flight .dock{position:absolute;inset:0;display:none} #flight .dock.on{display:block}
+#flight .dock svg{position:absolute;left:50%;top:50%;width:min(46vmin,360px);transform:translate(-50%,-50%);overflow:visible;fill:none;stroke:rgba(159,216,255,.55);stroke-width:1.2}
+#flight .dock svg .m polygon{fill:#ff7a2a;stroke:none} #flight .dock svg .ref{stroke:#e9e7e2;stroke-width:2} #flight .dock svg .tgt circle{stroke:#6dffb0;stroke-width:2}
+#flight .dock table{position:absolute;right:calc(var(--pad) + 4px);top:50%;transform:translateY(-50%);border-collapse:collapse;font-size:13px;background:var(--glass);padding:6px}
+#flight .dock td{padding:5px 10px;border-bottom:1px solid var(--hair);color:var(--mute)} #flight .dock td+td{color:var(--alert);text-align:right;min-width:92px} #flight .dock td.ok{color:#6dffb0}
+#flight .pads{position:absolute;right:calc(var(--pad) + 4px);bottom:calc(var(--pad) + 20px);display:none;grid-template-columns:repeat(2,64px);gap:10px;pointer-events:auto}
+body.touch #flight .pads{display:grid}
+#flight .pads button{height:52px;border:1px solid rgba(159,216,255,.5);background:rgba(6,8,10,.55);color:var(--vega);font:500 14px var(--sans);border-radius:6px}
+#flight .pads button.on{background:rgba(159,216,255,.25)} #flight .pads button[data-k=brake]{grid-column:span 2;border-color:var(--alert);color:var(--alert)}
+/* 4.x · 다친 정도(#hurtfx) · 웅크림 단추 · 숨기(#hidefx 옷장 틈 · 침대 밑) · 얼굴에 달라붙음(#grabfx) */
+#hurtfx{position:fixed;inset:0;z-index:4;pointer-events:none;opacity:0;transition:opacity .6s;background:radial-gradient(circle at 50% 50%,rgba(0,0,0,0) 40%,rgba(120,0,0,.5) 75%,rgba(70,0,0,.92) 100%)}
+#crouch{display:none;right:calc(var(--pad) + 130px);bottom:calc(var(--pad) + 250px)} #crouch.on{display:flex} #crouch.on.on2{background:rgba(159,216,255,.25)}
+#hidefx{position:fixed;inset:0;z-index:5;pointer-events:none;opacity:0;transition:opacity .5s}
+#hidefx.on{opacity:1} #hidefx.locker{background:radial-gradient(ellipse at 50% 50%,rgba(0,0,0,0) 30%,rgba(0,0,0,.85) 80%)}
+#hidefx.bed{background:linear-gradient(rgba(0,0,0,.95) 0,rgba(0,0,0,.75) 26%,rgba(0,0,0,0) 44%,rgba(0,0,0,0) 86%,rgba(0,0,0,.7) 100%)}
+#hidefx p{position:absolute;left:50%;bottom:calc(var(--pad) + 150px);transform:translateX(-50%);font:500 14px var(--mono);letter-spacing:.14em;color:var(--mute);white-space:nowrap}
+#breath{display:none;left:calc(var(--pad) + 30px);right:auto;bottom:calc(var(--pad) + 140px);border-color:#6dffb0;color:#6dffb0} #breath.on{display:flex} #breath.held{background:rgba(109,255,176,.25)}
+#breathbar{position:fixed;left:50%;bottom:calc(var(--pad) + 120px);transform:translateX(-50%);width:220px;height:6px;background:rgba(109,255,176,.15);z-index:9;display:none} #breathbar.on{display:block} #breathbar i{display:block;height:100%;background:#6dffb0}
+#grabfx{position:fixed;inset:0;z-index:8;pointer-events:none;opacity:0;background:radial-gradient(circle at 50% 50%,rgba(60,0,0,0) 20%,rgba(90,0,0,.7) 70%)}
+#grabfx.on{opacity:1;animation:grabpulse .25s infinite alternate} @keyframes grabpulse{to{opacity:.6}}
+#grabfx p{position:absolute;left:50%;top:62%;transform:translateX(-50%);font:600 22px var(--sans);color:#fff;text-shadow:0 0 10px #000;white-space:nowrap}
+#reticle.hit i{background:#ff5a36!important;box-shadow:0 0 6px #ff5a36} #reticle.kill{transform:scale(1.6)} #reticle.kill i{background:#ff2a14!important}

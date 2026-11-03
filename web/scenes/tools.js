@@ -82,7 +82,7 @@ const STORY={
 const FXEL=id=>{ let e=document.getElementById(id); if(!e){ e=document.createElement('div'); e.id=id; document.body.appendChild(e); } return e; };
 const STING=(v=1)=>{ AUDIO.noise(.8,.7*v,0,4200); AUDIO.tone(1500,.75,'sawtooth',.13*v,0,-1250); AUDIO.tone(52,1.1,'square',.12*v); AUDIO.tone(2300,.3,'square',.05*v,.05,-800); };
 const SCREAM=(v=1)=>{ AUDIO.tone(620,1.1,'sawtooth',.07*v,0,380); AUDIO.tone(880,.9,'triangle',.05*v,.1,-300); AUDIO.noise(1,.15*v,0,1800); };
-const GROWL=(v=.06)=>{ AUDIO.tone(70+Math.random()*30,1.6,'sawtooth',v,0,-30); AUDIO.noise(1.2,v*.8,0,260); };
+const GROWL=(v=.06,at)=>SFX.play('beast_growl',{vol:Math.min(1,v*10),at});
 const THUD=(v=.18)=>AUDIO.noise(.25,v,0,180);
 const SQUELCH=(v=.2)=>{ AUDIO.noise(.35,v,0,700); AUDIO.tone(90,.3,'sine',v*.4,0,-40); };
 const FX={
@@ -120,7 +120,7 @@ const ME={hp:3,max:3,crouch:false,dead:false,onDeath:null,
   heal(){ this.hp=this.max; this.dead=false; this.show(); },
   show(){ const e=FXEL('hurtfx'); e.style.opacity=[.85,.55,.25,0][this.hp]||0; },
   // 웅크리기 : 눈높이 · 속도를 낮춘다 (가구 뒤에 숨으면 성체가 못 본다)
-  setCrouch(on){ if(this.crouch===on) return; this.crouch=on; P.eye=on?1.0:1.66; P.speed=on?1.1:2.2; const b=$('#crouch'); if(b) b.classList.toggle('on',on); },
+  setCrouch(on){ if(this.crouch===on) return; this.crouch=on; P.eye=on?1.0:1.66; P.speed=on?1.1:2.2; const b=$('#crouch'); if(b) b.classList.toggle('on2',on); },
 };
 addEventListener('keydown',e=>{ if(e.code==='KeyC'&&!e.repeat&&S.phase==='play'&&P.free) ME.setCrouch(!ME.crouch); });
 
@@ -141,8 +141,10 @@ const GUN={held:null,kick:0,cool:0,targets:[],
     if(!this.fk){ this.fk=true; addEventListener('keydown',e=>{ if(e.code==='KeyF'&&!e.repeat) GUN.shoot(); }); } },
   drop(){ if(this.held){ camera.remove(this.held); this.held=null; } ['#fire','#crouch'].forEach(s=>{ const b=$(s); if(b) b.classList.remove('on'); }); },
   // 쏘기 : 화면 가운데로 · 가장 가까운 과녁 (과녁 = {center():Vector3, r, hit(), alive()})
-  shoot(){ if(!this.held||S.phase!=='play'||TALK.on||this.cool>0) return; this.cool=.32; this.kick=1;
-    AUDIO.noise(.12,.35,0,5200,'highpass'); AUDIO.tone(1800,.18,'sawtooth',.06,0,-1500); AUDIO.tone(120,.2,'sine',.08,0,-60);
+  // 맞힌 표시 : 조준점이 잠깐 빨갛게 (죽이면 더 크게)
+  marker(kill){ const r=$('#reticle'); r.classList.remove('hit','kill'); void r.offsetWidth; r.classList.add(kill?'kill':'hit'); setTimeout(()=>r.classList.remove('hit','kill'),kill?420:180); },
+  shoot(){ if(LARVA.grab){ LARVA.struggle(); return; } if(!this.held||S.phase!=='play'||TALK.on||this.cool>0||HIDE.in) return; this.cool=.32; this.kick=1;
+    SFX.play('shot');
     const o=camera.getWorldPosition(new THREE.Vector3()), d=camera.getWorldDirection(new THREE.Vector3());
     let hit=null, best=40;
     for(const t of this.targets){ if(t.alive&&!t.alive()) continue; const c=t.center(), k=c.clone().sub(o).dot(d); if(k<0||k>best) continue;
@@ -159,3 +161,6 @@ const GUN={held:null,kick:0,cool:0,targets:[],
 };
 // 두 점 사이를 벽 · 가구가 막지 않나 (몸 충돌 칸으로)
 function clearShot(a,b,step=.3){ const d=b.clone().sub(a), L=d.length(); d.normalize(); for(let k=.6;k<L-.5;k+=step){ const p=a.clone().addScaledVector(d,k); if(SOLID.hit(p.x,p.z,p.y-.04,p.y+.04,.03)) return false; } return true; }
+// 얼굴에 달라붙었을 때 : 화면 · E 연타도 떼어 내기
+addEventListener('pointerdown',()=>{ if(LARVA.grab) LARVA.struggle(); },{capture:true});
+addEventListener('keydown',e=>{ if(LARVA.grab&&(e.code==='KeyE'||e.code==='Space')&&!e.repeat) LARVA.struggle(); });

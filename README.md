@@ -10,7 +10,8 @@ NASA 긴급 브리핑(프롤로그)에서 시작해, 크리스는 혼자 1인 �
 
 ## 조작
 - 디벗: 왼쪽 끌기 이동 · 오른쪽 끌기 둘러보기 · [사격] · [웅크림] · [달리기] · 물건을 눌러 조사
-- PC: W A S D 이동 · 마우스 끌기 · F 사격 · C 웅크리기 · Shift 달리기 · E 조사 · Space 대사 넘기기
+- PC: W A S D 이동 · 마우스 끌기 · F 사격 · C 웅크리기 · Shift 달리기 · E 조사(옷장 · 침대에 숨기 / 나오기) · Space 대사 넘기기 · 숨어 있을 때 숨 참기
+- 구조정 : W/S 전진 · 후진 · A/D 좌우 · R/F 위아래 · 끌기(방향키) 기수 · Q/E 롤 · X 감속 (디벗은 화면 단추)
 
 ## 폴더 (이 폴더 = GitHub 저장소 Mayday, OneDrive 에도 그대로)
 ```
@@ -79,6 +80,8 @@ Blender 의 `fog_volume`(안개 부피 상자)은 웹에서 회색 벽이 되므
 - 우주선: [Sci-fi corridor](https://sketchfab.com/3d-models/sci-fi-corridor-5e6240c9b30145b0bf81fd02287985e3) by 3dhdscan · [Stasis / Clone Chamber](https://sketchfab.com/3d-models/stasis-clone-chamber-with-animations-8738f78ae4ec4630ac35a4783303ea95) by TampaJoey — CC BY 4.0
 - **애벌레**: [Lurker - Rigged and Animated](https://sketchfab.com/3d-models/28b3e1a216904de7ad212368fb9d8f59) by HighPolyDensity → `web/assets/larva.glb` · **성체**: [Nightmare Creature 1#](https://sketchfab.com/3d-models/9fb509d207d744babeb5d87a486f7de1) by Mr.Prizz → `beast.glb` — CC BY 4.0
 - **시신**: [Dead Hazmat Female](https://sketchfab.com/3d-models/2e879c914d6b4e15a05f8496977854fd) by OHR3D · [Low Poly Dead Body Covered](https://sketchfab.com/3d-models/1e6ae13f6c2e46429eaca4d22d8bdbaa) by -Arthur- · [Corpse](https://sketchfab.com/3d-models/be9b034525c246cebab3620acb5a8027) by Tamal De Quezo → `corpse_a/b/c.glb` · **구조정 조종석**: [Spacefighter Cockpit (Wasp Interdictor)](https://sketchfab.com/3d-models/db4aa67fe1164ec088083d7dac2d273f) by Comrade1280 → `cockpit.glb` — CC BY 4.0
+- **소리**: 목소리 · 배경 음악 · 효과음 — ElevenLabs 로 생성 (`web/audio/` · 원본 `assets/elevenlabs/`)
+- 옷장: [Locker Equipment](https://sketchfab.com/3d-models/fae22ece4d764979aafd614ebe09956d) by Siberia (문을 Blender 에서 경첩 축으로 나눔 → `web/assets/locker.glb`) · 침대: [Hospital Bed](https://sketchfab.com/3d-models/f8c13a19e84343e7b644c19f7b9488d3) by loxfear → `bed.glb` — CC BY 4.0
 - 회의실: [Meeting room](https://sketchfab.com/3d-models/meeting-room-3fd65e8b05da4b9a94d287ae3f676fd1) by Titank · 인물: Renderpeople [Eric](https://sketchfab.com/3d-models/eric-rigged-001-rigged-3d-business-man-a46bc9f67aaa415bb4f3241eef900e7f) · [Carla](https://sketchfab.com/3d-models/carla-rigged-001-rigged-3d-business-women-acf520f450d14dd799f98a6fede3edf5) · [Claudia](https://sketchfab.com/3d-models/claudia-rigged-002-3d-rigged-business-women-c659bd0accab47c6bbe390cf822a2b92) · [Security Guard](https://sketchfab.com/3d-models/security-guard-rigged-3d-model-1e3307732bbf4453b30f021bfec5bcaf) by Q.SARDOR — CC BY 4.0 · 마야 · 서준 · 다니엘 : Tripo Studio 로 직접 생성 + Adobe Mixamo 동작
 - 권총(내 손): [Sci-fi Pistol Game-Ready](https://sketchfab.com/3d-models/sci-fi-pistol-game-ready-1613f084d05d461ca9dd87dde66cdb3b) by Ali haghshenas — CC BY 4.0 → `web/assets/gun.glb`
 - 공포 소품(천장 환기구 · 피 · 할퀸 자국 · 손전등): Blender 로 직접 제작 — `tools/build_horror.py` → `blender/21_공포소품.blend` · `web/assets/horror.glb` (피 그림은 `blender/tex_story/`)

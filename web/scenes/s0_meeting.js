@@ -36,7 +36,7 @@ SCENES.meeting={title:'프롤로그 · 브리핑룸', async enter(){
   // 크리스의 자리 : 왼쪽 줄 두 번째 의자 — 앉은 눈높이
   const seat=L(1); warp(seat.x-.12,seat.z,0); P.eye=1.18; P.yaw=yawTo(-.43,-4.75)*.6+(-Math.PI/2)*.4; P.pitch=.06;
   stamp('NASA JSC · 브리핑룸 B','2091.03.14  21:38');
-  AUDIO.hum(.6,60); await fade(false,1400);
+  AUDIO.hum(.3,60); MUSIC.play('brief'); await fade(false,1400);
   await card('PROLOGUE','2091년 3월 14일','휴스턴 · NASA 존슨 우주 센터',3000);
   S.phase='play'; P.free=false; P.look=true;       // 앉아 있는 동안 : 둘러보기만
   goal('회의 · 화면을 보며 듣는다');

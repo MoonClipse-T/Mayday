@@ -12,8 +12,8 @@ const SHIP={OX:{bridge:0,deck:14,cryo:27,lab:39,lobby:20.5,engine:63.3}, OZ:{lob
   HALL:{z1:8.9,z2:12.18,x1:-3.3,x2:55.3,h:2.6}, DOORZ:8.7, rooms:{}, doors:{}, lock:{}, zone:null, dim:1,      // dim : 어둠 (전력이 죽은 1호)
   NAME:{bridge:'함교',deck:'식당 · 의무실',cryo:'동면 구역 C',lab:'연구실',airlock:'에어록',lobby:'라운지 · 전망대',engine:'기관실',hall:'중앙 복도'},
   EXPO:{bridge:.85,deck:.85,cryo:.62,lab:.95,airlock:.7,lobby:1.0,engine:1.05,hall:.8},
-  // 하늘 : 웜홀 건너편 (NGC 3500) — 웜홀은 뒤쪽에 작게 · 푸른 행성(생명 가능 지대) 곁
-  sky(){ return {dir:[0,.02,1],R:.07,srot:2.4,jupiter:true,ptex:'earth_day.jpg',jdir:[.2,-.8,.35],jsize:1.1,sunDir:[-.5,.45,-.7]}; },
+  // 하늘 : 웜홀 건너편 (NGC 3500) — 웜홀은 뒤쪽에 작게
+  sky(){ return {dir:[0,.02,1],R:.07,srot:2.4,jupiter:false,sunDir:[-.5,.45,-.7]}; },      // 웜홀 건너편 : 행성은 없다 (별과 웜홀뿐)
   when(){ return S.flags.power?'원자로 재가동 · 영하 4도':'전력 없음 · 영하 12도'; },
   zoneAt(x,z){ if(x>55.3) return 'engine'; if(z>12.3) return 'lobby'; if(z>this.HALL.z1-.05) return 'hall';
     return x<7?'bridge':x<21?'deck':x<31.6?'cryo':x<47?'lab':'airlock'; },
