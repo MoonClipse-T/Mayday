@@ -1,10 +1,10 @@
 # MAYDAY — 별과 우주 방탈출
 
 1인칭 3D 공포 방탈출 (three.js r128 · 디벗 터치 / 키보드). 과학2 Ⅷ. 별과 우주.
-크리스는 혼자 1인 구조정을 타고 웜홀 너머 하위헌스 1호를 찾아간다. 1호는 이미 전멸했고, 시신마다 애벌레가 들어 있다. 총으로 애벌레를 없애고, 성체를 피해 숨고 도망치며, 1호를 몰고 웜홀로 돌아와야 한다. (4판 · 2026-11-03 — 동료 · 장 구분 · 문제는 뺐다. 문제는 나중에 하나씩 끼운다)
+NASA 긴급 브리핑(프롤로그)에서 시작해, 크리스는 혼자 1인 구조정을 타고 웜홀 너머 하위헌스 1호를 찾아간다. 1호는 이미 전멸했고, 시신마다 애벌레가 들어 있다. 총으로 애벌레를 없애고, 성체를 피해 숨고 도망치며, 1호를 몰고 웜홀로 돌아와야 한다. (4판 · 2026-11-03 — 동료 · 장 구분 · 문제는 뺐다. 문제는 나중에 하나씩 끼운다)
 
 - 게임: https://moonclipse-t.github.io/Mayday/ (고치는 중엔 `&dev` 를 붙이면 캐시 없이 받는다)
-- 제작용 바로 가기 `?s=` : `cockpit`(처음 · 구조정) · `board`(1호 에어록) · `survivor`(생존자) · `hunt`(애벌레 사냥) · `engine`(기관실 · 성체) · `bridge`(함교 · 출발)
+- 제작용 바로 가기 `?s=` : `meeting`(처음 · 브리핑) · `cockpit`(구조정) · `board`(1호 에어록) · `survivor`(생존자) · `hunt`(애벌레 사냥) · `engine`(기관실 · 성체) · `bridge`(함교 · 출발)
 - 이야기 · 흐름: [STORY.md](STORY.md)
 - 아직 별과 우주 아카이브에는 넣지 않았다 (다 만든 뒤에 넣는다).
 
@@ -18,7 +18,9 @@ index.html            게임 화면 틀 (바이저 HUD · 교신 자막 · 장 �
 web/
   engine.js           엔진 : 이동 · 충돌 · 조사 · 교신 자막 TALK · 장 카드 · LEVEL(맵) · SOLID(몸 충돌 칸)
   people.js           실사 인물 (생존자 레아) : 뼈로 자세 · 숨쉬기 · 턱
-  sky.js              창밖 : 실제 별지도 + 웜홀 렌즈 + 행성
+  sky.js              창밖 : 밤 도시 / 실제 별지도 + 웜홀 렌즈 + 행성 · WH(회의실 화면용 웜홀)
+  screens.js          회의실 대형 화면 (실시간 관제 대시보드 · 구조 계획)
+  scenes/s0_meeting.js  프롤로그 · NASA 브리핑룸 (앉아서 듣는 브리핑 → 넉 달 뒤 구조정)
   creatures.js        애벌레(LARVA) · 성체(BEAST : 보고 · 듣고 · 쫓고 · 찾기) · 길 찾기(문 둘) · 가구 비켜 돌기
   scenes/tools.js     이야기 도구 : 소품 · 손전등 · 목표 표지 · 문제 화면(나중에) · 공포 연출 · 피 · 권총 · 체력 · 웅크리기
   scenes/ship.js      1호 = 하나의 건물 : 중앙 복도(59 m) 북쪽에 함교 · 식당 · 동면 C · 연구실 · 에어록, 남쪽에 라운지, 동쪽 끝에 기관실
@@ -77,6 +79,7 @@ Blender 의 `fog_volume`(안개 부피 상자)은 웹에서 회색 벽이 되므
 - 우주선: [Sci-fi corridor](https://sketchfab.com/3d-models/sci-fi-corridor-5e6240c9b30145b0bf81fd02287985e3) by 3dhdscan · [Stasis / Clone Chamber](https://sketchfab.com/3d-models/stasis-clone-chamber-with-animations-8738f78ae4ec4630ac35a4783303ea95) by TampaJoey — CC BY 4.0
 - **애벌레**: [Lurker - Rigged and Animated](https://sketchfab.com/3d-models/28b3e1a216904de7ad212368fb9d8f59) by HighPolyDensity → `web/assets/larva.glb` · **성체**: [Nightmare Creature 1#](https://sketchfab.com/3d-models/9fb509d207d744babeb5d87a486f7de1) by Mr.Prizz → `beast.glb` — CC BY 4.0
 - **시신**: [Dead Hazmat Female](https://sketchfab.com/3d-models/2e879c914d6b4e15a05f8496977854fd) by OHR3D · [Low Poly Dead Body Covered](https://sketchfab.com/3d-models/1e6ae13f6c2e46429eaca4d22d8bdbaa) by -Arthur- · [Corpse](https://sketchfab.com/3d-models/be9b034525c246cebab3620acb5a8027) by Tamal De Quezo → `corpse_a/b/c.glb` · **구조정 조종석**: [Spacefighter Cockpit (Wasp Interdictor)](https://sketchfab.com/3d-models/db4aa67fe1164ec088083d7dac2d273f) by Comrade1280 → `cockpit.glb` — CC BY 4.0
+- 회의실: [Meeting room](https://sketchfab.com/3d-models/meeting-room-3fd65e8b05da4b9a94d287ae3f676fd1) by Titank · 인물: Renderpeople [Eric](https://sketchfab.com/3d-models/eric-rigged-001-rigged-3d-business-man-a46bc9f67aaa415bb4f3241eef900e7f) · [Carla](https://sketchfab.com/3d-models/carla-rigged-001-rigged-3d-business-women-acf520f450d14dd799f98a6fede3edf5) · [Claudia](https://sketchfab.com/3d-models/claudia-rigged-002-3d-rigged-business-women-c659bd0accab47c6bbe390cf822a2b92) · [Security Guard](https://sketchfab.com/3d-models/security-guard-rigged-3d-model-1e3307732bbf4453b30f021bfec5bcaf) by Q.SARDOR — CC BY 4.0 · 마야 · 서준 · 다니엘 : Tripo Studio 로 직접 생성 + Adobe Mixamo 동작
 - 권총(내 손): [Sci-fi Pistol Game-Ready](https://sketchfab.com/3d-models/sci-fi-pistol-game-ready-1613f084d05d461ca9dd87dde66cdb3b) by Ali haghshenas — CC BY 4.0 → `web/assets/gun.glb`
 - 공포 소품(천장 환기구 · 피 · 할퀸 자국 · 손전등): Blender 로 직접 제작 — `tools/build_horror.py` → `blender/21_공포소품.blend` · `web/assets/horror.glb` (피 그림은 `blender/tex_story/`)
 - 생존자 레아: Renderpeople [Sophia](https://sketchfab.com/3d-models/sophia-animated-003-animated-3d-woman-dc448c3be0e74f96a55fb475a13433cf) — CC BY 4.0
@@ -86,5 +89,5 @@ Blender 의 `fog_volume`(안개 부피 상자)은 웹에서 회색 벽이 되므
 - 연구실: [Sci-fi lab](https://sketchfab.com/3d-models/sci-fi-lab-a676e149e343403bb5e57686f3d31da5) by Agata Wilczek · [Sci-Fi Microscope](https://sketchfab.com/3d-models/sci-fi-microscope-ab7e120d948a468da31f9a410d205000) by Tomek Suchodolski · [Sci-fi Lab Cell](https://sketchfab.com/3d-models/sci-fi-lab-cell-0bd8e745f008419ca7097395ad697d16) by LxNazarov — CC BY 4.0 · [An optical spectrometer](https://sketchfab.com/3d-models/an-optical-spectrometer-1cb673f9f1044907a6261e4bb8a63464) by Virtual Museums of Małopolska — CC0
 - 기관실: [Large Fission/Fusion Hybrid Reactor](https://sketchfab.com/3d-models/large-fissionfusion-hybrid-reactor-c331666c133042c1a73c438857ce0149) by Lynxon — CC BY 4.0
 - 라운지: Poly Haven 모델 · 재질 (소파 · 바 의자 · 붐박스 · 화분 · 나무 바닥 · 가죽 · 천, CC0)
-- 재질: Poly Haven (CC0) · 별지도: NASA/Goddard SVS Deep Star Maps 2020 · 목성 지도: Solar System Scope (CC BY 4.0) · 사진: NASA 아폴로 17호, NASA/ESA 허블(목성)
+- 재질 · 밤 도시: Poly Haven (CC0) · 별지도: NASA/Goddard SVS Deep Star Maps 2020 · 목성 지도: Solar System Scope (CC BY 4.0) · 사진: NASA 아폴로 17호, NASA/ESA 허블(목성)
 - 엔진 기법: 루나랜드(같은 선생님 프로젝트)의 충돌 · 조사 · 태블릿 GPU 안전장치 · 배경 합치기 · three.js r128 (MIT)

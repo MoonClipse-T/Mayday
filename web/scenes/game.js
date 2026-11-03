@@ -1,5 +1,6 @@
 /* ============================================================
    MAYDAY 4판 — 한 흐름 (장 · 화면 전환 없음 · STORY.md)
+   ⓪ NASA 브리핑룸 (scenes/s0_meeting.js · 구조 계획) → 넉 달 뒤
    ① 구조정 조종석 : 웜홀 건너편 · Mayday 녹음 · 불 꺼진 1호 · 연료는 편도분 → 도킹 (화면 전환은 여기 한 번 — 해치를 지나 1호로)
    ② 1호 : 암흑 · 손전등 · 찢긴 시신 · 피 → ③ 동면 구역 C 의 생존자 레아 → 가슴에서 애벌레 → 첫 사격
    ④ 애벌레 사냥 (시신마다 하나) → ⑤ 기관실 원자로 재가동 · 시신을 먹던 성체 → 숨고 · 도망쳐 ⑥ 함교 → 1호를 몰고 웜홀로 (다음 이야기 : 사용자 지시 대기)
@@ -11,9 +12,10 @@ const VG=t=>({who:'VEGA',ch:'무전 · 구조정',kind:'vega',t}), I=t=>({kind:'
 const BODIES=[[22,10.6,'b',1.57],[45,9.7,'c',.3],[33,11.8,'a',Math.PI],[16.6,-3.2,'b',1],[29.4,5.2,'c',0],[41,3.6,'b',.5],[9,9.3,'a',0],[2,-1.2,'b',.8],[24,21,'c',2]];
 
 const GAME={cp:null,
-  stages:['cockpit','board','survivor','hunt','engine','bridge'],
+  stages:['meeting','cockpit','board','survivor','hunt','engine','bridge'],
   // 바로 가기 · 처음부터
   async jump(key){ const f=S.flags; S.phase='cut'; P.free=false;
+    if(key==='meeting') return SCENES.meeting.enter();
     if(key==='cockpit') return this.cockpit();
     await this.ship();
     if(key==='board') return this.board();
@@ -25,7 +27,7 @@ const GAME={cp:null,
     f.power=true; ROOMS.power(); warp(54,10.5,Math.PI/2); return this.escape(); },
 
   /* ---- ① 구조정 ---- */
-  async cockpit(){ S.phase='cut'; P.free=false; LEVEL.clear(); goal(''); stamp('구조정 R-1 · 조종석','웜홀 통과 +00:04');
+  async cockpit(){ S.phase='cut'; P.free=false; LEVEL.clear(); goal(''); stamp('구조정 R-1 · 조종석','2091.07 · 웜홀 통과 +00:04');
     const [ck,h1]=await Promise.all([loadGLB('cockpit'),loadGLB('ship_ext')]); WORLD.add(ck); ck.position.y=-1.74;
     ck.traverse(o=>{ if(o.isMesh&&/glass/i.test(o.material.name)){ o.material.transparent=true; o.material.opacity=.12; o.material.depthWrite=false; } });
     await SKY.space({...SHIP.sky(),dir:[.1,.08,-1],R:.1});      // 막 지나온 웜홀은 등 뒤
@@ -36,16 +38,16 @@ const GAME={cp:null,
     let far=1; TICK.push(dt=>{ far=Math.max(0,far-dt/70); h1.position.set(18*far-6,-6+2*far,60+520*far); h1.rotation.y+=dt*.004; });
     P.x=0; P.z=-1.22; P.y=0; P.eye=1.02; P.yaw=Math.PI; P.pitch=-.04; P.look=true;      // 조종석은 +z 를 본다
     await fade(false,2400);
-    await card('웜홀 건너편 · NGC 3500','MAYDAY','하위헌스 1호 마지막 수신으로부터 312일',3600);
-    await TALK.say([VG('웜홀 통과 완료. 선체 이상 없음. 크리스, 들립니까?'),I('…들린다. 살아 있군.'),
+    await card('웜홀 건너편 · NGC 3500','MAYDAY','지구를 떠난 지 넉 달 · 1호가 끊긴 지 열한 달',3600);
+    await TALK.say([VG('동면 해제 완료. 웜홀 통과 완료. 선체 이상 없음. 크리스, 들립니까?'),I('…들린다. 넉 달 잤는데 어제 회의실에 있던 것 같군.'),
       VG('하위헌스 1호의 마지막 녹음을 다시 재생합니다.')]);
     AUDIO.radio(5); await TALK.say([RADIO('…여기는 하위헌스 1호… 대원 열두 명 중… 우리는 지금…'),RADIO('Mayday, Mayday, we are—')]);
     await TALK.say([I('…312일 동안 자료를 보내던 배가, 이 한 마디로 끝났다.'),VG('1호 위치 확인. 앞쪽 1.2 km. 불빛 없음. 열 반응 없음. 생명 신호… 하나.'),
-      I('하나.'),VG('다시 알려 드립니다. 이 구조정의 연료는 편도분입니다. 지구로 돌아가려면 1호의 원자로와 연료가 필요합니다.'),
-      I('그러니까 1호를 깨워서, 1호를 몰고 돌아간다.'),VG('네. 도킹 장치 정렬 중입니다.')]);
+      I('하나. …엘레나가 말한 레아 문일까.'),VG('다시 알려 드립니다. 이 구조정의 연료는 편도분입니다. 지구로 돌아가려면 1호의 원자로와 연료가 필요합니다.'),
+      I('계획대로다. 1호를 깨워서, 1호를 몰고 돌아간다.'),VG('네. 도킹 장치 정렬 중입니다.')]);
     while(far>.02) await sleep(200);
     AUDIO.noise(1.2,.35,0,300); THUD(.6); FX.shake(.7,.05); await sleep(900);
-    await TALK.say([VG('도킹 완료. 1호 에어록 바깥 해치와 연결되었습니다. 안쪽 기압 정상, 온도 영하 12도.'),VG('권총을 챙기십시오, 크리스.'),I('…구조하러 왔는데, 총이라.')]);
+    await TALK.say([VG('도킹 완료. 1호 에어록 바깥 해치와 연결되었습니다. 안쪽 기압 정상, 온도 영하 12도.'),VG('그레이 국장의 지시를 다시 알려 드립니다 — 권총을 챙기십시오.'),I('…18 헤르츠. 그 소리가 뭔지 이제 알게 되겠군.')]);
     // 일어나 해치로 : 화면 전환은 여기 한 번
     P.look=false; await camTo({z:-1.9,eye:1.3,pitch:.15},1.4); AUDIO.noise(1.4,.25,0,1500); await fade(true,1200);
     await this.ship(); return this.board(); },
@@ -93,7 +95,7 @@ const GAME={cp:null,
     await new Promise(res=>PEOPLE.talkable(le,()=>{ if(f.leahFound) return; f.leahFound=true; res(); }));
     this.save(27,6.8,0);
     S.phase='cut'; P.free=false; ME.setCrouch(false); await camTo({x:lx+.9,z:lz-.6,yaw:yawTo(lx,lz-1.3),pitch:-.75,eye:1.55},1); P.look=true;
-    await TALK.say([I('…레아 문? 1호 생물학자, 레아 문.'),LE('…누구…'),I('구조하러 왔어요. 크리스. 혼자예요.'),LE('…혼자… 다행이다… 다른 사람은 데려오지 마…'),
+    await TALK.say([I('…레아 문? 1호 생물학자, 레아 문.'),LE('…누구…'),I('구조하러 왔어요. NASA, 크리스. 혼자예요.'),LE('…혼자… 다행이다… 다른 사람은 데려오지 마…'),
       I('무슨 일이 있었던 거예요. 다른 대원들은?'),LE('…그게 우리를 먹었어. 하나씩. 그리고… 먹다 남긴 몸마다… 알을…'),LE('…나도야. 느껴져. 안에서— 아, 아아—')]);
     const larva=await this.birth(le); P.look=false;
     // 첫 사격 : 덮쳐 오는 애벌레
