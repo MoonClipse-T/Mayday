@@ -63,7 +63,7 @@ const STORY={
     p.bd.querySelector('.go').onclick=()=>{ const v=+r.value; if(ok(v)){ p.ok('맞아요'); live=false; setTimeout(()=>{ p.close(); res(v); },1400); } else p.no(hint(v)); }; }); },
   // 바늘이 초록 칸에 올 때 누르기 n 번 (Space · E)
   qte(hd,label,n=3){ return new Promise(res=>{ const p=this.panel(hd), W=1000, H=110;
-    p.bd.innerHTML=`<p class="q">${label} — 바늘이 <b>초록 칸</b>에 들어오면 누르기 <span class="cnt"></span></p><canvas width="${W}" height="${H}"></canvas><div class="row"><button class="go">누르기 (Space)</button></div>`;
+    p.bd.innerHTML=`<p class="q">${label} — 바늘이 <b>초록 칸</b>에 들어오면 누르기 <span class="cnt"></span></p><canvas width="${W}" height="${H}"></canvas><div class="row"><button class="go">${byDevice('누르기 (Space)','누르기')}</button></div>`;
     const cv=p.bd.querySelector('canvas'), g=cv.getContext('2d'), cnt=p.bd.querySelector('.cnt'); let k=0, t=0, z0=0, zw=0, live=true, cool=0;
     const zone=()=>{ zw=.16-k*.025; z0=.15+Math.random()*(.7-zw); }; zone(); STORY._qte=()=>{ z0=0; zw=1; };
     const pos=()=>.5+.5*Math.sin(t*(2.4+k*.6));
@@ -79,6 +79,8 @@ const STORY={
 };
 
 /* ---- 공포 : 화면 · 소리 ---- */
+// 조작 글 : 키보드 / 터치 (디벗)
+const byDevice=(kb,touch)=>IS_TOUCH?touch:kb;
 const FXEL=id=>{ let e=document.getElementById(id); if(!e){ e=document.createElement('div'); e.id=id; document.body.appendChild(e); } return e; };
 const STING=(v=1)=>{ AUDIO.noise(.8,.7*v,0,4200); AUDIO.tone(1500,.75,'sawtooth',.13*v,0,-1250); AUDIO.tone(52,1.1,'square',.12*v); AUDIO.tone(2300,.3,'square',.05*v,.05,-800); };
 const SCREAM=(v=1)=>{ AUDIO.tone(620,1.1,'sawtooth',.07*v,0,380); AUDIO.tone(880,.9,'triangle',.05*v,.1,-300); AUDIO.noise(1,.15*v,0,1800); };
@@ -99,17 +101,58 @@ const BLOOD={
   tex(){ return this._t||(this._t=(()=>{ const c=document.createElement('canvas'); c.width=c.height=32; const g=c.getContext('2d'), r=g.createRadialGradient(16,16,0,16,16,16); r.addColorStop(0,'rgba(120,8,6,1)'); r.addColorStop(.6,'rgba(90,4,3,.9)'); r.addColorStop(1,'rgba(60,0,0,0)'); g.fillStyle=r; g.fillRect(0,0,32,32); return new THREE.CanvasTexture(c); })()); },
   // 바닥 피 웅덩이 (얼룩진 가장자리 · 손전등에 젖은 빛)
   poolMat(){ return this._pm||(this._pm=(()=>{ const c=document.createElement('canvas'); c.width=c.height=256; const g=c.getContext('2d');
-      for(let i=0;i<70;i++){ const x=128+(Math.random()-.5)*150*Math.random(), y=128+(Math.random()-.5)*150*Math.random(), r=10+Math.random()*48, gr=g.createRadialGradient(x,y,0,x,y,r);
-        gr.addColorStop(0,'rgba(70,2,2,.95)'); gr.addColorStop(.7,'rgba(55,1,1,.8)'); gr.addColorStop(1,'rgba(40,0,0,0)'); g.fillStyle=gr; g.beginPath(); g.arc(x,y,r,0,7); g.fill(); }
+      g.fillStyle='rgb(44,2,2)'; const blob=(x,y,rx,ry,a)=>{ g.beginPath(); g.ellipse(x,y,rx,ry,a,0,7); g.fill(); };
+      for(let i=0;i<150;i++){ const a=Math.random()*6.28, d=Math.pow(Math.random(),.8)*74, r=(3+Math.random()*20)*(1-d/105); blob(128+Math.cos(a)*d,128+Math.sin(a)*d,r,r*(.55+Math.random()*.45),a); }      // 웅덩이 : 작은 덩이를 겹쳐 가장자리가 들쭉날쭉
+      for(let i=0;i<46;i++){ const a=Math.random()*6.28, d=66+Math.random()*50, l=.5+Math.random()*3.6; blob(128+Math.cos(a)*d,128+Math.sin(a)*d,l,l*.32,a); }      // 튄 자국 : 바깥쪽으로 길쭉하게
       const t=new THREE.CanvasTexture(c); t.encoding=THREE.sRGBEncoding;
-      return new THREE.MeshStandardMaterial({map:t,transparent:true,depthWrite:false,roughness:.15,metalness:.1,emissive:new THREE.Color(.25,.01,.01),emissiveMap:t,polygonOffset:true,polygonOffsetFactor:-4}); })()); },
-  pool(x,z,s=1.6,y=0){ const m=new THREE.Mesh(new THREE.PlaneGeometry(s,s),this.poolMat()); m.rotation.set(-Math.PI/2,0,Math.random()*6); m.position.set(x,y+.012,z); m.renderOrder=2; WORLD.add(m); return m; },
+      return new THREE.MeshStandardMaterial({map:t,transparent:true,depthWrite:false,roughness:.34,metalness:0,emissive:new THREE.Color(.08,.003,.003),emissiveMap:t}); })()); },
+  pool(x,z,s=1.6,y=0){ const m=new THREE.Mesh(new THREE.PlaneGeometry(s,s),this.poolMat()); m.rotation.set(-Math.PI/2,0,Math.random()*6); m.position.set(x,y+.036,z); m.renderOrder=2; WORLD.add(m); return m; },      // 복도 바닥 면이 3 cm 높다 — 그 위로
   // 핏방울이 튄다 (p 에서 n 개 · 속도 spd)
   spray(p,n,spd,col){ const tex=this.tex(); for(let k=0;k<n;k++){ const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,depthWrite:false,color:col||0xffffff})); sp.scale.setScalar(.03+Math.random()*.06); sp.position.copy(p); WORLD.add(sp);
     const v=new THREE.Vector3(Math.random()-.5,Math.random()*.9+.2,Math.random()-.5).multiplyScalar(spd); let t=0; const fn=dt=>{ t+=dt; sp.position.addScaledVector(v,dt); v.y-=dt*7; if(sp.position.y<.02){ v.set(0,0,0); sp.position.y=.02; } if(t>1.4){ WORLD.remove(sp); TICK.splice(TICK.indexOf(fn),1); } }; TICK.push(fn); } },
+  // 끌린 자국 : (x,z) 에서 ang 쪽으로 len m — 길게 번진 핏줄기가 끝으로 갈수록 옅어진다 (몸은 x,z 에 있다)
+  trail(x,z,ang,len=3,w=.6){ if(!this._tr) this._tr=[0,1].map(()=>{ const c=document.createElement('canvas'); c.width=128; c.height=512; const g=c.getContext('2d');
+        for(let i=0;i<46;i++){ const px=20+Math.random()*88, y0=Math.random()*150, y1=y0+90+Math.random()*(400-y0), wd=2+Math.random()*13, gr=g.createLinearGradient(0,y0,0,y1), a=.5+Math.random()*.4; gr.addColorStop(0,`rgba(62,2,2,${a})`); gr.addColorStop(.75,`rgba(52,1,1,${a*.55})`); gr.addColorStop(1,'rgba(40,0,0,0)');
+          g.strokeStyle=gr; g.lineWidth=wd; g.lineCap='round'; g.beginPath(); g.moveTo(px,y0); g.bezierCurveTo(px+(Math.random()-.5)*16,y0+80,px+(Math.random()-.5)*24,y1-80,px+(Math.random()-.5)*20,y1); g.stroke(); }
+        for(let i=0;i<5;i++){ const y=420+Math.random()*80, s=12+Math.random()*16; g.fillStyle='rgba(30,0,0,.22)'; g.fillRect(24+Math.random()*80,y,s,3); }      // 끝자락의 손톱 자국
+        const t=new THREE.CanvasTexture(c); t.encoding=THREE.sRGBEncoding; return new THREE.MeshStandardMaterial({map:t,transparent:true,depthWrite:false,roughness:.36,metalness:0,emissive:new THREE.Color(.08,.003,.003),emissiveMap:t}); });
+    const m=new THREE.Mesh(new THREE.PlaneGeometry(w,len),this._tr[Math.random()<.5?0:1]), cx=x+Math.sin(ang)*len/2, cz=z+Math.cos(ang)*len/2; m.rotation.order='YXZ'; m.rotation.set(-Math.PI/2,ang+Math.PI,0); m.position.set(cx,floorAt(cx,cz)+.038,cz); m.renderOrder=2; WORLD.add(m); return m; },
+  // 찢긴 옷 조각 : 몸 둘레 바닥에 — 들쭉날쭉한 조각 n 개를 한 덩어리로 (그리기 한 번) · cols = 옷 색들
+  scraps(x,z,n=7,cols=[[.26,.28,.3]],R=1.5){ const P3=[], C3=[]; for(let i=0;i<n;i++){ const a=Math.random()*6.28, d=.35+Math.random()*R, cx=x+Math.sin(a)*d, cz=z+Math.cos(a)*d; if(SOLID.hit(cx,cz,.04,.3,.05)) continue; const y0=floorAt(cx,cz)+.04, rot=Math.random()*6.28, long=Math.random()<.4?2.6:1.1, r0=.05+Math.random()*.11, col=cols[i%cols.length], bl=Math.random(), K=9;
+      const rim=[]; for(let k=0;k<K;k++){ const t=k/K*6.28, r=r0*(.45+Math.random()*.75), lx=Math.cos(t)*r*long, lz=Math.sin(t)*r; rim.push([cx+lx*Math.cos(rot)-lz*Math.sin(rot),y0+Math.random()*.018,cz+lx*Math.sin(rot)+lz*Math.cos(rot)]); }
+      const tint=b=>b?[.07,.004,.004]:col.map(v=>v*(.3+Math.random()*.2)); for(let k=0;k<K;k++){ const p=rim[k], q=rim[(k+1)%K]; P3.push(cx,y0+.012,cz,...p,...q); C3.push(...tint(bl<.45),...tint(bl<.75&&Math.random()<.5),...tint(bl<.75&&Math.random()<.5)); } }
+    if(!P3.length) return null; const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(P3,3)); g.setAttribute('color',new THREE.Float32BufferAttribute(C3,3)); g.computeVertexNormals();
+    const m=new THREE.Mesh(g,this._sc||(this._sc=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.92,metalness:0,side:THREE.DoubleSide}))); WORLD.add(m); return m; },
   // 천장 한 점에서 떨어진다
   drip(x,y,z,dur=4){ const tex=this.tex(); let t=0, n=0; const f=dt=>{ t+=dt; if(t>dur){ TICK.splice(TICK.indexOf(f),1); return; } n+=dt*(6-t); while(n>1){ n--; const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,depthWrite:false})); sp.scale.setScalar(.03+Math.random()*.03); sp.position.set(x+(Math.random()-.5)*.25,y,z+(Math.random()-.5)*.25); WORLD.add(sp);
       let v=0; const g=dt=>{ v+=dt*9.8; sp.position.y-=v*dt; if(sp.position.y<.02){ WORLD.remove(sp); TICK.splice(TICK.indexOf(g),1); } }; TICK.push(g); } }; TICK.push(f); },
+};
+
+/* ---- 몸에 칠하기 : 피 · 찢김 · 때 ----
+   모델의 그림(map)을 캔버스로 옮기고, 몸의 자리(blob)에 드는 삼각형을 그림 위 좌표(UV)로 칠한다 — 그림이 조각나 있어도 몸에서는 한 자리에 묻는다
+   blob = [좌우 0~1, 아래위 0~1, 뒤앞 0~1 (몸 상자 안 비율), 반지름(키 대비), 종류] · 종류 : b 피 · o 마른 피 · w 깊은 상처 · t 찢김 (세로로 긴 틈)
+   grime : 전체를 곱해 어둡게 · desat : 채도 빼기 · matte : 번들거림 없애기 */
+const WEAR={INK:{b:'rgba(50,3,3,.93)',o:'rgba(26,7,5,.88)',w:'rgba(16,0,0,.97)',t:'rgba(8,4,4,.96)'},
+  // 삼각형 목록 만들기 (모델 공간 위치 · 그림 좌표) — 메시마다 캔버스 하나
+  paint(root,{blobs=[],grime=[.6,.56,.52],desat=0,matte=false,size=LITE?512:1024}={}){ root.updateMatrixWorld(true); const inv=new THREE.Matrix4().copy(root.matrixWorld).invert(), box=new THREE.Box3(), v=new THREE.Vector3(), M=[];
+    root.traverse(o=>{ if(!o.isMesh||!o.geometry.attributes.position||o.material===PICK) return; const pos=o.geometry.attributes.position, mt=new THREE.Matrix4().multiplyMatrices(inv,o.matrixWorld), pts=new Float32Array(pos.count*3); for(let i=0;i<pos.count;i++){ v.fromBufferAttribute(pos,i).applyMatrix4(mt); box.expandByPoint(v); pts.set([v.x,v.y,v.z],i*3); } M.push({o,pts}); });
+    const sz=box.getSize(new THREE.Vector3()), H=Math.max(sz.x,sz.y,sz.z), out=[];
+    for(const {o,pts} of M){ const src=o.material, uv=o.geometry.attributes.uv, mat=src.clone(); o.material=mat; mat.envMapIntensity=.3; if(matte){ mat.roughness=1; mat.metalness=0; }
+      if(!src.map||!src.map.image||!uv){ mat.color.setRGB(mat.color.r*grime[0],mat.color.g*grime[1],mat.color.b*grime[2]); if(desat){ const l=(mat.color.r+mat.color.g+mat.color.b)/3; mat.color.lerp(new THREE.Color(l,l,l),desat); } continue; }
+      const c=document.createElement('canvas'); c.width=c.height=size; const g=c.getContext('2d'); g.drawImage(src.map.image,0,0,size,size);
+      if(desat){ g.globalCompositeOperation='saturation'; g.fillStyle=`rgba(0,0,0,${desat})`; g.fillRect(0,0,size,size); }
+      g.globalCompositeOperation='multiply'; g.fillStyle=`rgb(${grime.map(k=>Math.round(k*255)).join(',')})`; g.fillRect(0,0,size,size); g.globalCompositeOperation='source-over';
+      const arr=uv.array||uv.data.array, un=uv.normalized?(arr instanceof Uint16Array?1/65535:arr instanceof Uint8Array?1/255:1):1, xf=src.map.matrix, idx=o.geometry.index; src.map.updateMatrix();
+      const U=new Float32Array(uv.count*2), w=new THREE.Vector3(); for(let i=0;i<uv.count;i++){ w.set(uv.getX(i)*un,uv.getY(i)*un,1).applyMatrix3(xf); U[i*2]=w.x; U[i*2+1]=w.y; }
+      const tex=new THREE.CanvasTexture(c); tex.encoding=THREE.sRGBEncoding; tex.flipY=false; tex.wrapS=src.map.wrapS; tex.wrapT=src.map.wrapT; tex.offset.copy(src.map.offset); tex.repeat.copy(src.map.repeat); tex.rotation=src.map.rotation; tex.center.copy(src.map.center); tex.anisotropy=src.map.anisotropy; mat.map=tex; mat.needsUpdate=true;
+      const part={g,c,tex,pts,U,idx,n:idx?idx.count:pts.length/3}; out.push(part); this.ink(part,blobs,box,sz,H); }
+    return {add:bl=>out.forEach(p=>this.ink(p,bl,box,sz,H))}; },
+  ink(p,blobs,box,sz,H){ const {g,U,pts,idx,n,c}=p, S0=c.width, sd=(i)=>{ const x=Math.sin(i*127.1)*43758.5; return x-Math.floor(x); }; const Bs=blobs.map(([x,y,z,r,k])=>({x:box.min.x+x*sz.x,y:box.min.y+y*sz.y,z:box.min.z+z*sz.z,r:r*H,k}));
+    for(const b of Bs){ g.fillStyle=g.strokeStyle=this.INK[b.k]||this.INK.b; g.lineWidth=1.5; g.beginPath(); let hit=0;
+      for(let t=0;t+2<n;t+=3){ const a=idx?idx.getX(t):t, e=idx?idx.getX(t+1):t+1, f=idx?idx.getX(t+2):t+2, cx=(pts[a*3]+pts[e*3]+pts[f*3])/3, cy=(pts[a*3+1]+pts[e*3+1]+pts[f*3+1])/3, cz=(pts[a*3+2]+pts[e*3+2]+pts[f*3+2])/3;
+        const dx=cx-b.x, dy=(cy-b.y)*(b.k==='t'?.3:1), dz=(cz-b.z)*(b.k==='t'?1:1), wx=b.k==='t'?dx*2.6:dx, d=Math.sqrt(wx*wx+dy*dy+dz*dz); if(d>b.r*(.62+sd(t)*.7)) continue;
+        g.moveTo(U[a*2]*S0,U[a*2+1]*S0); g.lineTo(U[e*2]*S0,U[e*2+1]*S0); g.lineTo(U[f*2]*S0,U[f*2+1]*S0); g.closePath(); hit++; }
+      if(hit){ g.fill(); g.stroke(); } } p.tex.needsUpdate=true; },
 };
 
 /* ---- 나 : 체력 · 웅크리기 · 권총 ---- */
@@ -130,7 +173,7 @@ const GUN={held:null,kick:0,cool:0,targets:[],
     src.rotation.y=Math.PI/2;                      // 총구(+x) → 카메라 앞(−z)
     src.traverse(o=>{ if(o.isMesh){ o.frustumCulled=false; o.renderOrder=30; o.material.depthTest=true; } });
     camera.add(g); this.held=g; g.scale.setScalar(1.05);
-    const fill=new THREE.PointLight(0xfff1dc,.7,1.2,2); fill.position.set(.1,.05,-.2); g.add(fill);      // 어둠 속에서도 손의 총이 보이게
+    const fill=new THREE.PointLight(0xfff1dc,.7,1.2,2); fill.position.set(.1,.05,-.2); g.add(fill); this.fill=fill; this.body=src;      // 어둠 속에서도 손의 총이 보이게
     const muzzle=new THREE.Object3D(); muzzle.position.set(0,.03,-.2); g.add(muzzle); this.muzzle=muzzle;
     TICK.push(this.fn=dt=>{ if(!g.parent) return; this.kick=Math.max(0,this.kick-dt*7); this.cool=Math.max(0,this.cool-dt);
       g.position.set(.19,-.2+this.kick*.03+Math.sin(P.bob||0)*.006,-.42+this.kick*.06); g.rotation.set(this.kick*.25,.14,0); });      // 총구가 조준점 쪽으로 조금
@@ -139,6 +182,8 @@ const GUN={held:null,kick:0,cool:0,targets:[],
     let c=$('#crouch'); if(!c){ c=document.createElement('button'); c.id='crouch'; c.className='ring small'; c.textContent='웅크림'; $('#hud').appendChild(c); c.addEventListener('pointerdown',e=>{ e.stopPropagation(); ME.setCrouch(!ME.crouch); AUDIO.click(); }); }
     c.classList.add('on');
     if(!this.fk){ this.fk=true; addEventListener('keydown',e=>{ if(e.code==='KeyF'&&!e.repeat) GUN.shoot(); }); } },
+  // 애벌레가 얼굴에 붙으면 : 총은 가려지고 · 그 빛이 얼굴 앞의 살을 비춘다 (빛 개수를 바꾸면 화면이 멈칫하니 옮기기만 한다)
+  face(on){ if(!this.held) return; this.body.visible=!on; this.fill.position.set(on?-.19:.1,on?.26:.05,on?.22:-.2); this.fill.intensity=on?1.8:.7; this.fill.distance=on?2.4:1.2; },
   drop(){ if(this.held){ camera.remove(this.held); this.held=null; } ['#fire','#crouch'].forEach(s=>{ const b=$(s); if(b) b.classList.remove('on'); }); },
   // 쏘기 : 화면 가운데로 · 가장 가까운 과녁 (과녁 = {center():Vector3, r, hit(), alive()})
   // 맞힌 표시 : 조준점이 잠깐 빨갛게 (죽이면 더 크게)

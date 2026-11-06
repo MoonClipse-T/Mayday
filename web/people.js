@@ -63,6 +63,12 @@ const PEOPLE=(()=>{
       turn(B.sp2,V().set(1,0,0).applyQuaternion(wrap.quaternion),-.06);
       g.updateMatrixWorld(true); const hp=V(); (B.hip||g).getWorldPosition(hp); wrap.position.y+=seatY+.1-hp.y;
       const back=toW(0,0,-.1); wrap.position.add(back);
+    } else if(pose==='lie'){      // 바닥에 누운 몸 : 왼팔은 옆으로 늘어지고 · 오른손은 배를 움켜쥐고 · 오른 무릎을 세우고 · 고개를 왼쪽으로 (눕히기는 부르는 쪽이 wrap 을 돌린다)
+      aim(B.uaL,B.laL,toW(.42,-.9,.02)); aim(B.laL,B.hL,toW(.3,-.92,-.02));
+      aim(B.uaR,B.laR,toW(-.42,-.82,.34)); aim(B.laR,B.hR,toW(.82,.32,.42));
+      aim(B.ulL,B.llL,toW(.12,-1,.03)); aim(B.llL,B.fL,toW(.08,-1,-.02));
+      aim(B.ulR,B.llR,toW(-.14,-.7,.7)); aim(B.llR,B.fR,toW(-.06,-.72,-.68)); aim(B.fR,B.tR,toW(-.05,-1,.12));
+      turn(B.neck,V().set(0,1,0),.55); turn(B.head,V().set(0,1,0),.25);
     } else {
       for(const s of ['L','R']){ const k=side(s);      // 팔 내리기 (모델의 l 뼈 = 몸의 왼쪽 = 몸 기준 +x)
         aim(B['ua'+s],B['la'+s],toW(k*.16,-1,.02)); aim(B['la'+s],B['h'+s],toW(k*.1,-1,.32)); }

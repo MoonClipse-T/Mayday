@@ -7,9 +7,18 @@
    저장 지점 : 죽으면 그 자리부터 (GAME.cp) · 제작용 바로 가기 ?s=cockpit · board · survivor · hunt · engine · bridge
    ============================================================ */
 'use strict';
-const VG=t=>({who:'VEGA',ch:'무전 · 구조정',kind:'vega',t}), I=t=>({kind:'me',t}), RADIO=t=>({who:'HUY-1',ch:'녹음 · 312일째',kind:'radio',t});
+const VG=(t,v)=>({who:'VEGA',ch:'무전 · 구조정',kind:'vega',t,v}), I=t=>({kind:'me',t}), RADIO=t=>({who:'HUY-1',ch:'녹음 · 312일째',kind:'radio',t});
 // 시신 (애벌레가 든 몸) : 자리 · 모델(a 벽에 기대 앉은 방호복 — 등이 모델의 −z · b 천에 덮인 몸 · c 피 묻은 천) · 방향
-const BODIES=[[22,10.6,'b',1.57],[45,9.7,'c',.3],[33,11.8,'a',Math.PI],[16.6,-3.2,'b',1],[29.4,5.2,'c',0],[41,3.6,'b',.5],[9,9.3,'a',0],[2,-1.2,'b',.8],[24,21,'c',2]];
+const BODIES=[[22,10.6,'b',1.57],[45,10.5,'c',.3],[35.5,9.4,'a',0],[16.6,-3.2,'b',1],[29.4,5.2,'c',0],[41,3.6,'b',.5],[9,9.3,'a',0],[2,-1.2,'b',.8],[24,21,'c',2]];
+// 시신 칠하기 : 방호복의 샛노랑 · 파랑 장갑을 빼고 때 · 피 · 찢김 / 천에는 번진 피 (몸 상자 안 비율 — WEAR)
+const WEARS={
+  a:{grime:[.4,.38,.34],desat:.86,matte:true,blobs:[[.5,.62,.8,.2,'b'],[.42,.5,.85,.16,'o'],[.62,.72,.8,.12,'t'],[.34,.62,.8,.1,'t'],[.55,.42,.9,.12,'w'],[.2,.4,.7,.13,'b'],[.8,.45,.7,.14,'o'],[.5,.9,.7,.12,'o'],[.68,.2,.85,.14,'b'],[.3,.15,.9,.1,'t']]},
+  b:{grime:[.62,.58,.54],matte:true,blobs:[[.5,.5,1,.17,'b'],[.3,.55,1,.12,'o'],[.72,.48,1,.14,'b'],[.45,.3,1,.1,'t'],[.6,.7,1,.1,'t'],[.2,.4,.5,.12,'o'],[.85,.6,.5,.1,'o']]},
+  c:{grime:[.56,.5,.47],matte:true,blobs:[[.55,.5,.9,.14,'w'],[.35,.45,.9,.14,'b'],[.7,.6,.9,.1,'o'],[.25,.7,.6,.1,'t']]}};
+const RAGS={a:[[.3,.27,.1],[.16,.17,.24],[.3,.3,.28]],b:[[.42,.4,.37],[.2,.22,.26]],c:[[.44,.4,.36],[.24,.24,.25]]};
+// 레아 : 열한 달을 버틴 생물학자 — 1호 대원복이 찢어지고 · 말라붙은 피 · 젖은 피 · 손에 피 · 얼굴에 때 (몸 상자 안 비율)
+const LEAH_WEAR={grime:[.5,.46,.42],desat:.45,matte:true,blobs:[[.5,.66,.82,.075,'b'],[.45,.56,.85,.06,'o'],[.58,.62,.85,.07,'t'],[.4,.7,.8,.06,'t'],[.5,.5,.85,.09,'o'],[.62,.45,.7,.06,'t'],[.4,.3,.8,.07,'t'],[.6,.2,.8,.06,'o'],[.42,.13,.85,.05,'t'],
+  [.03,.56,.5,.06,'b'],[.97,.56,.5,.06,'b'],[.1,.56,.5,.06,'o'],[.9,.56,.5,.06,'o'],[.5,.92,.85,.05,'o'],[.56,.9,.9,.035,'b'],[.5,.8,.5,.09,'o'],[.5,.5,.2,.1,'o']]};
 
 const GAME={cp:null,
   stages:['meeting','cockpit','board','survivor','hunt','engine','bridge'],
@@ -38,11 +47,15 @@ const GAME={cp:null,
     // 입김 : 차가운 배
     { let b=0; TICK.push(dt=>{ b-=dt; if(b<=0&&S.phase==='play'&&!f.power){ b=3+Math.random(); const p=camera.getWorldPosition(new THREE.Vector3()).add(camera.getWorldDirection(new THREE.Vector3()).multiplyScalar(.35)); p.y-=.12; breath(p); } }); } },
   // 시신 놓기 : 바닥에 피 웅덩이 · 애벌레 등록
-  async bodies(){ const M={a:loadGLB('corpse_a'),b:loadGLB('corpse_b'),c:loadGLB('corpse_c')}; this.hosts=[];
-    for(const [x0,z0,k,ry] of BODIES){ const src=await M[k], o=src.clone(), [x,z]=freeSpot(x0,z0,{r:k==='a'?.25:.55});
+  async bodies(){ const M={}; for(const k of 'abc') M[k]=loadGLB('corpse_'+k).then(s=>{ WEAR.paint(s,WEARS[k]); return s; }); this.hosts=[];
+    for(const [x0,z0,k,ry0] of BODIES){ const src=await M[k], o=src.clone(); let ry=ry0, [x,z]=freeSpot(x0,z0,k==='a'?{r:.42,y1:.05,y2:1.15}:{r:.55,y1:.05});
+      if(k==='a'){ const w=HIDE.wall(x,z); if(w&&!SOLID.hit(w.x,w.z,.05,1.15,.26)){ x=w.x+Math.sin(w.yaw)*.42; z=w.z+Math.cos(w.yaw)*.42; ry=w.yaw; } }      // 벽 쪽 큰 배관에 등을 기댄다 (바닥 가의 붉은 관을 뚫지 않게 그만큼 앞으로)
       const bb=new THREE.Box3().setFromObject(o), sz=bb.getSize(new THREE.Vector3()), s=k==='a'?1:1.8/Math.max(sz.x,sz.z);
       o.scale.setScalar(s); o.rotation.y=ry; const g=new THREE.Group(); g.add(o); const c=new THREE.Box3().setFromObject(o).getCenter(new THREE.Vector3()); o.position.x-=c.x; o.position.z-=c.z; o.position.y-=bb.min.y*s;
       g.position.set(x,0,z); WORLD.add(g); BLOOD.pool(x+(Math.random()-.5)*.4,z+(Math.random()-.5)*.4,2.2+Math.random()*.8);
+      // 어디서 끌려왔나 : 가장 멀리 트인 쪽으로 핏줄기 · 둘레에 찢긴 옷 조각
+      { let best=0, ang=0; for(let i=0;i<12;i++){ const a=i/12*6.283+ry; let t=.6; while(t<5.5&&!SOLID.hit(x+Math.sin(a)*t,z+Math.cos(a)*t,.05,.6,.2)) t+=.25; if(t>best){ best=t; ang=a; } } if(best>1.4) BLOOD.trail(x+Math.sin(ang)*.3,z+Math.cos(ang)*.3,ang,Math.min(best-.3,3.2+Math.random()*1.6),.5+Math.random()*.25); }
+      BLOOD.scraps(x,z,8,RAGS[k]);
       this.hosts.push(LARVA.host({x,z,near:k==='a'?4.5:5.2})); } },
   // 죽으면 : 마지막 저장 지점부터
   async died(){ S.phase='cut'; P.free=false; SCREAM(.5); await fade(true,1400); ME.setCrouch(false); HIDE.reset(); if(LARVA.grab) LARVA.struggle&&(LARVA.grab.need=0,LARVA.struggle());
@@ -64,8 +77,7 @@ const GAME={cp:null,
   /* ---- ③ 동면 구역 C 의 생존자 ---- */
   async survivor(){ const f=S.flags; S.phase='play'; P.free=true;
     goal('생존자를 찾는다 — 동면 구역 C');
-    const lx=24.5, lz=-5.0, le=this.leah=await PEOPLE.spawn({kind:'sophia',name:'레아 문',role:'1호 생물학자',at:{x:lx,z:lz,yaw:0}}); le.watch=false; le.solid=false;
-    le.sleep=true; le.wrap.rotation.set(-Math.PI/2,0,0); le.wrap.position.y=.12;      // 바닥에 반듯이 누워 (발이 남 · 머리가 북쪽 벽)
+    const lx=24.5, lz=-5.0, le=this.leah=await this.leahBody(lx,lz);
     BLOOD.pool(lx,lz-1,1.8);
     const LE=t=>({who:'레아',t,npc:le}), MUT=['…차가워야 해… 차가우면 잠들어…','…움직여… 안에서 움직여…','…쏘지 마… 나 아직… 나야…'];
     { let k=0, cd=0; const fn=dt=>{ if(f.leahFound||!PEOPLE.list.includes(le)) return TICK.splice(TICK.indexOf(fn),1); cd-=dt; if(cd>0) return; if(Math.hypot(P.x-lx,P.z-lz)<9&&!TALK.on){ cd=6; TALK.say([LE(MUT[k++%MUT.length])]); } }; TICK.push(fn); }
@@ -76,23 +88,26 @@ const GAME={cp:null,
       I('무슨 일이 있었던 거예요. 다른 대원들은?'),LE('…그게 우리를 먹었어. 하나씩. 그리고… 먹다 남긴 몸마다… 알을…'),LE('…나도야. 느껴져. 안에서— 아, 아아—')]);
     const larva=await this.birth(le); P.look=false;
     // 첫 사격 : 덮쳐 오는 애벌레
-    await TALK.say([VG('크리스! 쏘십시오!')]); goal('쏴라 — F 또는 [사격]'); S.phase='play'; P.free=true;
+    await TALK.say([VG('크리스! 쏘십시오!')]); goal(byDevice('쏴라 — F 또는 [사격]','쏴라 — [사격]')); S.phase='play'; P.free=true;
     LARVA.on=true; await new Promise(r=>{ LARVA.onKill=()=>r(); });
     goal(''); await sleep(600);
     await TALK.say([I('…하아… 하아…'),VG('생체 반응… 늘어납니다. 일곱, 여덟… 1호 곳곳의 시신마다 하나씩입니다.'),
       I('"먹다 남긴 몸마다 알을." …전부 깨어나고 있다.'),VG('원자로가 있는 기관실까지 가려면 복도를 지나야 합니다. 그것들을 그냥 두면 따라옵니다.')]);
     return this.hunt(); },
+  // 레아의 몸 : 대원복(Tripo) 을 칠해 찢고 더럽힌다 · 바닥에 누워 (발이 남 · 머리가 북쪽 벽)
+  async leahBody(lx,lz){ const le=await PEOPLE.spawn({kind:'maya',name:'레아 문',role:'1호 생물학자',pose:'lie',at:{x:lx,z:lz,yaw:0}}); le.watch=false; le.solid=false; le.sleep=true;
+    le.wrap.rotation.set(-Math.PI/2,0,0); le.wrap.position.y=.1; le.wrap.updateMatrixWorld(true); le.wear=WEAR.paint(le.g,LEAH_WEAR); BLOOD.scraps(lx,lz-.9,7,[[.2,.21,.23],[.12,.13,.15]],1); return le; },
   // 가슴에서 애벌레 : 경련 · 피 · 붉은 섬광 → 내 쪽으로 뛰어든다
   async birth(le){ const w=le.wrap.position, chest=new THREE.Vector3(w.x,.3,w.z-1.25);
-    let shake=true; const sh=()=>{ if(shake){ le.wrap.position.y=.12+Math.abs(Math.sin(S.t*31))*.05; le.wrap.rotation.y=Math.sin(S.t*27)*.05; } }; TICK.push(sh); AUDIO.noise(1.6,.12,0,500);
+    let shake=true; const sh=()=>{ if(shake){ le.wrap.position.y=.1+Math.abs(Math.sin(S.t*31))*.05; le.wrap.rotation.y=Math.sin(S.t*27)*.05; } }; TICK.push(sh); AUDIO.noise(1.6,.12,0,500);
     await TALK.say([{who:'레아',t:'커헉… 커, 커헉—',npc:le}]);
     BLOOD.spray(chest,30,3); SFX.play('burst',{at:chest}); await sleep(500); BLOOD.spray(chest,40,3.6); AUDIO.noise(.6,.3,0,900); await sleep(400);
     const fl=new THREE.PointLight(0xff2010,8,6,1.6); fl.position.copy(chest); WORLD.add(fl); setTimeout(()=>WORLD.remove(fl),160);
     BLOOD.spray(chest,70,5); AUDIO.tone(1100,.5,'sawtooth',.07,0,700); STING(.8); FX.flash('#ff2010',300); FX.shake(.5,.05);
-    shake=false; TICK.splice(TICK.indexOf(sh),1); le.wrap.rotation.set(-Math.PI/2+.12,0,0); le.wrap.position.y=.12;
+    shake=false; TICK.splice(TICK.indexOf(sh),1); le.wrap.rotation.set(-Math.PI/2+.12,0,0); le.wrap.position.y=.1; le.wear&&le.wear.add([[.5,.68,.9,.11,'w'],[.5,.6,.85,.13,'b']]);
     const l=await LARVA.spawn(chest.x,chest.z,0); l.state='rise'; l.t=1.4; l.wrap.rotation.y=Math.atan2(P.x-chest.x,P.z-chest.z); l.wrap.position.y=.0;
     LARVA.hosts.push({x:chest.x,z:chest.z,done:true}); await sleep(900); return l; },
-  leahDead(){ const lx=24.5, lz=-5.0; PEOPLE.spawn({kind:'sophia',name:'레아 문',at:{x:lx,z:lz,yaw:0}}).then(le=>{ le.sleep=true; le.watch=false; le.solid=false; le.wrap.rotation.set(-Math.PI/2+.12,0,0); le.wrap.position.y=.12; }); BLOOD.pool(lx,lz-1,2.2); S.flags.leahFound=true; },
+  leahDead(){ const lx=24.5, lz=-5.0; this.leahBody(lx,lz).then(le=>{ le.wear.add([[.5,.68,.9,.11,'w'],[.5,.6,.85,.13,'b']]); le.wrap.rotation.x=-Math.PI/2+.12; }); BLOOD.pool(lx,lz-1,2.2); S.flags.leahFound=true; },
 
   /* ---- ④ 애벌레 사냥 ---- */
   async hunt(){ const f=S.flags; S.phase='play'; P.free=true; LARVA.on=true; this.save(27,7.4,Math.PI);

@@ -38,7 +38,7 @@ const VOICE={map:null,el:null,
   stop(){ if(this.el){ this.el.pause(); this.el=null; MUSIC.duck(false); } } };
 // 대사 한 줄 = 목소리 한 줄 (TALK 를 감싼다)
 { const show=TALK.show.bind(TALK), next=TALK.next.bind(TALK);
-  TALK.show=function(){ const L=this.q[this.i]; VOICE.play(L&&L.t); show(); };
+  TALK.show=function(){ const L=this.q[this.i]; VOICE.play(L&&(L.v||L.t)); show(); };      // L.v : 자막이 기기마다 달라도 목소리는 같은 줄 (원문으로 찾는다)
   TALK.next=function(){ const done=$('#talk .txt').textContent.length>=this.full.length; if(done) VOICE.stop(); next(); }; }
 addEventListener('pointerdown',()=>{ SFX.preload(); VOICE.load(); },{once:true,capture:true});
 addEventListener('keydown',()=>{ SFX.preload(); VOICE.load(); },{once:true,capture:true});

@@ -49,11 +49,11 @@ const HIDE={in:null,spots:[],holding:false,breath:7,seen:false,
   // 죽거나 처음부터 : 숨은 상태를 풀고 문을 닫아 둔다
   reset(){ if(this.in&&this.in.dl) this.doors(this.in,false,.01); this.in=null; this.busy=false; this.ui(false); this.fx(null); P.look=false; },
   yawFace(tx,tz,from){ return Math.atan2(-(tx-from.x),-(tz-from.z)); },
-  fx(kind){ const e=FXEL('hidefx'); e.className=kind?'on '+kind:''; e.innerHTML=kind?'<p>숨어 있다 — E 나가기 · Space 숨 참기 (길게)</p>':''; },
+  fx(kind){ const e=FXEL('hidefx'); e.className=kind?'on '+kind:''; e.innerHTML=kind?'<p>숨어 있다 — '+byDevice('E 나가기 · Space 숨 참기 (길게)','[나가기] · [숨 참기] 길게 누르기')+'</p>':''; },
   ui(on){ let b=$('#breath'); if(!b){ b=document.createElement('button'); b.id='breath'; b.className='ring'; b.textContent='숨 참기'; $('#hud').appendChild(b);
       b.addEventListener('pointerdown',e=>{ e.stopPropagation(); HIDE.holding=true; b.classList.add('held'); }); ['pointerup','pointerleave','pointercancel'].forEach(t=>b.addEventListener(t,()=>{ HIDE.holding=false; b.classList.remove('held'); }));
       const out=document.createElement('button'); out.id='hideout'; out.className='ring small'; out.textContent='나가기'; $('#hud').appendChild(out); out.addEventListener('pointerdown',e=>{ e.stopPropagation(); HIDE.leave(); }); }
-    b.classList.toggle('on',on); $('#hideout').classList.toggle('on',on); $('#hideout').style.display=on?'block':''; FXEL('breathbar').classList.toggle('on',on); if(!FXEL('breathbar').firstChild) FXEL('breathbar').innerHTML='<i></i>'; },
+    document.body.classList.toggle('hiding',on); b.classList.toggle('on',on); $('#hideout').classList.toggle('on',on); FXEL('breathbar').classList.toggle('on',on); if(!FXEL('breathbar').firstChild) FXEL('breathbar').innerHTML='<i></i>'; },
   // 성체가 듣나 : 숨을 참지 않고 3.5 m 안 · 숨이 다하면 헐떡인다
   noisy(b){ if(!this.in) return false; const d=Math.hypot(b.wrap.position.x-this.in.x,b.wrap.position.z-this.in.z); return d<3.5&&(!this.holding||this.breath<=0); },
   tick(dt){ if(!this.in) return; const kb=keys.Space; if(kb!==undefined&&!IS_TOUCH) this.holding=!!kb;
