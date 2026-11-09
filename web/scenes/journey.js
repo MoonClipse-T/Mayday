@@ -2,7 +2,7 @@
    여정 (4.4) — 회의 다음 주, 혼자 떠나 웜홀을 건너기까지 (화면 전환 없이 한 흐름 · 동료 없음)
    ① 발사 : 케네디 39B 새벽 · R-1 을 실은 로켓 (launch.glb — Space Center Realistic Launch Facility, CC BY) · 카운트다운 → 점화 → 이륙
    ② 지구 궤도 출발 : R-1 조종석 · 발아래 지구 (낮 · 밤 · 구름) · 상단 분리 → 이온 엔진 점화 → 지구가 멀어진다 → 동면
-   ③ 넉 달 뒤 목성 : 동면에서 깨어나 · 창밖을 가득 채운 목성 · 앞쪽 웜홀 → 진입 → 통과 (하얗게)
+   ③ 넉 달 뒤 목성 : 동면에서 깨어나 · 창밖을 채운 목성(실제 공 · 위성 둘) → 직접 몰고 웜홀로 → 경계에서 자동 진입 → 터널 → 하얗게
    → scenes/flight.js 웜홀 건너편 (1호를 찾아 직접 몰고 간다)
    문제 자리 : JOURNEY.slot('이름') — 지금은 그냥 지나간다. 사용자가 문제를 주면 여기에 끼운다 (발사 전 · 궤도 · 목성 · 웜홀 앞)
    조종석 안에서는 화면을 끌어 고개를 돌려 둘러볼 수 있다
@@ -78,9 +78,9 @@ const JOURNEY={
     ck.traverse(o=>{ if(o.isMesh&&/glass/i.test(o.material.name)){ o.material.transparent=true; o.material.opacity=.1; o.material.depthWrite=false; } });
     const dash=new THREE.PointLight(0x7fd4ff,.7,2.4,2); dash.position.set(0,.85,-.55); rig.add(dash); WORLD.add(new THREE.HemisphereLight(0x6f7f99,0x050607,.12));
     const head={y:0,p:-.04,sy:0,sp:0}; P.look=true; window.dragHook=(dx,dy)=>{ const k=IS_TOUCH?.004:.003; head.y=clamp(head.y-dx*k,-1.1,1.1); head.p=clamp(head.p-dy*k,-.6,.5); };
-    this.tick(dt=>{ rig.updateMatrixWorld(true); camera.position.copy(new THREE.Vector3(0,1.02,-1.22).applyMatrix4(rig.matrixWorld)).add(new THREE.Vector3(head.sx||0,head.sy||0,0));
-      camera.quaternion.copy(rig.getWorldQuaternion(new THREE.Quaternion())).multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(head.p,Math.PI+head.y,0,'YXZ'))); });
-    return {rig,head}; },
+    const cam=()=>{ rig.updateMatrixWorld(true); camera.position.copy(new THREE.Vector3(0,1.02,-1.22).applyMatrix4(rig.matrixWorld)).add(new THREE.Vector3(head.sx||0,head.sy||0,0));
+      camera.quaternion.copy(rig.getWorldQuaternion(new THREE.Quaternion())).multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(head.p,Math.PI+head.y,0,'YXZ'))); };
+    this.tick(cam); return {rig,head,cam}; },
 
   /* ---- ② 지구 궤도 출발 ---- */
   async depart(){ const {R,C,V}=this; S.phase='cut'; P.free=false; goal('');
@@ -113,27 +113,80 @@ const JOURNEY={
     await TALK.say([V('동면 캡슐 준비 완료. 목성 궤도에서 깨워 드리겠습니다.'),C('…다녀오겠습니다.')]);
     S.phase='cut'; await fade(true,2000); this.clean(); },
 
-  /* ---- ③ 넉 달 뒤 : 목성 · 웜홀 진입 ---- */
+  /* ---- ③ 넉 달 뒤 : 목성 곁에서 직접 몰고 웜홀로 ----
+     목성 · 위성 · 웜홀은 공간에 실제로 놓인 물체 (예전엔 카메라에 붙은 그림이라 웜홀에 들어갈 때 목성이 따라 들어왔다)
+     웜홀 : 렌즈 셰이더의 방향 · 크기를 매 프레임 '내 자리에서 본' 값으로 → 다가가면 커지고, 기수를 돌리면 목성 · 웜홀이 창밖에서 제자리에 있다
+     조작은 scenes/flight.js 와 같다 (화면 단추 · 키보드 · 끌기 = 기수) · 웜홀 경계에 닿으면 자동 조종으로 진입 → 터널 → 하얗게 */
   async jupiter(){ const {C,V}=this; S.phase='cut'; P.free=false; goal('');
     await card('넉 달 뒤','목성','2091년 7월 · 웜홀까지 41만 km',3000);
-    const {head}=await this.cockpit();
-    await SKY.space({dir:[.04,.03,1],R:.035,jdir:[-.8,-.22,.55],jsize:1.0,sunDir:[.7,.35,-.6]});
-    renderer.toneMappingExposure=1.05;
+    const {rig,head,cam}=await this.cockpit(); P.look=false;
+    camera.far=12000; camera.updateProjectionMatrix();
+    const SUN=new THREE.Vector3(.7,.35,-.6).normalize(), WH=new THREE.Vector3(160,70,2600), RW=150, KM=158;      // 1 m = 158 km 로 줄인 지도 (웜홀까지 41만 km)
+    await SKY.space({dir:[0,0,1],R:.04,jupiter:false,sunDir:SUN.toArray()}); renderer.toneMappingExposure=1.05;
+    const sun=new THREE.DirectionalLight(0xfff4e6,2.3); sun.position.copy(SUN).multiplyScalar(3000); WORLD.add(sun);
+    // 목성 : 실제 공 (자전 · 대기 가장자리 빛) · 위성 둘 (이오 · 유로파)
+    const jt=await loadTex('jupiter_map.jpg'), JR=700, JP=new THREE.Vector3(-1080,-280,380);
+    const jup=new THREE.Mesh(new THREE.SphereGeometry(JR,96,48),new THREE.MeshStandardMaterial({map:jt,roughness:1,metalness:0})); jup.position.copy(JP); jup.rotation.z=.05; WORLD.add(jup);
+    const halo=new THREE.Mesh(new THREE.SphereGeometry(JR*1.02,64,32),new THREE.ShaderMaterial({transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.BackSide,uniforms:{L:{value:SUN}},
+      vertexShader:'varying vec3 vN; varying vec3 vW; void main(){ vN=normalize(mat3(modelMatrix)*normal); vec4 w=modelMatrix*vec4(position,1.0); vW=w.xyz; gl_Position=projectionMatrix*viewMatrix*w; }',
+      fragmentShader:'uniform vec3 L; varying vec3 vN; varying vec3 vW; void main(){ vec3 v=normalize(cameraPosition-vW); float r=pow(max(0.0,1.0-abs(dot(v,vN))),2.5); float d=max(0.0,dot(-vN,L)+.25); gl_FragColor=vec4(vec3(1.0,.82,.6)*r*d*.8,r*d); }'}));
+    halo.position.copy(JP); WORLD.add(halo);
+    const moons=[[22,0xd8c27a,new THREE.Vector3(-420,-60,900)],[18,0xc9c2b4,new THREE.Vector3(-1900,120,1500)]].map(([r,c,p])=>{ const m=new THREE.Mesh(new THREE.SphereGeometry(r,32,16),new THREE.MeshStandardMaterial({color:c,roughness:1})); m.position.copy(p); WORLD.add(m); return m; });
+    // 처음 : 목성과 웜홀 사이를 본다 (목성이 창 왼쪽을 채운다)
+    rig.position.set(0,0,0); rig.lookAt(-420,-70,700);
     stamp('구조정 R-1 · 목성 궤도','2091.07 · 출발 122일째');
-    const U0=SKY.U; let appr=0; this.tick(dt=>{ appr+=dt; U0.R.value=Math.min(.14,.035+appr*.004); });
-    await fade(false,2600); S.phase='play'; AUDIO.hum(.6,36);
+    // 조종 (flight.js 와 같은 단추 · 키 · 끌기)
+    const v=new THREE.Vector3(), av=new THREE.Vector3(), U=SKY.U, el=()=>$('#flight'); let ctl=false, near=null, warned=0, th=0;
+    FLIGHT.av=av; FLIGHT.docked=false; FLIGHT.btn={}; FLIGHT.ui(true); el().querySelector('.dock').classList.remove('on');
+    this.tick(dt=>{ jup.rotation.y+=dt*.012;
+      const q=rig.quaternion, fw=new THREE.Vector3(0,0,1).applyQuaternion(q), up=new THREE.Vector3(0,1,0).applyQuaternion(q), rt=new THREE.Vector3().crossVectors(fw,up), B=FLIGHT.btn, K=keys;
+      const live=ctl&&S.phase==='play'&&!TALK.on, on=k=>live&&(K['Key'+FLIGHT.KEYS[k]]||B[k]);
+      const thr=(on('fwd')?1:0)-(on('back')?1:0), lat=(on('right')?1:0)-(on('left')?1:0), ver=(on('up')?1:0)-(on('down')?1:0), rIn=(on('rr')?1:0)-(on('rl')?1:0);
+      v.addScaledVector(fw,thr*(thr>0?32:20)*dt).addScaledVector(rt,lat*14*dt).addScaledVector(up,ver*14*dt);
+      if(!lat) v.addScaledVector(rt,-v.dot(rt)*Math.min(1,dt*1.2)); if(!ver) v.addScaledVector(up,-v.dot(up)*Math.min(1,dt*1.2));      // 자세 유지 : 옆으로 미끄러지지 않게
+      const toW=WH.clone().sub(rig.position), L=toW.length(); toW.normalize();
+      const vmax=L<700?Math.max(40,L*.2):180; if(v.length()>vmax) v.multiplyScalar(1-Math.min(1,dt*1.5));      // 웜홀 가까이선 저절로 줄인다
+      if(!live&&!near||on('brake')) v.multiplyScalar(1-Math.min(1,dt*1.3));
+      if(live){ av.y+=((K.ArrowLeft?1:0)-(K.ArrowRight?1:0))*1.4*dt; av.x+=((K.ArrowUp?1:0)-(K.ArrowDown?1:0))*1.4*dt; }
+      av.z+=rIn*.6*dt; if(!rIn) av.z*=1-Math.min(1,dt*1.5); av.x*=1-Math.min(1,dt*2.2); av.y*=1-Math.min(1,dt*2.2);
+      if(near) near(dt,fw,toW,L);      // 자동 조종 (진입)
+      rig.rotateX(-av.x*dt); rig.rotateY(av.y*dt); rig.rotateZ(av.z*dt); rig.position.addScaledVector(v,dt); cam();      // 움직인 뒤 눈 자리를 다시 (빠를 때 조종석 뒤로 밀리지 않게)
+      // 목성에 너무 가까이 : 대기권 — 밀려나고 경고
+      const jd=rig.position.distanceTo(JP); if(jd<JR+140){ const n=rig.position.clone().sub(JP).normalize(); rig.position.copy(JP).addScaledVector(n,JR+140); v.addScaledVector(n,-Math.min(0,v.dot(n))*1.3); FX.shake(.3,.03);
+        if(S.t>warned){ warned=S.t+8; TALK.say([V('목성 대기권에 너무 가깝습니다. 기수를 돌리십시오.')]); } }
+      // 웜홀 렌즈 : 내 자리에서 본 방향 · 크기
+      const cp=camera.position, d=WH.clone().sub(cp), Ld=d.length(); U.C.value.copy(d.normalize()); if(!this.inTransit) U.R.value=Math.asin(Math.min(.99,RW/Math.max(Ld,RW)));
+      // 엔진 소리
+      th-=dt; if((thr||lat||ver)&&th<=0){ th=.45; SFX.play('thruster',{vol:.5+.4*Math.abs(thr)}); }
+      // 계기 : 거리 · 속도 · 웜홀 괄호 · 기수 화살표 · 빛나는 단추
+      const E=el(); if(!E) return; const sp=v.length(), n=WH.clone().project(camera), onS=n.z<1&&Math.abs(n.x)<1.2&&Math.abs(n.y)<1.2, W=new Set();
+      E.querySelector('.d').textContent='웜홀까지 '+Math.round(Math.max(0,L-RW)*KM).toLocaleString()+' km'; E.querySelector('.s').textContent='속도 '+(sp*.16).toFixed(1)+' km/s';
+      const br=E.querySelector('.bracket'); br.style.display=onS&&ctl?'block':'none'; if(onS){ const sz=Math.max(40,Math.min(320,innerHeight*U.R.value*1.6)); br.style.left=((n.x+1)/2*innerWidth)+'px'; br.style.top=((1-n.y)/2*innerHeight)+'px'; br.style.width=br.style.height=sz+'px'; br.querySelector('b').textContent='웜홀'; }
+      const wx=toW.dot(rt), wy=toW.dot(up), off=Math.acos(clamp(toW.dot(fw),-1,1)), turn=ctl&&live&&off>.12, nose=E.querySelector('.nose'); nose.style.display=turn?'block':'none'; if(turn) nose.style.transform=`translate(-50%,-50%) rotate(${Math.atan2(-wy,wx)}rad)`;
+      if(live&&!turn&&v.dot(toW)<vmax*.8) W.add('fwd');
+      E.querySelector('.w').textContent=!ctl?'':turn?byDevice('화면을 화살표 쪽으로 끌어(또는 방향키) 기수를 웜홀로','화면을 화살표 쪽으로 끌어 기수를 웜홀로'):W.has('fwd')?byDevice('W 를 눌러 웜홀로','[전진] 을 눌러 웜홀로'):L<700?'웜홀 가까이 — 저절로 속도를 줄인다':'';
+      FLIGHT.want=W; E.querySelectorAll('.pads button').forEach(b=>b.classList.toggle('want',W.has(b.dataset.k)));
+      if(ctl&&!near&&L<RW*1.6&&this.onEdge){ const r=this.onEdge; this.onEdge=null; r(); } });
+    await fade(false,2600); S.phase='play'; AUDIO.hum(.6,36); MUSIC.play('space',{fade:4});
     await TALK.say([V('동면 해제. 크리스, 들립니까? 목성 궤도입니다.'),C('…목성이 창을 가득 채우고 있다.'),
       V('앞쪽에 웜홀. 1호의 마지막 항적도 저 안으로 이어집니다.'),C('1호는 저기로 들어가서, 돌아오지 못했다.')]);
     await this.slot('목성');
-    await TALK.say([V('진입 궤도 고정. 선체 응력이 올라갑니다. 몸을 고정하십시오.'),{who:'크리스',ch:'무전',kind:'me',t:'…R-1, 웜홀 진입.',auto:1800}]);
+    await TALK.say([V('조종을 넘깁니다. 웜홀 한가운데로 직접 몰고 들어가십시오.')]);
+    goal(byDevice('웜홀로 — W 전진 · 끌어서(또는 방향키) 기수 · 기수를 돌려 목성도 볼 수 있다','웜홀로 — [전진] · 끌어서 기수 · 기수를 돌려 목성도 볼 수 있다')); ctl=true; P.free=true;
+    await new Promise(r=>this.onEdge=r);
+    // 경계 : 자동 조종이 기수를 웜홀 한가운데로 · 속도는 일정하게
+    goal(''); S.phase='cut'; P.free=false; FLIGHT.btn={};
+    near=(dt,fw,toW,L)=>{ const ax=new THREE.Vector3().crossVectors(fw,toW); if(ax.length()>1e-4) rig.quaternion.premultiply(new THREE.Quaternion().setFromAxisAngle(ax.normalize(),Math.min(fw.angleTo(toW),dt*.8))); av.set(0,0,0); v.lerp(toW.clone().multiplyScalar(clamp((L-RW*1.08)*.3,0,30)),Math.min(1,dt*1.5)); };      // 경계 앞에서 멈춘다 (가운데를 지나쳐 버리지 않게)
+    await TALK.say([V('웜홀 경계 접근. 자동 조종으로 진입 궤도를 잡습니다.'),V('진입 궤도 고정. 선체 응력이 올라갑니다. 몸을 고정하십시오.'),{who:'크리스',ch:'무전',kind:'me',t:'…R-1, 웜홀 진입.',auto:1800}]);
     await this.slot('웜홀 앞');
-    // 통과 : 렌즈가 커지고 터널 무늬 · 흔들림 · 굉음 → 하얗게
-    S.phase='cut'; head.y=0; head.p=0; const R0=U0.R.value; let k=0, done=false; AUDIO.hum(1.6,34);
-    this.tick(dt=>{ k+=dt/10; const e=Math.min(1,k); U0.R.value=R0+Math.pow(e,2.2)*2.6; U0.tun.value=Math.max(0,(e-.45)/.55);
+    // 통과 : 렌즈가 화면을 삼키고 터널 무늬 · 흔들림 · 굉음 → 하얗게 (목성은 이미 등 뒤)
+    this.inTransit=true; const R0=U.R.value; let k=0, done=false; AUDIO.hum(1.6,34); el()&&el().classList.remove('on');
+    this.tick(dt=>{ k+=dt/10; const e=Math.min(1,k); U.R.value=R0+Math.pow(e,2.2)*2.6; U.tun.value=Math.max(0,(e-.45)/.55);
       const sh=e*e*.03; head.sx=(Math.random()-.5)*sh; head.sy=(Math.random()-.5)*sh; if(Math.random()<dt*3*e) AUDIO.noise(.5,.08+.1*e,0,300+600*e); if(e>=1) done=true; });
     setTimeout(()=>AUDIO.tone(60,8,'sawtooth',.06,0,-25),300);
     await TALK.say([V('중력 렌즈 경계 통과. 별빛이 고리 안으로 말려 들어갑니다.'),V('선체 응력 87%. 92%.'),C('버텨…!')]);
     while(!done) await sleep(100);
-    const fe=$('#fade'); fe.style.background='#fff'; await fade(true,500); AUDIO.hum(.2,30); this.clean(); U0.tun.value=0;
+    const fe=$('#fade'); fe.style.background='#fff'; await fade(true,500); AUDIO.hum(.2,30);
+    this.inTransit=false; FLIGHT.ui(false); this.clean(); U.tun.value=0; camera.far=2000; camera.updateProjectionMatrix();
     await sleep(1400); },
 };
