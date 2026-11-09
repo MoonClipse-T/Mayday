@@ -12,12 +12,18 @@ const STORY={
   prep(R){ R.root.traverse(o=>{ if(!o.isMesh) return; const m=o.material;
       if(/blood/.test(m.name)){ m.emissive=new THREE.Color(.5,.03,.02); m.emissiveMap=m.map; m.emissiveIntensity=2.2; m.depthWrite=false; m.polygonOffset=true; m.polygonOffsetFactor=-4; m.polygonOffsetUnits=-4; o.renderOrder=3; } });
     ['lamp','pod_cabin'].forEach(k=>this.show(k,false)); },
-  // 어둠 : 노출을 낮추고 화면 가장자리를 까맣게 (손전등 원) · red = 붉은 비상등
-  dark(on,{red=false}={}){ SHIP.dim=on?.3:1; let el=$('#torch'); if(!el){ el=document.createElement('div'); el.id='torch'; document.body.appendChild(el); }
+  // 어둠 : 방 불빛 · 둘레 빛을 끄고 화면 가장자리를 까맣게 (손전등 원) — 손전등이 비춘 곳만 또렷하게 밝다 (4.4 : 붉은 비상등 없음)
+  dark(on,{red=false}={}){ SHIP.dim=on?.8:1; let el=$('#torch'); if(!el){ el=document.createElement('div'); el.id='torch'; document.body.appendChild(el); }
     el.classList.toggle('on',on); el.classList.toggle('red',on&&red);
     if(!this.spot||!this.spot.parent){ this.spot=new THREE.SpotLight(0xfff1dc,0,22,.42,.5,1.4); WORLD.add(this.spot,this.spot.target);
       TICK.push(()=>{ const s=this.spot; if(!s.intensity) return; s.position.copy(camera.position); camera.getWorldDirection(s.target.position).multiplyScalar(4).add(camera.position); }); }
-    this.spot.intensity=on?3.2:0; },
+    Object.assign(this.spot,{distance:26,angle:.38,penumbra:.55,decay:1.3}); this.spot.intensity=on?8:0;
+    // 전력이 없으면 방 불빛 · 창으로 드는 햇빛 · 스스로 빛나는 것(문틀 빛 띠 · 벽 · 화면)이 죽는다 — 손전등이 비춘 곳만 (피는 그대로)
+    LIGHTPOOL.dark=on; if(on) WORLD.traverse(o=>{ if(o.isPointLight) o.userData.dark=true; });
+    scene.traverse(o=>{ if(o.isDirectionalLight){ if(o.userData.i0===undefined) o.userData.i0=o.intensity; o.intensity=o.userData.i0*(on?.08:1); } });
+    WORLD.traverse(o=>{ if(!o.isMesh||!o.material||Array.isArray(o.material)) return; const m=o.material; if(/blood/.test(m.name||'')) return;
+      if(m.emissive){ if(m.userData.ei===undefined) m.userData.ei=m.emissiveIntensity; m.emissiveIntensity=m.userData.ei*(on?.2:1); }
+      else if(m.isMeshBasicMaterial&&m.color&&!m.map&&m.color.getHex()===0x9fd8ff){ if(!m.userData.c0) m.userData.c0=m.color.clone(); m.color.copy(m.userData.c0).multiplyScalar(on?.12:1); } }); },
   // 기다리기 : 물건을 누를 때까지
   wait(mesh,name,o={}){ return new Promise(res=>{ const it=interact(mesh,name,()=>{ if(!it.done){ it.done=true; INTER.splice(INTER.indexOf(it),1); res(); } },{range:o.range||3,enabled:o.enabled}); }); },
   // 위치에 닿을 때까지

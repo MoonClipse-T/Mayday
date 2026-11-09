@@ -193,7 +193,7 @@ const TALK={on:false,q:[],i:0,res:null,timer:0,full:'',
     el.querySelector('.name').textContent=L.who||(L.kind==='me'?'크리스':''); el.querySelector('.ch').textContent=L.ch||(L.kind==='vega'?'VEGA':L.kind==='radio'?'무전':L.kind==='me'?'생각':'현장');
     const t=el.querySelector('.txt'); t.textContent=''; let k=0; clearInterval(this.timer); TALK.speaker(L.npc);
     if(L.fx) L.fx();
-    this.timer=setInterval(()=>{ k++; t.textContent=L.t.slice(0,k); if(k%3===0&&L.kind==='vega') AUDIO.tick(); if(k>=L.t.length){ clearInterval(this.timer); el.classList.add('done'); TALK.speaker(null); if(L.auto){ const i=this.i; setTimeout(()=>{ if(this.on&&this.i===i) this.next(); },L.auto); } } },L.kind==='vega'?28:24); },
+    this.timer=setInterval(()=>{ k++; t.textContent=L.t.slice(0,k); if(k%3===0&&L.kind==='vega') AUDIO.tick(); if(k>=L.t.length){ clearInterval(this.timer); el.classList.add('done'); TALK.speaker(null); if(L.auto){ const i=this.i, go=()=>{ if(!(this.on&&this.i===i)) return; const v=typeof VOICE!=='undefined'&&VOICE.el; if(v&&!v.ended&&!v.paused) return setTimeout(go,150); this.next(); }; setTimeout(go,L.auto); } } },L.kind==='vega'?28:24); },
   next(){ const t=$('#talk .txt'); if(t.textContent.length<this.full.length){ clearInterval(this.timer); t.textContent=this.full; $('#talk').classList.add('done'); TALK.speaker(null); return; }
     this.i++; if(this.i<this.q.length) return this.show();
     this.on=false; $('#talk').classList.remove('on'); TALK.speaker(null); busy(); const r=this.res; this.res=null; r&&r(); },
@@ -248,7 +248,7 @@ const LEVEL={key:null,root:null,spawn:{x:0,z:0,yaw:0},spots:{},items:{},lights:[
       kill.forEach(o=>o.parent&&o.parent.remove(o));
       delete GLB[key];                               // 풀어 둔 묶음이 있으니 내려받은 파일(메모리)은 놓는다
       b.merged=mergeStatic(root,group); [root,...b.merged].forEach(o=>o.userData.static=ck);
-      b.tris=SOLID.extract([root,...b.merged]);     // 몸 충돌 칸 목록 (일꾼이 화면 뒤에서) — 한 번만
+      b.tris=key==='launch'?Promise.resolve(new Int32Array(0)):SOLID.extract([root,...b.merged]);     // 몸 충돌 칸 목록 (일꾼이 화면 뒤에서) — 한 번만 · 발사대(수 km)는 걷지 않으니 빼다 (칸이 너무 많아 일꾼이 터진다)
       return b; })(); },
   preload(list){ return Promise.all(list.map(([k,o])=>this.build(k,o).catch(e=>console.warn('preload',k,e)))); },
   // add : 지금 세계를 지우지 않고 맵 하나를 더 올린다 (우주선 방들을 한 공간에) · ox = 세계에서 x 로 옮긴 만큼
@@ -286,9 +286,10 @@ const LIGHTPOOL={on:false,n:LITE?6:10,pool:[],acc:0,vl:[],
     this.on=true; this.scan(); },
   stop(){ this.on=false; this.pool.forEach(l=>l.intensity=0); this.vl=[]; },
   scan(){ WORLD.traverse(o=>{ if(o.isPointLight&&!o.userData.virt){ o.userData.virt=true; o.visible=false; this.vl.push(o); } }); this.vl=this.vl.filter(l=>{ for(let p=l;p;p=p.parent) if(p===WORLD) return true; return false; }); },
+  // dark : 전력이 죽은 배 — 그때 있던 방 불빛(userData.dark)은 꺼 둔다 (총구 · 섬광처럼 나중에 생긴 빛은 그대로)
   tick(dt){ if(!this.on) return; this.acc+=dt; if(this.acc>.5){ this.acc=0; this.scan(); }
     const c=camera.position, w=new THREE.Vector3(), cand=[];
-    for(const l of this.vl){ if(l.intensity<=0) continue; l.getWorldPosition(w); const d=w.distanceTo(c), reach=(l.distance||12)+2.5; if(d>reach) continue; cand.push([l.intensity*(1-d/reach)*(1+(l.distance||12)/8),l,w.clone()]); }
+    for(const l of this.vl){ if(l.intensity<=0||(this.dark&&l.userData.dark)) continue; l.getWorldPosition(w); const d=w.distanceTo(c), reach=(l.distance||12)+2.5; if(d>reach) continue; cand.push([l.intensity*(1-d/reach)*(1+(l.distance||12)/8),l,w.clone()]); }
     cand.sort((a,b)=>b[0]-a[0]);      // 이 자리를 실제로 밝히는 정도가 큰 순 (큰 방의 큰 빛이 작은 문등에 밀리지 않게)
     this.pool.forEach((p,i)=>{ const e=cand[i]; if(!e){ p.intensity=lerp(p.intensity,0,.3); return; } const [,l,pos]=e; p.position.copy(pos); p.color.copy(l.color); p.distance=l.distance; p.decay=l.decay; p.intensity=l.intensity; }); } };
 /* 별은 창유리로만 : 창(wf_glass…) 모양으로 표시(스텐실)를 남기고, 하늘은 그 표시 안에만 그린다 → 벽 · 천장 틈으로는 우주가 보이지 않는다 */

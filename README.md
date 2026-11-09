@@ -4,7 +4,7 @@
 NASA 긴급 브리핑(프롤로그)에서 시작해, 크리스는 혼자 1인 구조정을 타고 웜홀 너머 하위헌스 1호를 찾아간다. 1호는 이미 전멸했고, 시신마다 애벌레가 들어 있다. 총으로 애벌레를 없애고, 성체를 피해 숨고 도망치며, 1호를 몰고 웜홀로 돌아와야 한다. (4판 · 2026-11-03 — 동료 · 장 구분 · 문제는 뺐다. 문제는 나중에 하나씩 끼운다)
 
 - 게임: https://moonclipse-t.github.io/Mayday/ (고치는 중엔 `&dev` 를 붙이면 캐시 없이 받는다)
-- 제작용 바로 가기 `?s=` : `meeting`(처음 · 브리핑) · `cockpit`(구조정) · `board`(1호 에어록) · `survivor`(생존자) · `hunt`(애벌레 사냥) · `engine`(기관실 · 성체) · `bridge`(함교 · 출발)
+- 제작용 바로 가기 `?s=` : `meeting`(처음 · 브리핑) · `launch`(발사) · `depart`(지구 궤도) · `jupiter`(목성 · 웜홀) · `cockpit`(웜홀 건너편 비행) · `board`(1호 에어록) · `survivor`(생존자) · `hunt`(애벌레 사냥) · `engine`(기관실 · 성체) · `bridge`(함교 · 출발)
 - 이야기 · 흐름: [STORY.md](STORY.md)
 - 아직 별과 우주 아카이브에는 넣지 않았다 (다 만든 뒤에 넣는다).
 
@@ -79,6 +79,7 @@ Blender 의 `fog_volume`(안개 부피 상자)은 웹에서 회색 벽이 되므
 ## 출처
 - 우주선: [Sci-fi corridor](https://sketchfab.com/3d-models/sci-fi-corridor-5e6240c9b30145b0bf81fd02287985e3) by 3dhdscan · [Stasis / Clone Chamber](https://sketchfab.com/3d-models/stasis-clone-chamber-with-animations-8738f78ae4ec4630ac35a4783303ea95) by TampaJoey — CC BY 4.0
 - **애벌레**: [Lurker - Rigged and Animated](https://sketchfab.com/3d-models/28b3e1a216904de7ad212368fb9d8f59) by HighPolyDensity → `web/assets/larva.glb` · **성체**: [Nightmare Creature 1#](https://sketchfab.com/3d-models/9fb509d207d744babeb5d87a486f7de1) by Mr.Prizz → `beast.glb` — CC BY 4.0
+- **발사대**: [Space Center Realistic Launch Facility](https://sketchfab.com/3d-models/space-center-realistic-launch-facility-4c87468c552243ec815251b7cb24bc04) by Nikoleta.Zhecheva (CC BY) — `web/assets/launch.glb`
 - **시신**: [Dead Hazmat Female](https://sketchfab.com/3d-models/2e879c914d6b4e15a05f8496977854fd) by OHR3D · [Low Poly Dead Body Covered](https://sketchfab.com/3d-models/1e6ae13f6c2e46429eaca4d22d8bdbaa) by -Arthur- · [Corpse](https://sketchfab.com/3d-models/be9b034525c246cebab3620acb5a8027) by Tamal De Quezo → `corpse_a/b/c.glb` · **구조정 조종석**: [Spacefighter Cockpit (Wasp Interdictor)](https://sketchfab.com/3d-models/db4aa67fe1164ec088083d7dac2d273f) by Comrade1280 → `cockpit.glb` — CC BY 4.0
 - **소리**: 목소리 · 배경 음악 · 효과음 — ElevenLabs 로 생성 (`web/audio/` · 원본 `assets/elevenlabs/`)
 - 옷장: [Locker Equipment](https://sketchfab.com/3d-models/fae22ece4d764979aafd614ebe09956d) by Siberia (문을 Blender 에서 경첩 축으로 나눔 → `web/assets/locker.glb`) · 침대: [Hospital Bed](https://sketchfab.com/3d-models/f8c13a19e84343e7b644c19f7b9488d3) by loxfear → `bed.glb` — CC BY 4.0

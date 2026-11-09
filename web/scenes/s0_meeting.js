@@ -7,7 +7,7 @@
    ============================================================ */
 'use strict';
 SCENES.meeting={title:'프롤로그 · 브리핑룸', async enter(){
-  prefetch(['cockpit','ship_ext',...SHIP.list().map(l=>l[0])]);      // 회의 동안 구조정 · 1호 파일을 받아 둔다
+  prefetch(['launch','cockpit','ship_ext',...SHIP.list().map(l=>l[0])]);      // 회의 동안 구조정 · 1호 파일을 받아 둔다
   await LEVEL.load('meeting'); await SKY.city(-1.1,.9); renderer.toneMappingExposure=1;
   // 방은 조명이 구워져 있고, 사람만 빛을 받는다
   WORLD.add(new THREE.HemisphereLight(0xfff6ea,0x2a2a30,1.05));
@@ -91,8 +91,7 @@ SCENES.meeting={title:'프롤로그 · 브리핑룸', async enter(){
     G('출발은 다음 주, 케네디 39B. 오늘은 여기까지.'),
   ]);
   all.concat(gray).forEach(p=>p.lookAt=null);
-  // 회의가 끝나면 넉 달 뒤 — 웜홀을 막 지난 구조정 조종석 (scenes/game.js)
+  // 회의가 끝나면 다음 주 발사 → 지구 궤도 출발 → 넉 달 뒤 목성 · 웜홀 (scenes/journey.js) → 웜홀 건너편 조종석 (scenes/flight.js)
   S.phase='cut'; P.look=false; goal(''); await fade(true,1400);
-  await card('','넉 달 뒤','2091년 7월 · 동면에서 깨어난 구조정 R-1',2800);
-  await GAME.cockpit();
+  await GAME.journey();
 }};

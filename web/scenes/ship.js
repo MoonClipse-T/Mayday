@@ -55,7 +55,7 @@ SCENES.ship={title:'하위헌스 1호', async enter(){ SHIP.zone=null; SHIP.lock
   const R={}; for(const [k,op] of L.filter(l=>l[0]!=='hall')) R[k]=await LEVEL.add(k,op);
   SHIP.rooms=R; for(const r of Object.values(R)) r.X=x=>x+r.ox;
   await SKY.space(SHIP.sky());
-  WORLD.add(new THREE.HemisphereLight(0xc8d8ee,0x121518,.38));
+  WORLD.add(SHIP.hemi=new THREE.HemisphereLight(0xc8d8ee,0x121518,.38));
   await SHIP.hall();
   SHIP.door(R.bridge,'함교','중앙 복도'); SHIP.door(R.deck,'식당 · 의무실','중앙 복도'); SHIP.door(R.cryo,'동면 구역 C','중앙 복도');
   SHIP.door(R.lab,'연구실','중앙 복도',{x:37.43}); SHIP.door(R.lab,'에어록','중앙 복도',{x:50.43,key:'airlock'});

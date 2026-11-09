@@ -10,7 +10,7 @@ function emergency(R,x,y,z){ const l=new THREE.PointLight(0xff2a14,0,8,1.8); l.p
 // 의자 7개가 거꾸로(등받이가 화면 쪽) 내보내져 있다 → 제자리에서 반 바퀴
 ROOMS.bridgePrep=root=>root.children.filter(o=>/^seat_/.test(o.name)).forEach(o=>{ const c=new THREE.Box3().setFromObject(o).getCenter(new THREE.Vector3());
   o.rotation.y+=Math.PI; o.updateMatrixWorld(true); const c2=new THREE.Box3().setFromObject(o).getCenter(new THREE.Vector3()); o.position.x+=c.x-c2.x; o.position.z+=c.z-c2.z; });
-const deadGlow=R=>R.objs.forEach(r=>r.traverse(o=>{ if(o.isMesh&&o.material&&/wall_albedo|base_ram|base_door/.test(o.material.name)) o.material.emissiveIntensity=.12; }));
+const deadGlow=R=>R.objs.forEach(r=>r.traverse(o=>{ if(o.isMesh&&o.material&&/wall_albedo|base_ram|base_door/.test(o.material.name)) o.material.emissiveIntensity=.03; }));
 
 ROOMS.bridge=async R=>{ deadGlow(R); const it=R.items;
   const tm=new THREE.MeshStandardMaterial({color:0x1b1f25,metalness:.65,roughness:.38}); R.objs.forEach(r=>r.traverse(o=>{ if(o.isMesh&&o.material&&o.material.name==='Table_v2') o.material=tm; }));
@@ -68,4 +68,4 @@ ROOMS.engine=async R=>{ const it=R.items;
     const f=dt=>{ k=Math.min(1,k+dt/4); core.intensity=(2.2+.6*Math.sin(S.t*1.4))*k; lamps.forEach(l=>l.intensity=1.4*k); R.objs.forEach(o=>{ if(o.isPointLight&&o.userData.on) o.intensity=o.userData.on*k; }); }; TICK.push(f); }; };
 
 // 비상등 숨쉬기 (ship.js 가 TICK 에 넣는다)
-const emergTick=dt=>{ const a=Math.max(0,Math.sin(S.t*1.6))**4; EMERG.forEach(l=>l.intensity=a*2.2); };
+const emergTick=dt=>{ EMERG.forEach(l=>l.intensity=0); };      // 4.4 : 붉은 비상등을 끈다 (시야를 가렸다 — 사용자) · 전력 0 = 불빛 없음

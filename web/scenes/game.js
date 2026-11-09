@@ -21,10 +21,11 @@ const LEAH_WEAR={grime:[.5,.46,.42],desat:.45,matte:true,blobs:[[.5,.66,.82,.075
   [.03,.56,.5,.06,'b'],[.97,.56,.5,.06,'b'],[.1,.56,.5,.06,'o'],[.9,.56,.5,.06,'o'],[.5,.92,.85,.05,'o'],[.56,.9,.9,.035,'b'],[.5,.8,.5,.09,'o'],[.5,.5,.2,.1,'o']]};
 
 const GAME={cp:null,
-  stages:['meeting','cockpit','board','survivor','hunt','engine','bridge'],
+  stages:['meeting','launch','depart','jupiter','cockpit','board','survivor','hunt','engine','bridge'],
   // 바로 가기 · 처음부터
   async jump(key){ const f=S.flags; S.phase='cut'; P.free=false;
     if(key==='meeting') return SCENES.meeting.enter();
+    if(['launch','depart','jupiter'].includes(key)) return this.journey(key);
     if(key==='cockpit') return this.cockpit();
     await this.ship();
     if(key==='board') return this.board();
@@ -33,13 +34,17 @@ const GAME={cp:null,
     this.leahDead(); if(key==='hunt'){ warp(27,7,Math.PI); return this.hunt(); }
     Object.assign(f,{hunted:true}); LARVA.on=false; LARVA.hosts.forEach(h=>h.done=true);
     if(key==='engine'){ warp(46,10.5,-Math.PI/2); return this.engine(); }
-    f.power=true; ROOMS.power(); warp(54,10.5,Math.PI/2); return this.escape(); },
+    f.power=true; this.lightsOn(); warp(54,10.5,Math.PI/2); return this.escape(); },
 
   /* ---- ① 구조정 : 직접 몰고 가 도킹한다 (scenes/flight.js) → 연결 통로를 지나 1호 에어록 ---- */
+  // 전력 복구 : 방 불빛 · 빛 띠 · 화면이 돌아온다 (손전등은 그대로 · 조금 약하게)
+  lightsOn(){ ROOMS.power(); STORY.dark(false); $('#torch').classList.add('on'); STORY.spot.intensity=4; SHIP.dim=.75; if(SHIP.hemi) SHIP.hemi.intensity=.38; },
   async cockpit(){ await FLIGHT.run(); await this.ship(); return this.board(); },
+  // 회의 다음 : 발사 → 지구 궤도 출발 → 동면 → 넉 달 뒤 목성 · 웜홀 (scenes/journey.js) → 건너편에서 직접 몰고 도킹
+  async journey(from='launch'){ await JOURNEY.run(from); await FLIGHT.run({journey:true}); await this.ship(); return this.board(); },
 
   /* ---- 1호 불러오기 (어둠 · 시신 · 피) ---- */
-  async ship(){ const f=S.flags; await SCENES.ship.enter(); MUSIC.play('derelict',{fade:3}); STORY.show('h1',true); STORY.dark(true,{red:true}); SHIP.dim=.32;
+  async ship(){ const f=S.flags; await SCENES.ship.enter(); MUSIC.play('derelict',{fade:3}); STORY.show('h1',true); STORY.dark(true); SHIP.dim=.8; if(SHIP.hemi) SHIP.hemi.intensity=.035;      // 붉은 빛 없이 캄캄하게 — 손전등이 비춘 곳만 밝다
     Object.values(SHIP.doors).forEach(d=>d.open());      // 전력이 없어 문은 모두 열린 채
     await this.bodies(); await HIDE.setup(); TICK.push(dt=>HIDE.tick(dt)); await GUN.hold(); ME.heal(); ME.onDeath=()=>this.died(); DREAD.on();
     // 어둠 속 소리 : 몇 초마다 어딘가에서 (가끔 머리 위 쿵)
@@ -140,7 +145,7 @@ const GAME={cp:null,
     await Promise.all(cons.map((c,i)=>STORY.at(c,'원자로 제어 콘솔 — 켠다','',{range:2.4}).then(async()=>{ done++; AUDIO.tone(300+i*200,.4,'square',.05); AUDIO.noise(.8,.3,0,500); goal('원자로 제어 콘솔 둘을 켠다 — '+done+' / 2');
       if(done===1){ TALK.say([VG('첫 번째 콘솔 응답. …소리가 컸습니다.')]); wake(); b.heard={x:P.x,z:P.z}; } })));
     TICK.splice(TICK.indexOf(watch),1);
-    ROOMS.power(); STORY.dark(true,{red:false}); SHIP.dim=.75; FX.shake(1.2,.03); AUDIO.tone(55,4,'sawtooth',.08,0,40);
+    this.lightsOn(); FX.shake(1.2,.03); AUDIO.tone(55,4,'sawtooth',.08,0,40);
     await TALK.say([VG('원자로 재점화! 1호 전력 복구 — 12%, 30%…'),VG('함교 조종석으로 가십시오, 크리스. 거기서 1호를 움직일 수 있습니다!')]);
     if(!stop) wake(); this.stopBeast=()=>{ stop&&stop(); };
     return this.escape(); },
