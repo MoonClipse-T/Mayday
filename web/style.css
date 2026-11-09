@@ -317,3 +317,7 @@ body.hiding #stick,body.hiding #run,body.hiding #jump,body.hiding #act,body.hidi
 #grabfx.on{opacity:1;animation:grabpulse .25s infinite alternate} @keyframes grabpulse{to{opacity:.6}}
 #grabfx p{position:absolute;left:50%;top:62%;transform:translateX(-50%);font:600 22px var(--sans);color:#fff;text-shadow:0 0 10px #000;white-space:nowrap}
 #reticle.hit i{background:#ff5a36!important;box-shadow:0 0 6px #ff5a36} #reticle.kill{transform:scale(1.6)} #reticle.kill i{background:#ff2a14!important}
+/* 4.6 후방 도킹 카메라 : 해치 밖 카메라 화면 (주사선 · 가장자리 어둡게 · 글) */
+body.aftcam::after{content:'AFT CAM · 후방 도킹 카메라';position:fixed;inset:0;z-index:4;pointer-events:none;display:flex;justify-content:center;align-items:flex-end;padding-bottom:calc(var(--pad) + 10px);
+  font:600 11px/1 'IBM Plex Mono',monospace;letter-spacing:.24em;color:rgba(159,216,255,.85);
+  background:repeating-linear-gradient(0deg,rgba(0,0,0,.16) 0 1px,transparent 1px 3px),radial-gradient(ellipse at center,rgba(0,0,0,0) 52%,rgba(0,0,0,.7) 100%)}

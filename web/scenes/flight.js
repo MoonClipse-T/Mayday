@@ -14,7 +14,7 @@ const FLIGHT={W:.12,               // 1호 자전 (rad/s ≈ 6.9°/s)
   async run({journey=false}={}){ const self=this; S.phase='cut'; P.free=false; LEVEL.clear(); goal('');
     stamp('구조정 R-1 · 조종석','2091.07 · 웜홀 통과 +00:04');
     SHIP.preload();                                            // 1호 안은 나는 동안 화면 뒤에서 풀어 둔다
-    const [ck,hull]=await Promise.all([loadGLB('cockpit'),loadGLB('ship_ext')]);
+    const hull=await loadGLB('ship_ext');
     await SKY.space({dir:[.1,.08,-1],R:.1,srot:2.4,jupiter:false,sunDir:[-.55,.4,.75]});      // 웜홀은 등 뒤 · 행성 없음
     scene.background=new THREE.Color(0x000000);
     WORLD.add(new THREE.HemisphereLight(0x6f7f99,0x050607,.045));
@@ -26,15 +26,17 @@ const FLIGHT={W:.12,               // 1호 자전 (rad/s ≈ 6.9°/s)
     G.updateMatrixWorld(true); const hb=new THREE.Box3().setFromObject(hull); this.hb=hb.clone();
     const zf=hb.min.z, port=this.port=new THREE.Group(); port.position.set(0,0,zf-2.2); G.add(port); this.buildPort(port,zf);
     this.debris(hb); this.dust();
-    /* ---- 나 : 구조정 (조종석 모델 · 앞 = +z) ---- */
-    const rig=this.rig=new THREE.Group(); ck.position.y=-1.74; rig.add(ck); WORLD.add(rig);
-    ck.traverse(o=>{ if(o.isMesh&&/glass/i.test(o.material.name)){ o.material.transparent=true; o.material.opacity=.1; o.material.depthWrite=false; } });
-    const dash=new THREE.PointLight(0x7fd4ff,.7,2.4,2); dash.position.set(0,.85,-.55); rig.add(dash);
+    /* ---- 나 : 구조정 R-1 (scenes/r1.js — 조종석 · 로비 · 해치 방, 앞 = +z) ----
+       rig = 조종하는 몸(기수 = +z) · 그 안의 R-1 묶음 g. 도킹 때는 g 만 반 바퀴 돌려 뒤(외부 해치)를 앞으로 — 조종 계산은 그대로 */
+    const rig=this.rig=new THREE.Group(); WORLD.add(rig); const g=await R1.mount(rig);
+    const dash=new THREE.PointLight(0x7fd4ff,.7,2.4,2); dash.position.set(0,.85,-.55); g.add(dash);
     // 전조등 : 1호는 스스로 빛나지 않는다 — 내 빛이 닿는 데만 보인다 (앞 = +z)
     const lamp=new THREE.SpotLight(0xe8f0ff,1.5,190,.3,.6,1.15); lamp.position.set(0,.2,1.6); lamp.target.position.set(0,0,40); rig.add(lamp,lamp.target);
-    this.stick=this.pivot(ck,'steering'); this.throttle=this.pivot(ck,'throttle');
+    this.stick=this.pivot(R1.b.root,'steering'); this.throttle=this.pivot(R1.b.root,'throttle');
     rig.position.set(18,9,zf-640); rig.lookAt(0,0,zf);      // 물체의 lookAt 은 +z 를 목표로 — 이 모델도 +z 가 앞
     this.v=new THREE.Vector3(); this.av=new THREE.Vector3(); this.head={y:0,p:-.04}; this.fails=0; this.docked=false; this.assist=false; this.sync=false; this.mode=null; this.want=new Set();
+    this.helm=true; this.aftcam=false; this.nose=0; document.body.classList.remove('aftcam');
+    window.dragHook=null;
     TICK.push(this.fn=dt=>this.tick(dt)); MUSIC.play('space',{fade:4});
     this.ui(true);
     await fade(false,2200); $('#fade').style.background='';
@@ -49,11 +51,24 @@ const FLIGHT={W:.12,               // 1호 자전 (rad/s ≈ 6.9°/s)
       VG(byDevice('조종은 선장님께 넘깁니다. W 전진 · 화면을 끌어(또는 방향키) 기수 · X 정지. 1호 뱃머리의 도킹 고리로 가십시오.','조종은 선장님께 넘깁니다. [전진] · 화면을 끌어 기수 · [정지]. 1호 뱃머리의 도킹 고리로 가십시오.'),'조종은 선장님께 넘깁니다. W 전진 · 끌기로 기수 · X 감속. 1호 뱃머리의 도킹 고리로 가십시오.')]);
     goal(byDevice('1호 도킹 고리로 — W 전진 · 끌어서 기수','1호 도킹 고리로 — [전진] · 끌어서 기수'));
     await new Promise(r=>this.onNear=r);
-    await TALK.say([VG('도킹 고리 앞 60 m. 도킹 절차를 시작합니다.'),VG('① 축 맞추기 · ② 회전 맞추기 · ③ 표시 맞추기 · ④ 천천히 닿기. 지금 눌러야 할 단추가 빛납니다.','① 1호의 긴 축에 맞춰 일직선으로 · ② Q/E 로 1호와 같은 빠르기로 돌고 · ③ 고리의 주황 표시 셋을 화면의 표시에 맞춘 뒤 · ④ 초속 0.8 m 보다 느리게 닿으십시오.'),
+    // R-1 의 도킹 해치는 뒤쪽 : VEGA 가 배를 돌리는 동안 해치 방의 후방 도킹 조종대로 걸어간다 → 뒤 카메라를 보며 도킹
+    this.helm=false;
+    await TALK.say([VG('도킹 고리 앞 60 m. 도킹 절차를 시작합니다.'),VG('R-1 의 도킹 해치는 뒤쪽입니다. 제가 배를 돌려 뒤를 1호에 대겠습니다.'),VG('해치 방의 후방 도킹 조종대로 가 주십시오. 거기서 뒤 카메라를 보며 모십니다.')]);
+    await R1.stand(this.head); this.turn();
+    await R1.task('aft','해치 방(맨 뒤) — 후방 도킹 조종대로');
+    if(!this.turned.done){ goal('배를 돌리는 중…'); await this.turned; }
+    S.phase='cut'; P.free=false; goal(''); await camTo({x:.62,z:-10.62,yaw:-Math.PI/2,pitch:-.12,eye:1.5},.8);
+    AUDIO.tone(660,.1,'square',.04); AUDIO.noise(.4,.08,0,2400); this.aftcam=true; document.body.classList.add('aftcam'); this.ui(true); this.helm=true; S.phase='play';
+    await TALK.say([VG('후방 카메라 연결. 이제 뒤가 앞입니다.'),VG('① 축 맞추기 · ② 회전 맞추기 · ③ 표시 맞추기 · ④ 천천히 닿기. 지금 눌러야 할 단추가 빛납니다.','① 1호의 긴 축에 맞춰 일직선으로 · ② Q/E 로 1호와 같은 빠르기로 돌고 · ③ 고리의 주황 표시 셋을 화면의 표시에 맞춘 뒤 · ④ 초속 0.8 m 보다 느리게 닿으십시오.'),
       I('…돌아가는 문에 맞춰 들어간다.')]);
     goal('도킹 — 빛나는 단추를 따라 한 단계씩');
     this.mode='dock'; await new Promise(r=>this.onDock=r);
     await this.board(); },
+  // 배 돌리기 : 조종하는 몸(rig)은 그대로 1호를 보고, R-1 만 반 바퀴 — 끝나면 외부 해치가 앞(1호 쪽)
+  turn(){ const g=R1.g; let k=0, th=0; this.turned=new Promise(res=>{ const f=dt=>{ k=Math.min(1,k+dt/9); g.rotation.y=Math.PI*k*k*(3-2*k); th-=dt; if(k<1&&th<=0){ th=.7; SFX.play('thruster',{vol:.5}); }
+      if(k>=1){ TICK.splice(TICK.indexOf(f),1); this.nose=R1.NOSE; this.turned.done=true; toast('배 돌리기 완료 — 외부 해치가 1호 쪽',2200); res(); } }; TICK.push(f); }); },
+  // 도킹 기준점 : 보통은 조종하는 몸의 자리 · 돌린 뒤에는 외부 해치(기수 쪽으로 NOSE m)
+  dockPt(){ const p=this.rig.position.clone(); if(this.nose) p.addScaledVector(new THREE.Vector3(0,0,1).applyQuaternion(this.rig.getWorldQuaternion(new THREE.Quaternion())),this.nose); return p; },
 
   /* ---- 장면 만들기 ---- */
   sunSprite(d){ const cv=document.createElement('canvas'); cv.width=cv.height=256; const g=cv.getContext('2d'), gr=g.createRadialGradient(128,128,0,128,128,128);
@@ -105,7 +120,7 @@ const FLIGHT={W:.12,               // 1호 자전 (rad/s ≈ 6.9°/s)
     G.rotation.z+=this.W*dt; for(const m of this.deb){ m.rotation.x+=m.userData.w.x*dt; m.rotation.y+=m.userData.w.y*dt; m.position.addScaledVector(m.userData.v,dt); }
     if(!this.docked){
       const q=rig.quaternion, fw=new THREE.Vector3(0,0,1).applyQuaternion(q), up=new THREE.Vector3(0,1,0).applyQuaternion(q), rt=new THREE.Vector3().crossVectors(fw,up);      // 앞 +z · 위 +y 이면 오른쪽은 −x
-      const ctl=S.phase==='play'&&!TALK.on, dock=this.mode==='dock', on=k=>ctl&&(K['Key'+this.KEYS[k]]||B[k]);
+      const ctl=S.phase==='play'&&!TALK.on&&this.helm, dock=this.mode==='dock', on=k=>ctl&&(K['Key'+this.KEYS[k]]||B[k]);      // helm : 조종석 · 후방 조종대에 있을 때만 (걷는 동안은 배가 멈춰 선다)
       const thr=(on('fwd')?1:0)-(on('back')?1:0), lat=(on('right')?1:0)-(on('left')?1:0), ver=(on('up')?1:0)-(on('down')?1:0); this.thr=thr;
       const near=dock?.45:1;      // 도킹 중에는 추력을 작게 (섬세하게)
       this.v.addScaledVector(fw,thr*(thr>0?5:3)*near*dt).addScaledVector(rt,lat*1.8*near*dt).addScaledVector(up,ver*1.8*near*dt);
@@ -135,10 +150,10 @@ const FLIGHT={W:.12,               // 1호 자전 (rad/s ≈ 6.9°/s)
     }
     // 먼지 : 내 둘레로 감싼다
     const dp=this.dustPts.geometry.attributes.position, c=rig.position; for(let i=0;i<dp.count;i++){ for(let a=0;a<3;a++){ let v=dp.array[i*3+a]-c.getComponent(a); if(v>40) dp.array[i*3+a]-=80; else if(v<-40) dp.array[i*3+a]+=80; } } dp.needsUpdate=true;
-    // 카메라 : 조종석 눈 + 고개 (조종석은 +z 를 본다)
-    rig.updateMatrixWorld(true); const eye=new THREE.Vector3(0,1.02,-1.22).applyMatrix4(rig.matrixWorld);
-    const hq=new THREE.Quaternion().setFromEuler(new THREE.Euler(this.head.p,Math.PI+this.head.y,0,'YXZ')), wq=rig.getWorldQuaternion(new THREE.Quaternion());
-    if(!this.boarding){ camera.position.copy(eye); camera.quaternion.copy(wq).multiply(hq); }
+    // 카메라 : 앉아 있으면 조종석 눈 + 고개 (조종석은 +z 를 본다) · 후방 조종대면 외부 해치 밖의 뒤 카메라 · 걸을 때는 R1 이 놓는다
+    const gw=R1.g.getWorldQuaternion(new THREE.Quaternion());
+    if(R1.seated&&!this.boarding){ camera.position.copy(R1.eye()); camera.quaternion.copy(gw).multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(this.head.p,Math.PI+this.head.y,0,'YXZ'))); }
+    else if(this.aftcam){ R1.g.updateMatrixWorld(true); camera.position.copy(new THREE.Vector3(0,1.1,-12.25).applyMatrix4(R1.g.matrixWorld)); camera.quaternion.copy(gw); }
     this.hud(); },
   // 계기판 : 거리 · 속도 · 목표 괄호 · 기수 화살표 · 도킹 단계판 · 빛나는 단추
   hud(){ const el=$('#flight'); if(!el||!el.classList.contains('on')) return; const {pp,d,lat,rel}=this.portRel(), sp=this.v.length(), q=this.rig.quaternion;
@@ -173,9 +188,9 @@ const FLIGHT={W:.12,               // 1호 자전 (rad/s ≈ 6.9°/s)
       m.querySelectorAll('polygon').forEach((p,k)=>p.setAttribute('transform',`rotate(${k*120-D.ra*57.3})`)); }
     this.want=W; el.querySelectorAll('.pads button').forEach(b=>b.classList.toggle('want',W.has(b.dataset.k))); },
   // 도킹 고리 기준 : d = 고리 앞으로의 거리 · lat = 축에서 벗어난 거리 · rel = 고리에서 나까지
-  portRel(){ const pp=this.port.getWorldPosition(new THREE.Vector3()), out=new THREE.Vector3(0,0,-1), rel=this.rig.position.clone().sub(pp), d=rel.dot(out), lat=rel.clone().addScaledVector(out,-d).length(); return {pp,d,lat,rel,out}; },
+  portRel(){ const pp=this.port.getWorldPosition(new THREE.Vector3()), out=new THREE.Vector3(0,0,-1), rel=this.dockPt().sub(pp), d=rel.dot(out), lat=rel.clone().addScaledVector(out,-d).length(); return {pp,d,lat,rel,out}; },
   // 선체 충돌 : 1호 상자(조금 줄인) 안으로 들어가면 튕긴다
-  collide(){ const G=this.G, loc=G.worldToLocal(this.rig.position.clone()), b=this.hb, m=.9;
+  collide(){ const G=this.G, loc=G.worldToLocal(this.dockPt()), b=this.hb, m=.9;
     if(loc.x>b.min.x*m&&loc.x<b.max.x*m&&loc.y>b.min.y*m&&loc.y<b.max.y*m&&loc.z>b.min.z+4&&loc.z<b.max.z){ const c=new THREE.Vector3(0,0,(b.min.z+b.max.z)/2), n=loc.clone().sub(c); n.z*=.3; n.normalize().transformDirection(G.matrixWorld);
       this.rig.position.addScaledVector(n,1.2); this.v.reflect(n).multiplyScalar(.3); this.bump('선체 충돌!'); } },
   bump(t){ if(this._bt>S.t) return; this._bt=S.t+1; FX.shake(.6,.06); AUDIO.noise(.6,.4,0,300); AUDIO.tone(70,.5,'sawtooth',.08,0,-30); toast(t,1500); },
@@ -196,30 +211,33 @@ const FLIGHT={W:.12,               // 1호 자전 (rad/s ≈ 6.9°/s)
   async latch(){ if(this.docked) return; this.docked=true; this.mode=null; S.phase='cut'; P.free=false; goal('');
     const {pp}=this.portRel(); const G=this.G; G.attach(this.rig); this.v.set(0,0,0); this.av.set(0,0,0);
     // 마지막 몇 cm : 고리 쪽으로 빨려 들어가 맞물린다
-    const from=this.rig.position.clone(), to=G.worldToLocal(pp.clone().add(new THREE.Vector3(0,0,-1.2))); let k=0;
+    const from=this.rig.position.clone(), to=G.worldToLocal(pp.clone().add(new THREE.Vector3(0,0,-1.2-this.nose))); let k=0;      // 외부 해치가 고리에 닿도록 (돌린 배는 해치까지 NOSE m)
     await new Promise(res=>{ const f=dt=>{ k=Math.min(1,k+dt/1.2); this.rig.position.lerpVectors(from,to,k*k*(3-2*k)); if(k>=1){ TICK.splice(TICK.indexOf(f),1); res(); } }; TICK.push(f); });
     SFX.play('dock'); FX.shake(.8,.05); await sleep(1600); FX.shake(.3,.03); await sleep(900);
-    this.ui(false); $('#flight').classList.remove('on');
+    this.ui(false); $('#flight').classList.remove('on'); this.helm=false; this.aftcam=false; document.body.classList.remove('aftcam');      // 뒤 카메라를 끄고 해치 방으로
     await TALK.say([VG('도킹 고리 잠김. 걸쇠 셋 — 모두 물렸습니다.'),VG('회전 동기화 완료. 이제 우리가 1호와 함께 돕니다.'),I('…창밖의 별이 돈다.'),
       VG('연결 통로 기압 맞추는 중… 1호 쪽 온도 영하 12도. 공기는 숨 쉴 수 있습니다.'),VG('그레이 국장의 지시를 다시 알려 드립니다 — 권총을 챙기십시오.'),I('…18 헤르츠. 그 소리가 뭔지 이제 알게 되겠군.')]);
     const r=this.onDock; this.onDock=null; r&&r(); },
-  // 해치를 지나 1호로 : 일어나 앞 해치 → 연결 통로 → 1호 에어록 문이 열린다
-  async board(){ this.boarding=true; const rig=this.rig; rig.updateMatrixWorld(true);
-    // 연결 통로 (구조정 앞 → 1호 고리) : 원통 · 손잡이 · 띠 조명 · 끝의 1호 해치(두 쪽으로 열림)
-    const T=new THREE.Group(); rig.add(T); T.position.set(0,.6,.9);
+  // 해치를 지나 1호로 : 해치 방에서 외부 해치를 직접 연다 → 연결 통로 → 1호 쪽 문을 손으로 연다
+  async board(){ this.boarding=true; const g=R1.g;
+    // 연결 통로 (R-1 외부 해치 → 1호 고리) : 원통 · 손잡이 · 띠 조명 · 끝의 1호 해치(두 쪽으로 열림)
+    const T=new THREE.Group(); g.add(T); T.position.set(0,.85,-11.95); T.rotation.y=Math.PI;
     const tm=new THREE.MeshStandardMaterial({color:0x3a4048,metalness:.6,roughness:.5,side:THREE.BackSide}), tube=new THREE.Mesh(new THREE.CylinderGeometry(.85,.85,4.2,20,1,true),tm); tube.rotation.x=Math.PI/2; tube.position.z=2.1; T.add(tube);
     for(let i=0;i<5;i++){ const s=new THREE.Mesh(new THREE.TorusGeometry(.84,.03,6,24),new THREE.MeshBasicMaterial({color:i%2?0x9fd8ff:0x2a3038,toneMapped:false})); s.position.z=.4+i*.9; T.add(s); }
     const lt=new THREE.PointLight(0x9fd8ff,1.4,5,1.6); lt.position.set(0,.5,1.8); T.add(lt);
     const hm=new THREE.MeshStandardMaterial({color:0x6a7078,metalness:.7,roughness:.4}), h1=new THREE.Mesh(new THREE.BoxGeometry(.85,1.7,.08),hm), h2=h1.clone(); h1.position.set(-.425,0,4.15); h2.position.set(.425,0,4.15); T.add(h1,h2);
     const red=new THREE.PointLight(0xff2a14,1.2,3,1.6); red.position.set(0,.6,3.8); T.add(red);
-    const cam0=camera.position.clone(), q0=camera.quaternion.clone(), path=[new THREE.Vector3(0,1.25,-.6),new THREE.Vector3(0,1.0,.7),new THREE.Vector3(0,.95,1.6),new THREE.Vector3(0,.95,3.3)];
-    const look=new THREE.Quaternion(); rig.getWorldQuaternion(look); look.multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(0,Math.PI,0)));
-    const walk=(a,b,dur,bob=0)=>new Promise(res=>{ let k=0; const f=dt=>{ k=Math.min(1,k+dt/dur); const e=k*k*(3-2*k), p=a.clone().lerp(b,e); p.y+=Math.sin(k*Math.PI*4)*bob; camera.position.copy(p.applyMatrix4(rig.matrixWorld)); camera.quaternion.slerpQuaternions(q0,look,Math.min(1,k*2)); if(k>=1){ TICK.splice(TICK.indexOf(f),1); res(); } }; TICK.push(f); });
-    AUDIO.noise(1.2,.12,0,1200); await walk(new THREE.Vector3(0,1.02,-1.22),path[0],1.2);
-    SFX.play('airlock'); toast('앞 해치 개방',1200); await walk(path[0],path[1],1.6,.02); await walk(path[1],path[2],1.2,.03);
+    // 해치 방에서 : 걸어서 외부 해치로 (P 는 R-1 안의 좌표 · 해치는 −z 쪽)
+    S.phase='play'; P.free=true;
+    await TALK.say([I('…권총. 그리고 손전등.'),VG('외부 해치 너머 연결 통로 기압 정상. 해치를 여십시오.')]);
+    await R1.task('hatch','외부 해치를 연다 — 연결 통로 너머가 1호');
+    S.phase='cut'; P.free=false; goal(''); await camTo({x:0,z:-11.0,yaw:0,pitch:0,eye:1.5},.9);
+    toast('외부 해치 개방',1200); await R1.openHatch();
+    // 연결 통로를 걷는다 (통로 끝 = −z 로 4.2 m)
+    await camTo({x:0,z:-12.7,eye:1.45},1.3); await camTo({x:0,z:-14.6},1.3);
     await TALK.say([I('…1호 쪽 문. 손으로 연다.')]);
     // 1호 해치 : 잠금을 풀고 양쪽으로 미끄러진다
     SFX.play('airlock',{vol:.8}); let k=0; await new Promise(res=>{ const f=dt=>{ k=Math.min(1,k+dt/1.4); h1.position.x=-.425-k*.85; h2.position.x=.425+k*.85; red.intensity=1.2*(1-k); if(k>=1){ TICK.splice(TICK.indexOf(f),1); res(); } }; TICK.push(f); });
-    await walk(path[2],path[3],1.6,.03); AUDIO.noise(1.5,.15,0,600);
-    await fade(true,900); TICK.splice(TICK.indexOf(this.fn),1); this.boarding=false; window.dragHook=null; document.body.classList.remove('flying'); }
+    await camTo({x:0,z:-16.3},1.6); AUDIO.noise(1.5,.15,0,600);
+    await fade(true,900); TICK.splice(TICK.indexOf(this.fn),1); this.boarding=false; window.dragHook=null; window.camHook=null; document.body.classList.remove('flying'); }
 };

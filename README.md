@@ -26,6 +26,7 @@ web/
   scenes/tools.js     이야기 도구 : 소품 · 손전등 · 목표 표지 · 문제 화면(나중에) · 공포 연출 · 피 · 권총 · 체력 · 웅크리기
   scenes/ship.js      1호 = 하나의 건물 : 중앙 복도(59 m) 북쪽에 함교 · 식당 · 동면 C · 연구실 · 에어록, 남쪽에 라운지, 동쪽 끝에 기관실
   scenes/rooms.js     방마다 보이는 것 (꺼진 화면 · 비상등 · 캡슐 · 원자로 재가동)
+  scenes/r1.js        구조정 R-1 안 : 조종석 · 로비 · 해치 방을 걷는다 · 앉으면 비행 화면 · 자리마다 문제 끼울 곳 (R1.on · R1.task)
   scenes/game.js      한 흐름 : 구조정 → 1호 → 생존자 → 애벌레 사냥 → 기관실 성체 → 함교 출발 (저장 지점)
   main.js             시작
   style.css           화면 디자인
@@ -91,6 +92,7 @@ Blender 의 `fog_volume`(안개 부피 상자)은 웹에서 회색 벽이 되므
 - 1호 겉모습: [Deep Space Science / Survey Vessel](https://sketchfab.com/3d-models/deep-space-science-survey-vessel-psx-lo-fi-925a09ef43fe4675acd0a935d61dcd43) by Vaportrash — CC BY 4.0 · 행성 지도: Solar System Scope (CC BY 4.0)
 - 거주 구역 가구: Poly Haven 모델 (CC0) · 중앙 복도: [Sci-fi corridor 2019](assets/sketchfab/corridor_2019/CREDIT.txt) (CC BY 4.0)
 - 연구실: [Sci-fi lab](https://sketchfab.com/3d-models/sci-fi-lab-a676e149e343403bb5e57686f3d31da5) by Agata Wilczek · [Sci-Fi Microscope](https://sketchfab.com/3d-models/sci-fi-microscope-ab7e120d948a468da31f9a410d205000) by Tomek Suchodolski · [Sci-fi Lab Cell](https://sketchfab.com/3d-models/sci-fi-lab-cell-0bd8e745f008419ca7097395ad697d16) by LxNazarov — CC BY 4.0 · [An optical spectrometer](https://sketchfab.com/3d-models/an-optical-spectrometer-1cb673f9f1044907a6261e4bb8a63464) by Virtual Museums of Małopolska — CC0
+- **구조정 R-1 안**: [Space Ship Hallway](https://sketchfab.com/3d-models/space-ship-hallway-e97dce00ae5549a8a3795e06bc2cfc96) by yeeyeeman · [Kitchen](https://sketchfab.com/3d-models/e820d4b2a525498097da96026d89a8da) by bloodtea · [Large Wall-Mounted Computer Console](https://sketchfab.com/3d-models/large-wall-mounted-computer-console-298b7d9b68064618a3819d1a8fae4baf) by Inditrion Dradnon · 조종석 [Spacefighter Cockpit (Wasp Interdictor)](https://sketchfab.com/3d-models/db4aa67fe1164ec088083d7dac2d273f) by Comrade1280 — 모두 CC BY 4.0 · 책 · 의자 · 화분: Poly Haven (CC0) → `blender/05_구조정R1.blend` · `web/assets/r1.glb`
 - 기관실: [Large Fission/Fusion Hybrid Reactor](https://sketchfab.com/3d-models/large-fissionfusion-hybrid-reactor-c331666c133042c1a73c438857ce0149) by Lynxon — CC BY 4.0
 - 라운지: Poly Haven 모델 · 재질 (소파 · 바 의자 · 붐박스 · 화분 · 나무 바닥 · 가죽 · 천, CC0)
 - 재질 · 밤 도시: Poly Haven (CC0) · 별지도: NASA/Goddard SVS Deep Star Maps 2020 · 목성 지도: Solar System Scope (CC BY 4.0) · 사진: NASA 아폴로 17호, NASA/ESA 허블(목성)

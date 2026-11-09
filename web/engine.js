@@ -259,7 +259,7 @@ const LEVEL={key:null,root:null,spawn:{x:0,z:0,yaw:0},spots:{},items:{},lights:[
     FLOORS.push(...b.floors); if(!solid){ b.cols.forEach(c=>addBox(...c)); CIRC.push(...b.circs); }
     if(solid){ this.solids.push(b.root,...b.merged); this.solidTris.push(b); SOLID.want=true; } return r; },
   solids:[], solidTris:[],
-  clear(){ SOLID.g=null; SOLID.want=false; SOLID.holes=[]; this.solids=[]; this.solidTris=[]; LIGHTPOOL.stop(); if(SKYMASK.on) SKYMASK.set(false); WORLD.clear(); COL.length=CIRC.length=FLOORS.length=INTER.length=TICK.length=0; this.spots={}; this.items={}; this.lights=[]; hot=null;
+  clear(){ window.camHook=null; SOLID.g=null; SOLID.want=false; SOLID.holes=[]; this.solids=[]; this.solidTris=[]; LIGHTPOOL.stop(); if(SKYMASK.on) SKYMASK.set(false); WORLD.clear(); COL.length=CIRC.length=FLOORS.length=INTER.length=TICK.length=0; this.spots={}; this.items={}; this.lights=[]; hot=null;
     if(typeof PEOPLE!=='undefined') PEOPLE.clear(); if(typeof ALIEN!=='undefined') ALIEN.clear(); if(typeof SKY!=='undefined') SKY.clear(); },
   // 컷신 동안 : 묶음을 따로 만든 장면에 잠깐 올려 그림 · 모양 · 셰이더를 미리 준비한다 (함선과 같은 빛 구성 → 셰이더를 그대로 다시 쓴다)
   async warmBundles(keys){ const sc=new THREE.Scene(); sc.add(new THREE.HemisphereLight(0xffffff,0x000000,.3)); const d=new THREE.DirectionalLight(0xffffff,1); sc.add(d);
@@ -410,6 +410,7 @@ function frame(now){ requestAnimationFrame(frame); const dt=Math.min(.1,(now-las
     else { P.vy=0; P.y=lerp(P.y,g,1-Math.pow(.0005,dt)); } }               // 턱 · 계단은 부드럽게 올라선다
   else { P.jump=false; P.vy=0; if(!camAnim) P.y=lerp(P.y,floorAt(P.x,P.z),1-Math.pow(.0005,dt)); }
   camera.position.set(P.x,P.y+P.eye+Math.sin(P.bob||0)*(P.bobA||0),P.z); camera.rotation.order='YXZ'; camera.rotation.set(P.pitch,P.yaw,0);
+  if(window.camHook) camHook();      // 움직이는 배 안을 걸을 때 (scenes/r1.js) : P 는 배 안의 좌표 → 배의 자세를 곱한다 (조사 판정보다 먼저)
   if(P.free&&!S.busy&&S.phase==='play'){ const it=pick(0,0); if(it!==hot){ hot=it; $('#label').textContent=it?it.name:''; $('#label').classList.toggle('on',!!it); $('#reticle').classList.toggle('hot',!!it); $('#act').classList.toggle('on',!!it); } }
   else if(hot){ hot=null; $('#label').classList.remove('on'); $('#reticle').classList.remove('hot'); $('#act').classList.remove('on'); }
   TICK.forEach(f=>f(dt)); LIGHTPOOL.tick(dt); if(typeof PEOPLE!=='undefined') PEOPLE.tick(dt); if(typeof ALIEN!=='undefined') ALIEN.tick(dt); if(typeof SKY!=='undefined') SKY.tick(dt); if(typeof SCREEN!=='undefined') SCREEN.tick(dt);
