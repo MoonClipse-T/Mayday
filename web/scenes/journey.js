@@ -213,7 +213,7 @@ const JOURNEY={
     this.tick(dt=>{ k+=dt/10; const e=Math.min(1,k); U.R.value=R0+Math.pow(e,2.2)*2.6; U.tun.value=Math.max(0,(e-.45)/.55);
       const sh=e*e*.03; head.sx=(Math.random()-.5)*sh; head.sy=(Math.random()-.5)*sh; if(Math.random()<dt*3*e) AUDIO.noise(.5,.08+.1*e,0,300+600*e); if(e>=1) done=true; });
     setTimeout(()=>AUDIO.tone(60,8,'sawtooth',.06,0,-25),300);
-    await TALK.say([V('중력 렌즈 경계 통과. 별빛이 고리 안으로 말려 들어갑니다.'),V('선체 응력 87%. 92%.'),C('버텨…!')]);
+    await TALK.say([V('중력 렌즈 경계 통과. 별빛이 고리 안으로 말려 들어갑니다.'),V('선체 응력 87%. 92%.'),C('…그 문장의 끝을, 들으러 간다.')]);
     while(!done) await sleep(100);
     const fe=$('#fade'); fe.style.background='#fff'; await fade(true,500); AUDIO.hum(.2,30);
     this.inTransit=false; FLIGHT.ui(false); this.clean(); U.tun.value=0; camera.far=2000; camera.updateProjectionMatrix();

@@ -63,6 +63,12 @@ const PEOPLE=(()=>{
       turn(B.sp2,V().set(1,0,0).applyQuaternion(wrap.quaternion),-.06);
       g.updateMatrixWorld(true); const hp=V(); (B.hip||g).getWorldPosition(hp); wrap.position.y+=seatY+.1-hp.y;
       const back=toW(0,0,-.1); wrap.position.add(back);
+    } else if(pose==='prone'){      // 엎드린 몸 (부르는 쪽이 wrap 을 앞으로 눕힌다 — 몸의 앞 +z 가 바닥) : 왼팔은 머리 위로 뻗고 · 오른팔은 옆으로 꺾이고 · 오른 다리는 벌어져 굽고 · 고개는 옆으로
+      aim(B.uaL,B.laL,toW(.5,.82,-.04)); aim(B.laL,B.hL,toW(.12,1,-.03));
+      aim(B.uaR,B.laR,toW(-.8,-.5,-.03)); aim(B.laR,B.hR,toW(-.25,-1,-.05));
+      aim(B.ulL,B.llL,toW(.16,-1,-.02)); aim(B.llL,B.fL,toW(.1,-1,-.04));
+      aim(B.ulR,B.llR,toW(-.5,-.86,-.03)); aim(B.llR,B.fR,toW(.3,-.95,-.05));
+      turn(B.neck,V().set(0,1,0),-.7); turn(B.head,V().set(0,1,0),-.4);
     } else if(pose==='lie'){      // 바닥에 누운 몸 : 왼팔은 옆으로 늘어지고 · 오른손은 배를 움켜쥐고 · 오른 무릎을 세우고 · 고개를 왼쪽으로 (눕히기는 부르는 쪽이 wrap 을 돌린다)
       aim(B.uaL,B.laL,toW(.42,-.9,.02)); aim(B.laL,B.hL,toW(.3,-.92,-.02));
       aim(B.uaR,B.laR,toW(-.42,-.82,.34)); aim(B.laR,B.hR,toW(.82,.32,.42));

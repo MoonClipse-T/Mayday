@@ -15,15 +15,22 @@ const STORY={
   // 어둠 : 방 불빛 · 둘레 빛을 끄고 화면 가장자리를 까맣게 (손전등 원) — 손전등이 비춘 곳만 또렷하게 밝다 (4.4 : 붉은 비상등 없음)
   dark(on,{red=false}={}){ SHIP.dim=on?.8:1; let el=$('#torch'); if(!el){ el=document.createElement('div'); el.id='torch'; document.body.appendChild(el); }
     el.classList.toggle('on',on); el.classList.toggle('red',on&&red);
-    if(!this.spot||!this.spot.parent){ this.spot=new THREE.SpotLight(0xfff1dc,0,22,.42,.5,1.4); WORLD.add(this.spot,this.spot.target);
-      TICK.push(()=>{ const s=this.spot; if(!s.intensity) return; s.position.copy(camera.position); camera.getWorldDirection(s.target.position).multiplyScalar(4).add(camera.position); }); }
-    Object.assign(this.spot,{distance:26,angle:.38,penumbra:.55,decay:1.3}); this.spot.intensity=on?8:0;
+    // 손전등 (4.7) : 진짜 손전등처럼 — 넓게 퍼지는 빛(원뿔) 안에 가운데 밝은 심 · 오른손에 든 자리에서 나간다
+    if(!this.spot||!this.spot.parent){ this.spot=new THREE.SpotLight(0xfff1dc,0,30,LITE?.68:.74,1,1.25); WORLD.add(this.spot,this.spot.target);
+      this.hot=LITE?null:new THREE.SpotLight(0xfff6e6,0,36,.24,.85,1.2); if(this.hot) WORLD.add(this.hot,this.hot.target);
+      const d=new THREE.Vector3(), r=new THREE.Vector3(), u=new THREE.Vector3();
+      TICK.push(()=>{ const s=this.spot; if(!s.intensity) return; camera.getWorldDirection(d); r.set(1,0,0).applyQuaternion(camera.quaternion); u.set(0,1,0).applyQuaternion(camera.quaternion);
+        s.position.copy(camera.position).addScaledVector(r,.2).addScaledVector(u,-.2); s.target.position.copy(camera.position).addScaledVector(d,9);
+        if(this.hot){ this.hot.position.copy(s.position); this.hot.target.position.copy(s.target.position); } }); }
+    this.torch(on?1:0);
     // 전력이 없으면 방 불빛 · 창으로 드는 햇빛 · 스스로 빛나는 것(문틀 빛 띠 · 벽 · 화면)이 죽는다 — 손전등이 비춘 곳만 (피는 그대로)
     LIGHTPOOL.dark=on; if(on) WORLD.traverse(o=>{ if(o.isPointLight) o.userData.dark=true; });
     scene.traverse(o=>{ if(o.isDirectionalLight){ if(o.userData.i0===undefined) o.userData.i0=o.intensity; o.intensity=o.userData.i0*(on?.08:1); } });
     WORLD.traverse(o=>{ if(!o.isMesh||!o.material||Array.isArray(o.material)) return; const m=o.material; if(/blood/.test(m.name||'')) return;
       if(m.emissive){ if(m.userData.ei===undefined) m.userData.ei=m.emissiveIntensity; m.emissiveIntensity=m.userData.ei*(on?.2:1); }
       else if(m.isMeshBasicMaterial&&m.color&&!m.map&&m.color.getHex()===0x9fd8ff){ if(!m.userData.c0) m.userData.c0=m.color.clone(); m.color.copy(m.userData.c0).multiplyScalar(on?.12:1); } }); },
+  // 손전등 세기 (1 = 캄캄한 배 · .5 = 전력이 돌아온 뒤)
+  torch(k){ if(!this.spot) return; this.spot.intensity=(LITE?7:4.6)*k; if(this.hot) this.hot.intensity=4.6*k; },
   // 기다리기 : 물건을 누를 때까지
   wait(mesh,name,o={}){ return new Promise(res=>{ const it=interact(mesh,name,()=>{ if(!it.done){ it.done=true; INTER.splice(INTER.indexOf(it),1); res(); } },{range:o.range||3,enabled:o.enabled}); }); },
   // 위치에 닿을 때까지
@@ -111,7 +118,7 @@ const BLOOD={
       for(let i=0;i<150;i++){ const a=Math.random()*6.28, d=Math.pow(Math.random(),.8)*74, r=(3+Math.random()*20)*(1-d/105); blob(128+Math.cos(a)*d,128+Math.sin(a)*d,r,r*(.55+Math.random()*.45),a); }      // 웅덩이 : 작은 덩이를 겹쳐 가장자리가 들쭉날쭉
       for(let i=0;i<46;i++){ const a=Math.random()*6.28, d=66+Math.random()*50, l=.5+Math.random()*3.6; blob(128+Math.cos(a)*d,128+Math.sin(a)*d,l,l*.32,a); }      // 튄 자국 : 바깥쪽으로 길쭉하게
       const t=new THREE.CanvasTexture(c); t.encoding=THREE.sRGBEncoding;
-      return new THREE.MeshStandardMaterial({map:t,transparent:true,depthWrite:false,roughness:.34,metalness:0,emissive:new THREE.Color(.08,.003,.003),emissiveMap:t}); })()); },
+      return new THREE.MeshStandardMaterial({map:t,transparent:true,depthWrite:false,color:0x6a6464,roughness:.34,metalness:0,emissive:new THREE.Color(.05,.002,.002),emissiveMap:t}); })()); },
   pool(x,z,s=1.6,y=0){ const m=new THREE.Mesh(new THREE.PlaneGeometry(s,s),this.poolMat()); m.rotation.set(-Math.PI/2,0,Math.random()*6); m.position.set(x,y+.036,z); m.renderOrder=2; WORLD.add(m); return m; },      // 복도 바닥 면이 3 cm 높다 — 그 위로
   // 핏방울이 튄다 (p 에서 n 개 · 속도 spd)
   spray(p,n,spd,col){ const tex=this.tex(); for(let k=0;k<n;k++){ const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,depthWrite:false,color:col||0xffffff})); sp.scale.setScalar(.03+Math.random()*.06); sp.position.copy(p); WORLD.add(sp);
@@ -121,7 +128,7 @@ const BLOOD={
         for(let i=0;i<46;i++){ const px=20+Math.random()*88, y0=Math.random()*150, y1=y0+90+Math.random()*(400-y0), wd=2+Math.random()*13, gr=g.createLinearGradient(0,y0,0,y1), a=.5+Math.random()*.4; gr.addColorStop(0,`rgba(62,2,2,${a})`); gr.addColorStop(.75,`rgba(52,1,1,${a*.55})`); gr.addColorStop(1,'rgba(40,0,0,0)');
           g.strokeStyle=gr; g.lineWidth=wd; g.lineCap='round'; g.beginPath(); g.moveTo(px,y0); g.bezierCurveTo(px+(Math.random()-.5)*16,y0+80,px+(Math.random()-.5)*24,y1-80,px+(Math.random()-.5)*20,y1); g.stroke(); }
         for(let i=0;i<5;i++){ const y=420+Math.random()*80, s=12+Math.random()*16; g.fillStyle='rgba(30,0,0,.22)'; g.fillRect(24+Math.random()*80,y,s,3); }      // 끝자락의 손톱 자국
-        const t=new THREE.CanvasTexture(c); t.encoding=THREE.sRGBEncoding; return new THREE.MeshStandardMaterial({map:t,transparent:true,depthWrite:false,roughness:.36,metalness:0,emissive:new THREE.Color(.08,.003,.003),emissiveMap:t}); });
+        const t=new THREE.CanvasTexture(c); t.encoding=THREE.sRGBEncoding; return new THREE.MeshStandardMaterial({map:t,transparent:true,depthWrite:false,color:0x6a6464,roughness:.36,metalness:0,emissive:new THREE.Color(.05,.002,.002),emissiveMap:t}); });
     const m=new THREE.Mesh(new THREE.PlaneGeometry(w,len),this._tr[Math.random()<.5?0:1]), cx=x+Math.sin(ang)*len/2, cz=z+Math.cos(ang)*len/2; m.rotation.order='YXZ'; m.rotation.set(-Math.PI/2,ang+Math.PI,0); m.position.set(cx,floorAt(cx,cz)+.038,cz); m.renderOrder=2; WORLD.add(m); return m; },
   // 찢긴 옷 조각 : 몸 둘레 바닥에 — 들쭉날쭉한 조각 n 개를 한 덩어리로 (그리기 한 번) · cols = 옷 색들
   scraps(x,z,n=7,cols=[[.26,.28,.3]],R=1.5){ const P3=[], C3=[]; for(let i=0;i<n;i++){ const a=Math.random()*6.28, d=.35+Math.random()*R, cx=x+Math.sin(a)*d, cz=z+Math.cos(a)*d; if(SOLID.hit(cx,cz,.04,.3,.05)) continue; const y0=floorAt(cx,cz)+.04, rot=Math.random()*6.28, long=Math.random()<.4?2.6:1.1, r0=.05+Math.random()*.11, col=cols[i%cols.length], bl=Math.random(), K=9;
@@ -138,7 +145,7 @@ const BLOOD={
    모델의 그림(map)을 캔버스로 옮기고, 몸의 자리(blob)에 드는 삼각형을 그림 위 좌표(UV)로 칠한다 — 그림이 조각나 있어도 몸에서는 한 자리에 묻는다
    blob = [좌우 0~1, 아래위 0~1, 뒤앞 0~1 (몸 상자 안 비율), 반지름(키 대비), 종류] · 종류 : b 피 · o 마른 피 · w 깊은 상처 · t 찢김 (세로로 긴 틈)
    grime : 전체를 곱해 어둡게 · desat : 채도 빼기 · matte : 번들거림 없애기 */
-const WEAR={INK:{b:'rgba(50,3,3,.93)',o:'rgba(26,7,5,.88)',w:'rgba(16,0,0,.97)',t:'rgba(8,4,4,.96)'},
+const WEAR={INK:{b:'rgba(34,2,2,.93)',o:'rgba(26,7,5,.88)',w:'rgba(16,0,0,.97)',t:'rgba(8,4,4,.96)'},
   // 삼각형 목록 만들기 (모델 공간 위치 · 그림 좌표) — 메시마다 캔버스 하나
   paint(root,{blobs=[],grime=[.6,.56,.52],desat=0,matte=false,size=LITE?512:1024}={}){ root.updateMatrixWorld(true); const inv=new THREE.Matrix4().copy(root.matrixWorld).invert(), box=new THREE.Box3(), v=new THREE.Vector3(), M=[];
     root.traverse(o=>{ if(!o.isMesh||!o.geometry.attributes.position||o.material===PICK) return; const pos=o.geometry.attributes.position, mt=new THREE.Matrix4().multiplyMatrices(inv,o.matrixWorld), pts=new Float32Array(pos.count*3); for(let i=0;i<pos.count;i++){ v.fromBufferAttribute(pos,i).applyMatrix4(mt); box.expandByPoint(v); pts.set([v.x,v.y,v.z],i*3); } M.push({o,pts}); });

@@ -8,13 +8,17 @@
    ============================================================ */
 'use strict';
 const VG=(t,v)=>({who:'VEGA',ch:'무전 · 구조정',kind:'vega',t,v}), I=t=>({kind:'me',t}), RADIO=t=>({who:'HUY-1',ch:'녹음 · 312일째',kind:'radio',t});
-// 시신 (애벌레가 든 몸) : 자리 · 모델(a 벽에 기대 앉은 방호복 — 등이 모델의 −z · b 천에 덮인 몸 · c 피 묻은 천) · 방향
+// 시신 (애벌레가 든 몸) : 자리 · 모델(a 벽에 기대 앉은 방호복 — 등이 모델의 −z · b · c 대원복 차림으로 쓰러진 몸) · 방향
+//   4.7 사용자 : 천에 덮여 있으면 안 된다 (덮어 줄 여유가 없었다) → 대원복(Tripo 비행복 모델)을 칠해 쓰러진 그대로 보이게 · 얼굴은 어둡게 · 돌려서
 const BODIES=[[22,10.6,'b',1.57],[45,10.5,'c',.3],[35.5,9.4,'a',0],[16.6,-3.2,'b',1],[29.4,5.2,'c',0],[41,3.6,'b',.5],[9,9.3,'a',0],[2,-1.2,'b',.8],[24,21,'c',2]];
 // 시신 칠하기 : 방호복의 샛노랑 · 파랑 장갑을 빼고 때 · 피 · 찢김 / 천에는 번진 피 (몸 상자 안 비율 — WEAR)
 const WEARS={
   a:{grime:[.4,.38,.34],desat:.86,matte:true,blobs:[[.5,.62,.8,.2,'b'],[.42,.5,.85,.16,'o'],[.62,.72,.8,.12,'t'],[.34,.62,.8,.1,'t'],[.55,.42,.9,.12,'w'],[.2,.4,.7,.13,'b'],[.8,.45,.7,.14,'o'],[.5,.9,.7,.12,'o'],[.68,.2,.85,.14,'b'],[.3,.15,.9,.1,'t']]},
   b:{grime:[.62,.58,.54],matte:true,blobs:[[.5,.5,1,.17,'b'],[.3,.55,1,.12,'o'],[.72,.48,1,.14,'b'],[.45,.3,1,.1,'t'],[.6,.7,1,.1,'t'],[.2,.4,.5,.12,'o'],[.85,.6,.5,.1,'o']]},
   c:{grime:[.56,.5,.47],matte:true,blobs:[[.55,.5,.9,.14,'w'],[.35,.45,.9,.14,'b'],[.7,.6,.9,.1,'o'],[.25,.7,.6,.1,'t']]}};
+const CREW_WEAR={grime:[.4,.38,.35],desat:.5,matte:true,blobs:[[.5,.64,.85,.11,'b'],[.44,.52,.85,.09,'o'],[.57,.7,.82,.06,'t'],[.4,.42,.8,.06,'t'],[.5,.6,.15,.12,'b'],[.42,.48,.15,.09,'o'],[.58,.7,.15,.06,'t'],[.6,.3,.5,.07,'t'],[.38,.2,.5,.06,'o'],
+  [.03,.56,.5,.06,'o'],[.97,.56,.5,.06,'b'],[.5,.93,.8,.07,'o'],[.5,.93,.2,.07,'o'],[.5,.8,.5,.08,'o']]};
+const CREW=[['seojun','lie'],['daniel','prone'],['maya','prone'],['daniel','lie'],['seojun','prone'],['maya','prone'],['seojun','lie']];
 const RAGS={a:[[.3,.27,.1],[.16,.17,.24],[.3,.3,.28]],b:[[.42,.4,.37],[.2,.22,.26]],c:[[.44,.4,.36],[.24,.24,.25]]};
 // 레아 : 열한 달을 버틴 생물학자 — 1호 대원복이 찢어지고 · 말라붙은 피 · 젖은 피 · 손에 피 · 얼굴에 때 (몸 상자 안 비율)
 const LEAH_WEAR={grime:[.5,.46,.42],desat:.45,matte:true,blobs:[[.5,.66,.82,.075,'b'],[.45,.56,.85,.06,'o'],[.58,.62,.85,.07,'t'],[.4,.7,.8,.06,'t'],[.5,.5,.85,.09,'o'],[.62,.45,.7,.06,'t'],[.4,.3,.8,.07,'t'],[.6,.2,.8,.06,'o'],[.42,.13,.85,.05,'t'],
@@ -38,7 +42,7 @@ const GAME={cp:null,
 
   /* ---- ① 구조정 : 직접 몰고 가 도킹한다 (scenes/flight.js) → 연결 통로를 지나 1호 에어록 ---- */
   // 전력 복구 : 방 불빛 · 빛 띠 · 화면이 돌아온다 (손전등은 그대로 · 조금 약하게)
-  lightsOn(){ ROOMS.power(); STORY.dark(false); $('#torch').classList.add('on'); STORY.spot.intensity=4; SHIP.dim=.75; if(SHIP.hemi) SHIP.hemi.intensity=.38; },
+  lightsOn(){ ROOMS.power(); STORY.dark(false); $('#torch').classList.add('on'); STORY.torch(.5); SHIP.dim=.75; if(SHIP.hemi) SHIP.hemi.intensity=.38; },
   async cockpit(){ await FLIGHT.run(); await this.ship(); return this.board(); },
   // 회의 다음 : 발사 → 지구 궤도 출발 → 동면 → 넉 달 뒤 목성 · 웜홀 (scenes/journey.js) → 건너편에서 직접 몰고 도킹
   async journey(from='launch'){ await JOURNEY.run(from); await FLIGHT.run({journey:true}); await this.ship(); return this.board(); },
@@ -46,18 +50,26 @@ const GAME={cp:null,
   /* ---- 1호 불러오기 (어둠 · 시신 · 피) ---- */
   async ship(){ const f=S.flags; await SCENES.ship.enter(); MUSIC.play('derelict',{fade:3}); STORY.show('h1',true); STORY.dark(true); SHIP.dim=.8; if(SHIP.hemi) SHIP.hemi.intensity=.035;      // 붉은 빛 없이 캄캄하게 — 손전등이 비춘 곳만 밝다
     Object.values(SHIP.doors).forEach(d=>d.open());      // 전력이 없어 문은 모두 열린 채
-    await this.bodies(); await HIDE.setup(); TICK.push(dt=>HIDE.tick(dt)); await GUN.hold(); ME.heal(); ME.onDeath=()=>this.died(); DREAD.on();
+    await this.bodies(); BEAST.vents(); await HIDE.setup(); TICK.push(dt=>HIDE.tick(dt)); await GUN.hold(); ME.heal(); ME.onDeath=()=>this.died(); DREAD.on();
     // 어둠 속 소리 : 몇 초마다 어딘가에서 (가끔 머리 위 쿵)
     let t=6; TICK.push(dt=>{ if(S.phase!=='play') return; t-=dt; if(t<=0){ t=7+Math.random()*8; Math.random()<.45?GROWL(.035):Math.random()<.5?THUD(.1):AUDIO.tone(2200+Math.random()*600,.6,'sine',.01,0,-400); } });
     // 입김 : 차가운 배
     { let b=0; TICK.push(dt=>{ b-=dt; if(b<=0&&S.phase==='play'&&!f.power){ b=3+Math.random(); const p=camera.getWorldPosition(new THREE.Vector3()).add(camera.getWorldDirection(new THREE.Vector3()).multiplyScalar(.35)); p.y-=.12; breath(p); } }); } },
   // 시신 놓기 : 바닥에 피 웅덩이 · 애벌레 등록
-  async bodies(){ const M={}; for(const k of 'abc') M[k]=loadGLB('corpse_'+k).then(s=>{ WEAR.paint(s,WEARS[k]); return s; }); this.hosts=[];
-    for(const [x0,z0,k,ry0] of BODIES){ const src=await M[k], o=src.clone(); let ry=ry0, [x,z]=freeSpot(x0,z0,k==='a'?{r:.42,y1:.05,y2:1.15}:{r:.55,y1:.05});
+  // 대원복 차림의 몸 : 반듯이(lie) 또는 엎드려(prone) · (x,z) 가 몸 한가운데 · ry 로 머리 쪽 · 칠한 재질은 모델마다 한 번만 만들어 같이 쓴다
+  async crewBody(x,z,ry,n){ const [kind,pose]=CREW[n%CREW.length], p=await PEOPLE.spawn({kind,name:'',pose,at:{x,z,yaw:0},clip:false}); p.sleep=true; p.watch=false; p.solid=false; p.pick.visible=false;
+    const up=pose==='lie', w=p.wrap; w.rotation.order='YXZ'; w.rotation.set(up?-Math.PI/2:Math.PI/2,ry,0);      // 반듯이 : 머리가 −z 쪽 · 엎드려 : +z 쪽 (그다음 ry 만큼 돈다)
+    const k=up?-1:1, dx=Math.sin(ry)*k, dz=Math.cos(ry)*k; w.position.set(x-dx*.85,floorAt(x,z)+.13,z-dz*.85); w.updateMatrixWorld(true);
+    const C=this._crewMat||(this._crewMat={}); if(!C[kind]){ WEAR.paint(p.g,CREW_WEAR); C[kind]=[]; p.g.traverse(o=>{ if(o.isMesh&&o.material!==PICK) C[kind].push(o.material); }); } else { let i=0; p.g.traverse(o=>{ if(o.isMesh&&o.material!==PICK) o.material=C[kind][i++]||o.material; }); }
+    return p; },
+  async bodies(){ const M={a:loadGLB('corpse_a').then(s=>{ WEAR.paint(s,WEARS.a); return s; })}; this.hosts=[]; this._crewMat=null; let n=0;
+    for(const [x0,z0,k,ry0] of BODIES){ let ry=ry0, [x,z]=freeSpot(x0,z0,k==='a'?{r:.42,y1:.05,y2:1.15}:{r:.55,y1:.05});
+      if(k!=='a') await this.crewBody(x,z,ry,n++); else { const src=await M[k], o=src.clone();
       if(k==='a'){ const w=HIDE.wall(x,z); if(w&&!SOLID.hit(w.x,w.z,.05,1.15,.26)){ x=w.x+Math.sin(w.yaw)*.42; z=w.z+Math.cos(w.yaw)*.42; ry=w.yaw; } }      // 벽 쪽 큰 배관에 등을 기댄다 (바닥 가의 붉은 관을 뚫지 않게 그만큼 앞으로)
       const bb=new THREE.Box3().setFromObject(o), sz=bb.getSize(new THREE.Vector3()), s=k==='a'?1:1.8/Math.max(sz.x,sz.z);
       o.scale.setScalar(s); o.rotation.y=ry; const g=new THREE.Group(); g.add(o); const c=new THREE.Box3().setFromObject(o).getCenter(new THREE.Vector3()); o.position.x-=c.x; o.position.z-=c.z; o.position.y-=bb.min.y*s;
-      g.position.set(x,0,z); WORLD.add(g); BLOOD.pool(x+(Math.random()-.5)*.4,z+(Math.random()-.5)*.4,2.2+Math.random()*.8);
+      g.position.set(x,0,z); WORLD.add(g); }
+      BLOOD.pool(x+(Math.random()-.5)*.4,z+(Math.random()-.5)*.4,2.2+Math.random()*.8);
       // 어디서 끌려왔나 : 가장 멀리 트인 쪽으로 핏줄기 · 둘레에 찢긴 옷 조각
       { let best=0, ang=0; for(let i=0;i<12;i++){ const a=i/12*6.283+ry; let t=.6; while(t<5.5&&!SOLID.hit(x+Math.sin(a)*t,z+Math.cos(a)*t,.05,.6,.2)) t+=.25; if(t>best){ best=t; ang=a; } } if(best>1.4) BLOOD.trail(x+Math.sin(ang)*.3,z+Math.cos(ang)*.3,ang,Math.min(best-.3,3.2+Math.random()*1.6),.5+Math.random()*.25); }
       BLOOD.scraps(x,z,8,RAGS[k]);
@@ -74,7 +86,7 @@ const GAME={cp:null,
   async board(){ const f=S.flags; warp(50.43,6.6,Math.PI); this.save(50.43,6.6,Math.PI); await fade(false,1800); S.phase='play'; P.free=true;
     await TALK.say([I('…춥다. 입김이 나.'),VG('1호 비상 전력 0. 모든 문이 열린 채입니다. 생명 신호는 배 앞쪽, 동면 구역 C 입니다.'),I('손전등뿐이군.')]);
     goal('생존자를 찾는다 — 동면 구역 C (복도 서쪽)');
-    STORY.once(45,9.7,3.2,()=>TALK.say([I('…사람이다. 아니, 사람이었던 것.'),I('가슴이… 안에서 밖으로 찢겨 있다.'),VG('맥박 없음. 사망한 지 수 주로 추정됩니다.')]));
+    STORY.once(45,9.7,3.2,()=>TALK.say([I('…사람이다. 아니, 사람이었던 것.'),I('…1호 대원복. 여기까지 끌려왔다. 그리고… 뭔가에 뜯긴 자국.'),VG('맥박 없음. 사망한 지 수 주로 추정됩니다.')]));
     STORY.once(36,10.5,2.4,()=>{ THUD(.3); AUDIO.noise(1.5,.08,0,400); TALK.say([I('…위에서 뭔가 지나갔다.'),VG('환기 덕트 안입니다. 크기는… 측정되지 않습니다.')]); });
     STORY.once(30,10.5,2.4,()=>TALK.say([I('끌고 간 자국. 손톱으로 바닥을 긁은 자국.'),I('다들… 어디로 끌려간 거지.')]));
     return this.survivor(); },
@@ -129,17 +141,21 @@ const GAME={cp:null,
   async engine(){ const f=S.flags, R=SHIP.rooms.engine; S.phase='play'; P.free=true; this.save(46,10.5,-Math.PI/2);
     goal('기관실로 — 원자로를 다시 켠다 (복도 동쪽 끝)');
     // 원자로 옆에서 시신을 먹고 있다 (등을 돌린 채)
-    const [ex,ez]=freeSpot(59.2,19.3,{r:.6}); const meal=(await loadGLB('corpse_b')).clone(); meal.scale.setScalar(.75); meal.rotation.y=Math.PI/2; meal.position.set(ex+.9,0,ez); WORLD.add(meal); BLOOD.pool(ex+.8,ez,2.6);
+    const [ex,ez]=freeSpot(59.2,19.3,{r:.6}); await this.crewBody(ex+1.15,ez,Math.PI/2,3); BLOOD.pool(ex+.9,ez,2.6);
     const b=this.beast=await BEAST.spawn({at:{x:ex,z:ez},face:Math.PI/2,clip:'eat'});      // 원자로 남쪽 바닥 · 입구(서쪽)에 등을 돌리고
     let chomp=0; const eat=dt=>{ if(b.cur!==b.A.eat) return; chomp-=dt; if(chomp<=0){ chomp=2.6+Math.random()*1.5; SFX.play('beast_eat',{at:b.wrap.position}); } }; TICK.push(eat);
-    await STORY.reach(55.3,10.5,1.4);
-    S.phase='cut'; P.free=false; await lookAt(ex,1.2,ez,1.4); P.look=true;
-    await TALK.say([I('…'),VG('(작게) 움직이지 마십시오. 저것이… 1호 대원들을…'),I('먹고 있다.'),VG('원자로 콘솔 둘은 입구 왼쪽과 오른쪽입니다. 웅크리면 덜 보입니다. 저것에게 들키면—'),I('알아.')]);
-    P.look=false; S.phase='play'; P.free=true; ME.setCrouch(true);
-    // 들키면 쫓아온다 · 잡히면 처음부터 (먹던 자리로)
-    let stop=null; const wake=()=>{ if(stop) return; TICK.splice(TICK.indexOf(eat),1); stop=BEAST.hunt(b,{patrol:[[60,4.5],[66.5,10.35],[60,16.2],[50,10.5],[30,10.5]],onCatch:()=>this.died()}); };
+    // 문 앞 : 아직 보이지 않는다 — 소리만 (4.7 : 보이기도 전에 VEGA 와 '저것' 이야기를 하던 것)
+    STORY.once(54.6,10.5,1.6,()=>TALK.say([I('…안에서 소리가 난다. 뭔가를… 씹는 소리.')]));
+    // 들키면 쫓아온다 · 잡히면 처음부터 (먹던 자리로) — 순찰 자리는 원자로 둘레의 실제 바닥
+    let stop=null; const wake=()=>{ if(stop) return; TICK.splice(TICK.indexOf(eat),1); stop=BEAST.hunt(b,{patrol:[[57,18.5],[64,19.5],[69.3,17.5],[57,14.5],[50,10.5],[38,10.5]],onCatch:()=>this.died()}); };
+    // 처음 눈에 들어온 순간 (손전등 빛 안 · 가리는 것 없음) : 그때 멈춰 서서 본다 — 이미 깨어 쫓아오는 중이면 말할 틈이 없다
+    { const seen=()=>{ if(stop){ TICK.splice(TICK.indexOf(seen),1); return; } if(S.phase!=='play'||TALK.on||!P.free) return; const c=camera.getWorldPosition(new THREE.Vector3()), t=new THREE.Vector3(ex,1.1,ez), d=t.clone().sub(c), L=d.length();
+        if(L>13||d.normalize().dot(camera.getWorldDirection(new THREE.Vector3()))<.88||!clearShot(c,t,.25)) return; TICK.splice(TICK.indexOf(seen),1);
+        (async()=>{ S.phase='cut'; P.free=false; await lookAt(ex,1.2,ez,1); P.look=true;
+          await TALK.say([I('…'),VG('(작게) 움직이지 마십시오. 저것이… 1호 대원들을…'),I('먹고 있다.'),VG('원자로 콘솔 둘은 입구 왼쪽과 오른쪽입니다. 웅크리면 덜 보입니다. 저것에게 들키면—'),I('알아.')]);
+          P.look=false; S.phase='play'; P.free=true; ME.setCrouch(true); })(); }; TICK.push(seen); }
     const watch=()=>{ if(!stop&&(BEAST.sees(b)&&Math.hypot(P.x-ex,P.z-ez)<6||b.stun>0||S.run)) wake(); }; TICK.push(watch);
-    this.save(54,10.5,Math.PI/2,async()=>{ if(stop){ stop(); stop=null; } b.stun=0; b.wrap.position.set(ex,0,ez); b.wrap.rotation.y=Math.PI/2; BEAST.play(b,'eat'); if(!TICK.includes(eat)) TICK.push(eat); });
+    this.save(54,10.5,Math.PI/2,async()=>{ if(stop){ stop(); stop=null; } BEAST.reset(b); b.wrap.position.set(ex,0,ez); b.wrap.rotation.y=Math.PI/2; BEAST.play(b,'eat'); if(!TICK.includes(eat)) TICK.push(eat); });
     const cons=(R.consoles&&R.consoles.length?R.consoles:[]).slice(0,2); let done=0;
     goal('원자로 제어 콘솔 둘을 켠다 — 0 / 2');
     await Promise.all(cons.map((c,i)=>STORY.at(c,'원자로 제어 콘솔 — 켠다','',{range:2.4}).then(async()=>{ done++; AUDIO.tone(300+i*200,.4,'square',.05); AUDIO.noise(.8,.3,0,500); goal('원자로 제어 콘솔 둘을 켠다 — '+done+' / 2');
@@ -152,15 +168,15 @@ const GAME={cp:null,
 
   /* ---- ⑥ 함교로 → 1호를 몰고 웜홀로 ---- */
   async escape(){ const f=S.flags; S.phase='play'; P.free=true;
-    if(!this.beast){ const b=this.beast=await BEAST.spawn({at:{x:60,z:16},face:-Math.PI/2,clip:'idle'}); this.stopBeast=BEAST.hunt(b,{patrol:[[40,10.5],[20,10.5],[14,20],[5,10.5]],onCatch:()=>this.died()}); }
+    if(!this.beast){ const b=this.beast=await BEAST.spawn({at:{x:57,z:18.5},face:-Math.PI/2,clip:'idle'}); this.stopBeast=BEAST.hunt(b,{patrol:[[40,10.5],[20,10.5],[14,20],[5,10.5]],onCatch:()=>this.died()}); }
     const rehunt=()=>{ this.stopBeast&&this.stopBeast(); this.stopBeast=BEAST.hunt(this.beast,{roar:false,patrol:[[40,10.5],[20,10.5],[14,20],[5,10.5]],onCatch:()=>this.died()}); };
-    this.save(50,10.5,-Math.PI/2,async()=>{ const b=this.beast; b.stun=0; b.wrap.position.set(62,0,16); rehunt(); b.heard={x:52,z:10.5}; });
+    this.save(50,10.5,-Math.PI/2,async()=>{ const b=this.beast; BEAST.reset(b); b.wrap.position.set(57,0,18.5); rehunt(); b.heard={x:52,z:10.5}; });
     goal('함교로 — 조종석에서 1호를 움직인다 (복도 서쪽 끝)');
     const cs=SHIP.rooms.bridge.spots.captain||{x:0,z:-1}, seat=new THREE.Mesh(new THREE.CylinderGeometry(.5,.5,1.4,12),PICK); seat.position.set(cs.x,.7,cs.z); WORLD.add(seat);
     await STORY.at(seat,'함장석 — 1호를 움직인다','함교 함장석으로 — 1호를 움직인다',{range:2.6});
     this.stopBeast&&this.stopBeast(); S.phase='cut'; P.free=false; ME.setCrouch(false); goal('');
     const d=SHIP.doors.bridge, b=this.beast; await d.close(); SHIP.lock.bridge=()=>'열면 안 된다!';
-    BEAST.stop(b); b.wrap.position.set(0,0,10.8); b.wrap.rotation.y=Math.PI;
+    BEAST.reset(b); BEAST.stop(b); b.wrap.position.set(0,0,10.8); b.wrap.rotation.y=Math.PI;
     await camTo({x:cs.x,z:cs.z+.1,yaw:0,pitch:.02,eye:1.22},1.2); P.look=true;
     for(let i=0;i<3;i++){ await sleep(650); THUD(.55); GROWL(.12); FX.shake(.3,.04); toast(['쾅!','쾅!!','쾅!!!'][i],600); }
     await TALK.say([VG('함교 문 밀폐. 1호 조종권 확보. 항로… 웜홀 입구까지 사흘.'),I('사흘 동안 저것과 같은 배에.'),VG('네. 그리고 크리스—'),I('…알아. 문이 오래 버티지 못한다는 거.'),

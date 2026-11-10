@@ -10,8 +10,10 @@
 // 문 자리 [방 안, 복도] — 함선 배치 (scenes/ship.js)
 const ROUTE={DOOR:{bridge:[[0,7.4],[0,10.5]],deck:[[14,7.4],[14,10.5]],cryo:[[27,7.4],[27,10.5]],lab:[[37.43,7.4],[37.43,10.5]],airlock:[[50.43,7.4],[50.43,10.5]],
     lobby:[[14,13.8],[14,10.5]],engine:[[57,10.35],[54.2,10.5]]},
+  // 기관실 : 문(서쪽)과 원자로 둘레 사이 — 남쪽 · 북쪽 바닥으로 가려면 문 옆 통로를 지난다 (곧장 가면 원자로 벽에 걸린다)
+  via(z){ return z>12.3?[[56.6,13.8]]:z<8.4?[[56.3,7.6]]:[]; },
   path(ax,az,bx,bz){ const za=SHIP.zoneAt(ax,az), zb=SHIP.zoneAt(bx,bz), D=this.DOOR; if(za===zb) return [[bx,bz]];
-    const p=[]; if(D[za]) p.push(D[za][0],D[za][1]); if(D[zb]) p.push(D[zb][1],D[zb][0]); p.push([bx,bz]); return p.map(a=>a.slice()); } };
+    const p=[]; if(za==='engine') p.push(...this.via(az)); if(D[za]) p.push(D[za][0],D[za][1]); if(D[zb]) p.push(D[zb][1],D[zb][0]); if(zb==='engine') p.push(...this.via(bz)); p.push([bx,bz]); return p.map(a=>a.slice()); } };
 // 한 걸음 : o(위치 · 방향 rotation.y)를 (tx,tz) 쪽으로 · 앞이 막히면 덜 꺾는 쪽으로 비켜 돈다 → 남은 거리
 function steer(o,tx,tz,speed,dt,{r=.3,y1=.4,y2=1.6,turn=6}={}){ const w=o.position, dx=tx-w.x, dz=tz-w.z, d=Math.hypot(dx,dz); if(d<.05) return d;
   const s=Math.min(d,speed*dt), y=w.y, look=Math.max(s,.25), ok=a=>!SOLID.hit(w.x+Math.sin(a)*look,w.z+Math.cos(a)*look,y+y1,y+y2,r);
@@ -105,32 +107,60 @@ const LARVA=(()=>{ let proto=null; const hosts=[], list=[]; const L={hosts,list,
       if(l.state==='leap'){ l.lt+=dt; const k=Math.min(1,l.lt/.45), tgt=eye.clone().add(camera.getWorldDirection(new THREE.Vector3()).multiplyScalar(.4)); w.lerpVectors(l.p0,tgt,k*k); w.y+=Math.sin(k*Math.PI)*.45-.25*k;
         l.wrap.rotation.y=Math.atan2(P.x-w.x,P.z-w.z); l.wrap.rotation.x=-k*.9; if(k>=1) grab(l); continue; }
       if(l.state==='grab'){ l.wrap.rotation.x=L.FACE.tilt+Math.sin(S.t*8)*.05; l.wrap.rotation.z=Math.sin(S.t*5.3)*.04; fitFace(l); l.bit+=dt; if(l.bit>2.4){ l.bit=0; ME.hurt(1); FX.shake(.4,.07); SFX.play('bite'); } } } };
-  L.burst=burst; L.spawn=spawn; return L; })();
+  L.proto=()=>proto||(proto=loadRig('larva',{drop:/^Eyes$/,pose:/Swim_Forward/}).then(wetFlesh)); L.burst=burst; L.spawn=spawn; return L; })();
 
 /* ---------------- 성체 ---------------- */
 const BEAST=(()=>{ let proto=null; const list=[]; const B={list,H:2.55};
   const NAMES={idle:/\|idle$/,walk:/\|walk$/,run:/\|Run$/,roar:/\|roar$/,swipe:/attack_1/,swipe2:/attack_2/,bite:/\|bite$/,eat:/eating/,crawl:/\|crawl$/,jump:/\|jump$/,hit:/hit_1/,hit2:/hit_2/,battle:/battle_idle/};
-  B.spawn=async function({at,face=0,clip='idle'}){ if(!proto) proto=loadRig('beast',{pose:/\|idle$/}); const src=await proto, {wrap,g}=rigClone(src,B.H,'y'); WORLD.add(wrap);
+  B.spawn=async function({at,face=0,clip='idle'}){ if(!proto) proto=loadRig('beast',{pose:/\|idle$/}).then(B.skin); const src=await proto, {wrap,g}=rigClone(src,B.H,'y'); WORLD.add(wrap);
     wrap.position.set(at.x,at.y||0,at.z); wrap.rotation.y=face;
     // 어둠 속에서도 윤곽이 읽히게 : 차갑고 희미한 가장자리 빛 (손전등이 비추면 살이 드러난다)
-    g.traverse(o=>{ if(o.isMesh&&o.material){ o.material=o.material.clone(); o.material.roughness=.55; o.material.emissive=new THREE.Color(.05,.012,.01); } });
+    g.traverse(o=>{ if(o.isMesh&&o.material){ o.material=o.material.clone(); o.material.emissive=new THREE.Color(.05,.012,.01); o.material.envMapIntensity=.25; } });
     const mixer=new THREE.AnimationMixer(g), A={}; for(const [k,re] of Object.entries(NAMES)){ const c=clipOf(src.userData.animations,re); if(c) A[k]=mixer.clipAction(PEOPLE.inPlace(c)); }
-    const b={wrap,g,mixer,A,cur:null,path:null,speed:0,stun:0,mode:'idle',step:0}; list.push(b); B.play(b,clip,{fade:0});
-    GUN.targets.push({center:()=>wrap.position.clone().add(new THREE.Vector3(0,1.5,0)),r:.75,alive:()=>list.includes(b),hit:()=>B.shot(b)}); return b; };
+    const b={wrap,g,mixer,A,cur:null,path:null,speed:0,stun:0,mode:'idle',step:0,low:false,duct:false,ductId:0}; list.push(b); B.play(b,clip,{fade:0});
+    await B.grow(b);
+    GUN.targets.push({center:()=>wrap.position.clone().add(new THREE.Vector3(0,b.low?.9:1.5,0)),r:.75,alive:()=>list.includes(b)&&!b.duct,hit:()=>B.shot(b)}); return b; };
+  // 살 (4.7) : 창백한 살빛을 애벌레와 같은 어둡고 젖은 붉은 살로 — 같은 종으로 보이게 (그림에 색을 곱한다 · 한 번만)
+  B.skin=function(s){ s.traverse(o=>{ if(!o.isMesh||!o.material) return; const m=o.material; m.metalness=0; m.roughness=.46; if(m.normalScale) m.normalScale.setScalar(.8);
+      if(m.map&&m.map.image){ const z=LITE?512:1024, c=document.createElement('canvas'); c.width=c.height=z; const g=c.getContext('2d'); g.drawImage(m.map.image,0,0,z,z); g.globalCompositeOperation='multiply'; g.fillStyle='rgb(120,46,42)'; g.fillRect(0,0,z,z); g.globalCompositeOperation='source-over'; g.fillStyle='rgba(26,4,4,.3)'; g.fillRect(0,0,z,z);
+        const t=new THREE.CanvasTexture(c), s0=m.map; t.encoding=THREE.sRGBEncoding; t.flipY=false; t.wrapS=s0.wrapS; t.wrapT=s0.wrapT; t.offset.copy(s0.offset); t.repeat.copy(s0.repeat); t.rotation=s0.rotation; t.center.copy(s0.center); m.map=t; } m.needsUpdate=true; }); return s; };
+  // 자란 애벌레 (4.7) : 애벌레의 빨판 촉수가 성체의 등 · 어깨 · 허리 · 입 둘레에서 그대로 자라 꿈틀댄다 → 같은 종으로 보인다
+  //   애벌레 모델을 뼈에 붙이고(촉수 뿌리 = 뼈 자리), 몸통 쪽은 잘라 낸다(재질 자름면 — 촉수만 살 밖으로 나온다)
+  //   [뼈, 크기(m), 방향 : 등뼈 따라 머리 쪽 · 등 쪽 · 왼쪽 을 섞는 비율 ('face' = 주둥이 쪽), 꿈틀대는 박자 어긋남]
+  B.TENT=[[/^spine_5/,2.0,[.7,.7,0],0],[/^ClavicleL/,1.6,[.45,.5,.75],.3],[/^ClavicleR/,1.6,[.45,.5,-.75],.6],[/^spine_2/,1.7,[-.2,1,0],.45],[/^Head_0/,1.35,'face',.8]];
+  B.grow=async function(b){ b.tent=[]; const src=await LARVA.proto(), V=()=>new THREE.Vector3(), bone=re=>{ let o=null; b.g.traverse(x=>{ if(!o&&x.isBone&&re.test(x.name)) o=x; }); return o; }, wp=o=>o.getWorldPosition(V());
+    renderer.localClippingEnabled=true; b.wrap.updateMatrixWorld(true);
+    const s1=bone(/^spine_1/), s5=bone(/^spine_5/), cl=bone(/^ClavicleL/), cr=bone(/^ClavicleR/), hd=bone(/^Head_0/), jw=bone(/^Jaw_end/); if(!s1||!s5||!cl||!cr) return;
+    const s=wp(s5).sub(wp(s1)).normalize(), left=wp(cl).sub(wp(cr)).normalize(), back=V().crossVectors(s,left).normalize();
+    for(const [re,size,d,ph] of B.TENT){ const bn=bone(re); if(!bn) continue; const dir=d==='face'?(hd&&jw?wp(jw).sub(wp(hd)).normalize().addScaledVector(s,-.25):null):s.clone().multiplyScalar(d[0]).addScaledVector(back,d[1]).addScaledVector(left,d[2]); if(!dir) continue; dir.normalize();
+      const {wrap:tw,g:tg}=rigClone(src,size,'max',0), grp=new THREE.Group(), inner=new THREE.Group(), plane=new THREE.Plane(); tg.position.set(0,0,0);
+      tg.traverse(o=>{ if(!o.isMesh) return; o.frustumCulled=false; if(/Beak|Spike/.test(o.material.name)){ o.visible=false; return; } o.material=o.material.clone(); o.material.clippingPlanes=[plane]; });
+      const mx=new THREE.AnimationMixer(tg), c=clipOf(src.userData.animations,/Swim_Forward/); if(c){ const a=mx.clipAction(PEOPLE.inPlace(c)); a.play(); a.time=ph*c.duration; a.timeScale=.55; mx.update(0); }
+      tw.updateMatrixWorld(true); let bk=null; tg.traverse(o=>{ if(!bk&&o.isBone&&/Beak_Top_0/.test(o.name)) bk=o; }); if(bk) tw.position.copy(tw.worldToLocal(wp(bk))).multiplyScalar(-1);      // 부리(촉수 뿌리)가 뼈 자리에
+      // 지금 자세에서 바라는 방향(월드) → 뼈 기준으로 바꿔 둔다 (그 뒤로는 뼈를 따라 돈다) · 애벌레 촉수는 모델의 −z 쪽
+      const want=new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().lookAt(V(),dir,s)); inner.quaternion.copy(bn.getWorldQuaternion(new THREE.Quaternion()).invert().multiply(want));
+      inner.add(tw); grp.add(inner); b.wrap.add(grp); b.tent.push({bone:bn,grp,tw,mx,plane,inset:size*.1}); } };
+  const _tp=new THREE.Vector3(), _tn=new THREE.Vector3(), _tq=new THREE.Quaternion(), _wq=new THREE.Quaternion();
+  B.tentTick=function(b,dt){ if(!b.tent||!b.tent.length||!b.wrap.visible) return; b.wrap.updateMatrixWorld(true); b.wrap.getWorldQuaternion(_wq).invert();
+    for(const t of b.tent){ t.mx.update(dt); t.bone.getWorldPosition(_tp); t.bone.getWorldQuaternion(_tq); t.grp.quaternion.copy(_wq).multiply(_tq); t.grp.position.copy(b.wrap.worldToLocal(_tn.copy(_tp)));
+      t.tw.getWorldDirection(_tn).negate(); t.plane.setFromNormalAndCoplanarPoint(_tn,_tp.addScaledVector(_tn,-t.inset)); } };
   B.play=function(b,k,{once=false,fade=.25}={}){ const a=b.A[k]; if(!a) return Promise.resolve(); if(b.cur!==a||once){ a.reset(); a.setLoop(once?THREE.LoopOnce:THREE.LoopRepeat,Infinity); a.clampWhenFinished=once; a.play(); if(b.cur&&b.cur!==a&&fade) b.cur.crossFadeTo(a,fade,false); else if(b.cur&&b.cur!==a) b.cur.stop(); b.cur=a; }
     return once?new Promise(res=>{ const f=e=>{ if(e.action!==a) return; b.mixer.removeEventListener('finished',f); res(); }; b.mixer.addEventListener('finished',f); }):Promise.resolve(); };
   B.go=function(b,x,z,{speed=1.3,clip='walk'}={}){ b.path=ROUTE.path(b.wrap.position.x,b.wrap.position.z,x,z); b.speed=speed; b.move=clip; B.play(b,clip); return new Promise(res=>b.done=res); };
   B.stop=b=>{ b.path=null; b.done=null; };
+  // 죽고 다시 시작할 때 : 덕트 속이었으면 꺼내고 · 하던 일을 끊는다
+  B.reset=b=>{ b.ductId++; b.duct=false; b.stun=0; b.tough=0; b.wrap.visible=true; b.wrap.scale.setScalar(1); B.stop(b); };
   B.remove=b=>{ WORLD.remove(b.wrap); const i=list.indexOf(b); if(i>=0) list.splice(i,1); if(b.ai){ const j=TICK.indexOf(b.ai); if(j>=0) TICK.splice(j,1); } };
   B.clear=()=>list.slice().forEach(B.remove);
   // 맞으면 멈칫 (죽지 않는다) · 소리가 나니 쏜 쪽을 안다
-  B.shot=function(b){ if(b.stun>0) return; b.stun=1.1; B.play(b,Math.random()<.5?'hit':'hit2',{once:true,fade:.05}); AUDIO.tone(220,.6,'sawtooth',.08,0,-120); BLOOD.spray(b.wrap.position.clone().add(new THREE.Vector3(0,1.6,0)),14,2,0xd8ff70); b.heard={x:P.x,z:P.z}; };
+  B.shot=function(b){ if(b.stun>0||b.duct) return; b.tough=Math.min(3,(b.tough||0)+1); b.stun=[1.5,1.0,.6][b.tough-1];      // 거푸 맞으면 덜 멈칫한다 (6 초 쉬면 다시)
+    B.play(b,Math.random()<.5?'hit':'hit2',{once:true,fade:.05}); AUDIO.tone(220,.6,'sawtooth',.08,0,-120); BLOOD.spray(b.wrap.position.clone().add(new THREE.Vector3(0,1.6,0)),14,2,0xd8ff70); b.heard={x:P.x,z:P.z}; };
   // 보이나 : 거리 · 앞쪽 · 가리는 것 (웅크려 가구 뒤면 가까이 와야 보인다)
-  B.sees=function(b){ if(HIDE.in&&!HIDE.seen) return false; const w=b.wrap.position, dx=P.x-w.x, dz=P.z-w.z, d=Math.hypot(dx,dz), lim=ME.crouch?6.5:17; if(d>lim) return false;
+  B.sees=function(b){ if(b.duct||HIDE.in&&!HIDE.seen) return false; const w=b.wrap.position, dx=P.x-w.x, dz=P.z-w.z, d=Math.hypot(dx,dz), lim=ME.crouch?6.5:17; if(d>lim) return false;
     let a=Math.atan2(dx,dz)-b.wrap.rotation.y; a=Math.atan2(Math.sin(a),Math.cos(a)); if(Math.abs(a)>1.05&&d>2.6) return false;
-    return clearShot(new THREE.Vector3(w.x,w.y+1.9,w.z),camera.getWorldPosition(new THREE.Vector3()),.25); };
+    return clearShot(new THREE.Vector3(w.x,w.y+(b.low?1.1:1.9),w.z),camera.getWorldPosition(new THREE.Vector3()),.25); };
   // 사냥 : 둘러보기(순찰 점들) → 보이면 울부짖고 쫓는다 → 놓치면 마지막 자리를 뒤진다. 닿으면 onCatch
-  B.hunt=function(b,{patrol=[],onCatch,speed=3.3,roar=true}={}){ let mode='patrol', pi=0, last=null, lost=0, busy=false, roared=!roar, srch=0;
+  B.hunt=function(b,{patrol=[],onCatch,speed=3.3,roar=true}={}){ let mode='patrol', pi=0, last=null, lost=0, busy=false, roared=!roar, srch=0, ductCd=7;
     const next=()=>{ if(!patrol.length) return; const [x,z]=patrol[pi++%patrol.length]; B.go(b,x,z,{speed:1.25,clip:'walk'}).then(()=>{ if(mode==='patrol') setTimeout(()=>{ if(mode==='patrol'&&!b.path) next(); },1500+Math.random()*2000); }); };
     next();
     const ai=b.ai=async dt=>{ if(busy||S.phase!=='play'||b.stun>0) return; const w=b.wrap.position, d=Math.hypot(P.x-w.x,P.z-w.z), see=B.sees(b);
@@ -138,6 +168,9 @@ const BEAST=(()=>{ let proto=null; const list=[]; const B={list,H:2.55};
       if(see){ last={x:P.x,z:P.z}; lost=0;
         if(mode!=='chase'){ mode='chase'; B.stop(b); if(!roared){ roared=true; busy=true; b.wrap.rotation.y=Math.atan2(P.x-w.x,P.z-w.z); SFX.play('beast_roar',{at:w}); STING(.5); FX.shake(.4,.04); await B.play(b,'roar',{once:true}); busy=false; } } }
       else if(mode==='chase'){ lost+=dt; if(lost>2.2){ mode='search'; srch=7; B.go(b,last.x,last.z,{speed:2,clip:'walk'}); } }
+      // 환기 덕트 : 쫓는데 멀거나 놓쳤으면 — 천장으로 올라가 앞질러 떨어진다 (16 초에 한 번 · 숨어 있으면 하지 않는다)
+      ductCd-=dt; if(ductCd<=0&&(mode==='chase'||mode==='search')&&last&&!HIDE.in&&B.VENTS[0].mesh){ const tgt=mode==='chase'?{x:P.x,z:P.z}:last;
+        if(Math.abs(tgt.x-w.x)+Math.abs(tgt.z-w.z)>11){ const ex=B.exitVent(tgt,w); if(ex&&Math.abs(ex.x-w.x)>9){ busy=true; ductCd=16; const ok=await B.duct(b,ex); busy=false; if(mode==='done') return; if(ok){ mode='chase'; lost=0; last={x:P.x,z:P.z}; roared=true; } return; } } }
       if(b.heard&&mode!=='chase'){ last=b.heard; b.heard=null; mode='search'; srch=7; B.go(b,last.x,last.z,{speed:2.4,clip:'run'}); }
       if(HIDE.in&&!busy){ const s=HIDE.in, fr=HIDE.front(s,1.1), ds=Math.hypot(fr.x-w.x,fr.z-w.z);
         if(HIDE.seen||HIDE.noisy(b)){ if(mode!=='found'){ mode='found'; b.path=ROUTE.path(w.x,w.z,fr.x,fr.z); b.speed=speed; b.move='run'; B.play(b,'run'); GROWL(.12); }
@@ -146,13 +179,57 @@ const BEAST=(()=>{ let proto=null; const list=[]; const B={list,H:2.55};
         if(mode==='chase'){ mode='search'; srch=9; B.go(b,fr.x,fr.z,{speed:1.6,clip:'walk'}); } }
       if(mode==='chase'){ if(d<1.45){ busy=true; B.stop(b); b.wrap.rotation.y=Math.atan2(P.x-w.x,P.z-w.z); AUDIO.tone(700,.3,'sawtooth',.07,0,-300); B.play(b,'swipe',{once:true,fade:.05}); P.free=false; await sleep(450); FX.flash('#900000',900); SCREAM(.6); busy=false; mode='done'; onCatch&&onCatch(); return; }
         if(!b.path||b.path.length>1||Math.hypot(b.path[0][0]-P.x,b.path[0][1]-P.z)>.8){ b.path=ROUTE.path(w.x,w.z,P.x,P.z); b.speed=speed; b.move='run'; B.play(b,'run'); } }
-      if(mode==='search'&&!b.path){ srch-=dt; if(srch<=0){ mode='patrol'; next(); } else if(b.cur!==b.A.battle) B.play(b,'battle'); } };
-    TICK.push(ai); return ()=>{ mode='done'; const i=TICK.indexOf(ai); if(i>=0) TICK.splice(i,1); B.stop(b); }; };
-  B.tick=function(dt){ for(const b of list){ b.mixer.update(dt); if(b.stun>0){ b.stun-=dt; continue; }
-    if(b.path){ const [tx,tz]=b.path[0], left=steer(b.wrap,tx,tz,b.speed,dt,{r:.32,y1:.45,y2:1.9,turn:5}), w=b.wrap.position, gy=SOLID.top(w.x,w.z,w.y+.5,.2); w.y+=((gy===null?floorAt(w.x,w.z):Math.max(gy,floorAt(w.x,w.z)))-w.y)*Math.min(1,dt*8);      // 턱 · 원자로 단을 오른다
-      if(left<.15){ b.path.shift(); if(!b.path.length){ b.path=null; B.play(b,'idle'); const r=b.done; b.done=null; r&&r(); } }
+      if(mode==='search'&&!b.path){ srch-=dt; if(srch<=0){ mode='patrol'; next(); } else if(!b.low&&b.cur!==b.A.battle) B.play(b,'battle'); } };
+    TICK.push(ai); return ()=>{ mode='done'; b.ductId++; const i=TICK.indexOf(ai); if(i>=0) TICK.splice(i,1); B.stop(b); }; };
+  /* ---- 환기 덕트 (4.7) : 복도 천장의 격자 여덟 — 성체는 몸집 때문에 복도에서 느리지만, 덕트로 올라가 머리 위를 지나 앞질러 떨어진다 ----
+     벽 · 가구 충돌은 그대로 (바닥에서는 걸리는 대로 걸린다) — 대신 길이 하나 더 있다. 지나가는 동안 머리 위에서 쿵쿵 · 먼지 · 심장 소리가 따라온다
+     떨어질 격자는 나에게서 5 m 넘게 · 격자가 먼저 떨어져 알려 준다 → 쏘면 멈칫 (그 틈에 지나가거나 옷장에 숨는다) */
+  B.VENTS=[4,10,18,24,30,40,48,53].map(x=>({x,z:10.5,y:2.35,mesh:null,open:false}));
+  B.vents=function(){ const cv=document.createElement('canvas'); cv.width=cv.height=128; const g=cv.getContext('2d'); g.fillStyle='#07080a'; g.fillRect(0,0,128,128); g.fillStyle='#2b3036'; for(let i=0;i<9;i++) g.fillRect(10,12+i*12.4,108,5);
+    g.strokeStyle='#454b53'; g.lineWidth=8; g.strokeRect(4,4,120,120); const t=new THREE.CanvasTexture(cv); t.encoding=THREE.sRGBEncoding;
+    B.grate=new THREE.MeshStandardMaterial({map:t,roughness:.55,metalness:.6,side:THREE.DoubleSide}); B.hole=new THREE.MeshBasicMaterial({color:0x000000,side:THREE.DoubleSide}); B.told=0;
+    for(const v of B.VENTS){ v.y=2.35; for(let k=1.7;k<3.6;k+=.05) if(SOLID.hit(v.x,v.z,k,k+.05,.25)){ v.y=k; break; } v.open=false;
+      v.mesh=new THREE.Mesh(new THREE.PlaneGeometry(1.05,1.05),B.grate); v.mesh.rotation.x=Math.PI/2; v.mesh.position.set(v.x,v.y-.03,v.z); WORLD.add(v.mesh); } };
+  const anim=(dur,fn)=>new Promise(res=>{ let k=0; const f=dt=>{ k=Math.min(1,k+dt/dur); fn(k); if(k>=1){ TICK.splice(TICK.indexOf(f),1); res(); } }; TICK.push(f); });
+  // 격자가 떨어진다 (한 번) — 뚫린 자리는 검은 구멍
+  B.openVent=function(v){ if(v.open||!v.mesh) return; v.open=true; v.mesh.material=B.hole; SFX.play('locker_open',{at:v,vol:1}); AUDIO.noise(.25,.3,0,2400);
+    const m=new THREE.Mesh(v.mesh.geometry,B.grate); m.position.copy(v.mesh.position); m.rotation.x=Math.PI/2; WORLD.add(m); const y0=m.position.y, y1=floorAt(v.x,v.z)+.05, sx=(Math.random()-.5)*1.2;
+    anim(.42,k=>{ m.position.y=lerp(y0,y1,k*k); m.position.x=v.x+sx*k; m.rotation.x=Math.PI/2+k*2.6; m.rotation.z=k*1.3; }).then(()=>{ m.rotation.set(Math.PI/2,0,.6); SFX.play('locker_close',{at:v,vol:1}); AUDIO.noise(.3,.35,0,1500); BLOOD.spray(new THREE.Vector3(v.x,v.y-.1,v.z),8,.7,0x8a8a8a); }); };
+  // 어느 격자로 떨어질까 : 내가 가는 쪽 앞 (서 있으면 성체 반대쪽) 4.5 ~ 12 m · 방 안에 있으면 그 방 문 앞
+  B.exitVent=function(tgt,w){ const zone=SHIP.zoneAt(tgt.x,tgt.z), D=ROUTE.DOOR[zone], hx=zone==='hall'||!D?tgt.x:D[1][0], inHall=SHIP.zoneAt(P.x,P.z)==='hall', ok=v=>!inHall||Math.abs(v.x-P.x)>=5;
+    const dir=Math.abs(P.vx||0)>.6?Math.sign(P.vx):Math.sign(tgt.x-w.x)||1, near=(a,c)=>Math.abs(a.x-hx)-Math.abs(c.x-hx);
+    const ahead=B.VENTS.filter(v=>ok(v)&&(v.x-hx)*dir>=4.5&&(v.x-hx)*dir<=12).sort(near)[0]; if(ahead&&zone==='hall') return ahead;
+    return B.VENTS.filter(ok).sort(near)[0]||null; };
+  B.duct=async function(b,to){ const w=b.wrap.position, id=++b.ductId, live=()=>b.ductId===id&&list.includes(b), from=B.VENTS.reduce((a,v)=>Math.hypot(v.x-w.x,v.z-w.z)<Math.hypot(a.x-w.x,a.z-w.z)?v:a);
+    if(from===to) return false;
+    // ① 격자 아래로 달려가 (5 초 안에 못 가면 그만둔다)
+    const got=await Promise.race([B.go(b,from.x,from.z,{speed:4.2,clip:'run'}).then(()=>true),sleep(5000).then(()=>false)]); B.stop(b); if(!live()) return false; if(!got) { B.rest(b); return false; }
+    // ② 뛰어올라 격자를 뜯고 들어간다
+    B.openVent(from); B.play(b,'jump',{once:true,fade:.08}); SFX.play('beast_growl',{at:w,vol:1}); await sleep(360); if(!live()) return false;
+    const y0=w.y; await anim(.4,k=>{ if(!live()) return; w.y=lerp(y0,from.y-1.1,k*k); b.wrap.scale.setScalar(1-.4*k); }); if(!live()) return false;
+    b.duct=true; b.wrap.visible=false; b.wrap.scale.setScalar(1); THUD(.5); AUDIO.noise(.3,.3,0,1200);
+    if(!B.told){ B.told=1; VOICE.play('크리스, 머리 위입니다! 환기 덕트로 움직입니다!'); toast('VEGA — 머리 위입니다! 환기 덕트로 움직입니다!',3000); }
+    // ③ 머리 위를 지난다 : 쿵쿵 · 먼지 (심장 소리는 그 자리를 따라온다)
+    const L=Math.abs(to.x-from.x), T=Math.max(1.5,L/10); let th=0; await anim(T,k=>{ if(!live()) return; w.set(lerp(from.x,to.x,k),from.y,10.5); th-=1/30; if(th<=0){ th=.26; SFX.play('beast_step',{at:{x:w.x,y:2.4,z:w.z},vol:1}); if(Math.abs(P.x-w.x)<4&&Math.abs(P.z-10.5)<2.5){ FX.shake(.18,.02); BLOOD.spray(new THREE.Vector3(w.x,2.2,10.5+(Math.random()-.5)*.8),4,.4,0x8a8a8a); } } });
+    if(!live()) return false;
+    // ④ 격자가 먼저 떨어지고 (알림) → 내려와 선다
+    B.openVent(to); await sleep(750); if(!live()) return false;
+    w.set(to.x,to.y-1.2,to.z); b.wrap.rotation.y=Math.atan2(P.x-w.x,P.z-w.z); b.wrap.visible=true; b.duct=false; b.low=true; B.play(b,'crawl',{fade:0}); if(b.A.crawl) b.A.crawl.timeScale=1;
+    const yf=floorAt(to.x,to.z); await anim(.3,k=>{ if(live()) w.y=lerp(to.y-1.2,yf,k*k); }); THUD(.6); FX.shake(.5,.05); SFX.play('beast_roar',{at:w,vol:.9}); BLOOD.spray(new THREE.Vector3(w.x,.1,w.z),8,1,0x8a8a8a);
+    if(B.told===1){ B.told=2; setTimeout(()=>{ VOICE.play('쏘면 잠깐 멈춥니다. 그 틈에 지나가십시오!'); toast('VEGA — 쏘면 잠깐 멈춥니다. 그 틈에 지나가거나 숨으십시오!',3600); },700); }
+    await sleep(450); return live(); };
+  // 매 프레임 : 천장이 낮은 곳(복도 2.3 m · 문)에서는 네 발로 긴다 — 선 키(2.55 m)로는 천장을 뚫는다 · 넓은 방(기관실 · 라운지)에서는 일어서 걷고 뛴다
+  B.rest=function(b){ if(b.low&&b.A.crawl){ B.play(b,'crawl'); b.A.crawl.timeScale=.12; } else B.play(b,'idle'); };
+  B.tick=function(dt){ for(const b of list){ b.mixer.update(dt); B.tentTick(b,dt); if(b.duct) continue; if(b.tough){ b.calmT=(b.calmT||0)+dt; if(b.calmT>6){ b.tough=0; b.calmT=0; } } if(b.stun>0){ b.stun-=dt; b.calmT=0; continue; }
+    const w=b.wrap.position; b.lowT=(b.lowT||0)-dt; if(b.lowT<=0){ b.lowT=.2; b.low=!!SOLID.g&&SOLID.hit(w.x,w.z,w.y+2.05,w.y+2.75,.65); }
+    if(b.path){ const want=b.low&&b.A.crawl?'crawl':b.move; if(b.A[want]&&b.cur!==b.A[want]) B.play(b,want); if(b.low&&b.A.crawl) b.A.crawl.timeScale=clamp(b.speed/1.5,.9,2.4);
+      const [tx,tz]=b.path[0], left=steer(b.wrap,tx,tz,b.speed,dt,b.low?{r:.3,y1:.3,y2:1.15,turn:6}:{r:.32,y1:.45,y2:1.9,turn:5}), gy=SOLID.top(w.x,w.z,w.y+.5,.2); w.y+=((gy===null?floorAt(w.x,w.z):Math.max(gy,floorAt(w.x,w.z)))-w.y)*Math.min(1,dt*8);      // 턱 · 원자로 단을 오른다
+      // 끼었나 : 2.5 초 동안 0.4 m 도 못 갔으면 그 점은 건너뛴다 (제자리에서 헛걸음하지 않게)
+      b.sT=(b.sT||0)+dt; if(!b.sP) b.sP=w.clone(); if(b.sT>2.5){ const moved=b.sP.distanceTo(w); b.sT=0; b.sP.copy(w); if(moved<.4){ b.path.shift(); if(!b.path.length){ b.path=null; B.rest(b); const r=b.done; b.done=null; r&&r(); continue; } } }
+      if(left<.15){ b.path.shift(); if(!b.path.length){ b.path=null; B.rest(b); const r=b.done; b.done=null; r&&r(); } }
       // 발소리 : 무겁게 (가까울수록 크게)
       b.step-=dt*(b.speed>2?2.6:1.4); if(b.step<=0){ b.step=1; SFX.play('beast_step',{at:b.wrap.position}); } }
+    else { b.sT=0; b.sP=null; }
     b.gr=(b.gr||4)-dt; if(b.gr<=0){ b.gr=5+Math.random()*6; if(b.cur!==b.A.eat) SFX.play('beast_growl',{at:b.wrap.position,vol:.8}); } }
     // 쫓길 때 음악 : 하나라도 쫓으면 chase · 4 초 동안 아무도 안 쫓으면 원래대로
     const chasing=list.some(b=>b.mode==='chase'||b.mode==='found'); if(chasing){ B.calm=0; if(MUSIC.cur!=='chase'&&list.length) { B.before=MUSIC.cur; MUSIC.play('chase',{fade:.8,vol:.55}); } } else if(MUSIC.cur==='chase'){ B.calm=(B.calm||0)+dt; if(B.calm>4) MUSIC.play(B.before||'derelict',{fade:3}); } };
