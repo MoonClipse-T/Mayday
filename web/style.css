@@ -310,7 +310,17 @@ body.flying #talk{width:min(820px,calc(100vw - 2*var(--pad) - 520px))}      /* �
 #hidefx p{position:absolute;left:50%;bottom:calc(var(--pad) + 150px);transform:translateX(-50%);font:500 14px var(--mono);letter-spacing:.14em;color:var(--mute);white-space:nowrap}
 /* 숨어 있는 동안 : 움직이는 단추(막대 · 달리기 · 뛰기 · 사격 · 웅크림 · 조사)를 치우고, 오른쪽 아래 엄지 자리에 [숨 참기] · 그 옆에 [나가기] */
 body.hiding #stick,body.hiding #run,body.hiding #jump,body.hiding #act,body.hiding #fire,body.hiding #crouch{display:none!important}
-#hideout{display:none;right:calc(var(--pad) + 134px);bottom:calc(var(--pad) + 56px);align-items:center;justify-content:center} #hideout.on{display:flex}
+#hideout{display:none;align-items:center;justify-content:center;border-color:#6dffb0;color:#6dffb0} #hideout.on{display:flex}
+/* 4.8 · 숨은 곳 안에서 보는 모습 : 화물 상자(앞판 틈) · 동면 캡슐(서리 낀 유리) */
+#hidefx.crate{background:linear-gradient(rgba(0,0,0,.97) 0,rgba(0,0,0,.97) 36%,rgba(0,0,0,.25) 40%,rgba(0,0,0,0) 44%,rgba(0,0,0,0) 56%,rgba(0,0,0,.25) 60%,rgba(0,0,0,.97) 64%)}
+#hidefx.pod{background:radial-gradient(ellipse 70% 62% at 50% 46%,rgba(200,225,255,.05) 0,rgba(190,215,245,.16) 55%,rgba(8,12,18,.9) 82%,rgba(0,0,0,.97) 100%)}
+/* 4.8 · 성체 경보 (소리를 못 듣는 교실 디벗도 알게 — 위쪽 글) · 약점 맞힌 수 */
+#stalkfx{position:fixed;left:50%;top:calc(var(--pad) + 64px);transform:translateX(-50%);z-index:9;pointer-events:none;opacity:0;transition:opacity .4s;text-align:center}
+#stalkfx.on{opacity:1} #stalkfx p{margin:0;padding:8px 16px;font:600 15px var(--sans);letter-spacing:.04em;color:#fff;background:rgba(120,20,8,.55);border:1px solid var(--alert);white-space:nowrap;animation:stalkp 1s ease-in-out infinite}
+#stalkfx.hide p{background:rgba(6,8,10,.6);border-color:#6dffb0;color:#6dffb0;animation:none} #stalkfx.fight p{animation:none}
+@keyframes stalkp{50%{background:rgba(190,40,16,.7)}}
+#stalkfx .pips{display:flex;gap:8px;justify-content:center;margin-top:8px} #stalkfx .pips i{width:18px;height:18px;border-radius:50%;border:2px solid #ffc060;background:rgba(0,0,0,.4)} #stalkfx .pips i.on{background:#ffc060;box-shadow:0 0 10px #ffc060}
+@media (max-width:760px){ #stalkfx p{font-size:12px;white-space:normal;max-width:86vw} }
 #breath{display:none;align-items:center;justify-content:center;right:calc(var(--pad) + 30px);bottom:calc(var(--pad) + 46px);border-color:#6dffb0;color:#6dffb0} #breath.on{display:flex} #breath.held{background:rgba(109,255,176,.25)}
 #breathbar{position:fixed;left:50%;bottom:calc(var(--pad) + 120px);transform:translateX(-50%);width:220px;height:6px;background:rgba(109,255,176,.15);z-index:9;display:none} #breathbar.on{display:block} #breathbar i{display:block;height:100%;background:#6dffb0}
 #grabfx{position:fixed;inset:0;z-index:8;pointer-events:none;opacity:0;background:radial-gradient(circle at 50% 50%,rgba(60,0,0,0) 20%,rgba(90,0,0,.7) 70%)}

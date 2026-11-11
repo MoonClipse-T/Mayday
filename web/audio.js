@@ -7,7 +7,7 @@
    ============================================================ */
 'use strict';
 const SFX=(()=>{ const buf={}, base='web/audio/sfx/';
-  const NAMES=['shot','burst','larva_hiss','larva_hurt','larva_die','larva_leap','jumpscare','struggle','thrown','bite','locker_open','locker_close','crawl','breath','gasp','found','beast_roar','beast_growl','beast_step','beast_eat','dock','thruster','airlock','heartbeat'];
+  const NAMES=['shot','burst','larva_hiss','larva_hurt','larva_die','larva_leap','jumpscare','struggle','thrown','bite','locker_open','locker_close','crawl','breath','gasp','found','beast_roar','beast_growl','beast_step','beast_eat','dock','thruster','airlock','heartbeat','beast_call','vent_rumble'];
   const ALIAS={cloth:'crawl',kneel:'crawl'}, VOL={shot:.55,larva_hiss:.45,breath:.5,heartbeat:.8,beast_step:.7,crawl:.6,thruster:.35};
   // 합성음 (파일이 없을 때)
   const SYN={shot:()=>{ AUDIO.noise(.12,.35,0,5200,'highpass'); AUDIO.tone(1800,.18,'sawtooth',.06,0,-1500); },burst:()=>{ AUDIO.noise(.5,.3,0,700); AUDIO.tone(900,.4,'sawtooth',.05,0,600); },
@@ -15,10 +15,11 @@ const SFX=(()=>{ const buf={}, base='web/audio/sfx/';
   async function load(n){ if(buf[n]!==undefined||!AUDIO.ctx) return; buf[n]=null; try{ const r=await fetch(base+n+'.mp3?v='+(window.V||'')); if(!r.ok) throw 0; buf[n]=await AUDIO.ctx.decodeAudioData(await r.arrayBuffer()); }catch(e){ buf[n]=false; } }
   function preload(){ AUDIO.init(); NAMES.forEach(load); }
   // at : 소리 난 자리 (없으면 머리 안) · vol : 크기 · rate : 빠르기(조금씩 달리)
-  function play(name,{at=null,vol=1,rate=null}={}){ name=ALIAS[name]||name; const c=AUDIO.ctx; if(!c) return;
+  // far : 멀어도 들린다 (성체의 울음 — 방향만 왼쪽 오른쪽으로)
+  function play(name,{at=null,vol=1,rate=null,far=false}={}){ name=ALIAS[name]||name; const c=AUDIO.ctx; if(!c) return;
     const b=buf[name]; if(!b){ if(b===undefined) load(name); if(SYN[name]) SYN[name](); return; }
     const s=c.createBufferSource(); s.buffer=b; s.playbackRate.value=rate||(.94+Math.random()*.12); const g=c.createGain(); let v=vol*(VOL[name]||1);
-    let node=s; if(at){ const cp=camera.getWorldPosition(new THREE.Vector3()), d=cp.distanceTo(new THREE.Vector3(at.x,at.y||1,at.z)); v*=1/(1+Math.max(0,d-1)/3.5); if(d>30) return;
+    let node=s; if(at){ const cp=camera.getWorldPosition(new THREE.Vector3()), d=cp.distanceTo(new THREE.Vector3(at.x,at.y||1,at.z)); if(far) v*=clamp(1.15-d/60,.45,1); else { v*=1/(1+Math.max(0,d-1)/3.5); if(d>30) return; }
       const p=c.createStereoPanner?c.createStereoPanner():null; if(p){ const r=new THREE.Vector3(1,0,0).applyQuaternion(camera.quaternion), dir=new THREE.Vector3(at.x-cp.x,0,at.z-cp.z).normalize(); p.pan.value=clamp(dir.dot(r),-1,1)*.8; s.connect(p); node=p; } }
     g.gain.value=v; node.connect(g).connect(c.destination); s.start(); return s; }
   return {play,preload,NAMES}; })();

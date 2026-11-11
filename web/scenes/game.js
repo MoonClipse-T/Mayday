@@ -25,7 +25,7 @@ const LEAH_WEAR={grime:[.5,.46,.42],desat:.45,matte:true,blobs:[[.5,.66,.82,.075
   [.03,.56,.5,.06,'b'],[.97,.56,.5,.06,'b'],[.1,.56,.5,.06,'o'],[.9,.56,.5,.06,'o'],[.5,.92,.85,.05,'o'],[.56,.9,.9,.035,'b'],[.5,.8,.5,.09,'o'],[.5,.5,.2,.1,'o']]};
 
 const GAME={cp:null,
-  stages:['meeting','launch','depart','jupiter','cockpit','board','survivor','hunt','engine','bridge'],
+  stages:['meeting','launch','depart','jupiter','cockpit','board','survivor','hunt','engine','bridge','stalk'],
   // 바로 가기 · 처음부터
   async jump(key){ const f=S.flags; S.phase='cut'; P.free=false;
     if(key==='meeting') return SCENES.meeting.enter();
@@ -37,12 +37,16 @@ const GAME={cp:null,
     if(key==='survivor'){ warp(27,7.4,Math.PI*0); return this.survivor(); }
     this.leahDead(); if(key==='hunt'){ warp(27,7,Math.PI); return this.hunt(); }
     Object.assign(f,{hunted:true}); LARVA.on=false; LARVA.hosts.forEach(h=>h.done=true);
+    if(key==='stalk'){ warp(27,7,Math.PI); return this.sandbox(); }
     if(key==='engine'){ warp(46,10.5,-Math.PI/2); return this.engine(); }
     f.power=true; this.lightsOn(); warp(54,10.5,Math.PI/2); return this.escape(); },
 
   /* ---- ① 구조정 : 직접 몰고 가 도킹한다 (scenes/flight.js) → 연결 통로를 지나 1호 에어록 ---- */
   // 전력 복구 : 방 불빛 · 빛 띠 · 화면이 돌아온다 (손전등은 그대로 · 조금 약하게)
   lightsOn(){ ROOMS.power(); STORY.dark(false); $('#torch').classList.add('on'); STORY.torch(.5); SHIP.dim=.75; if(SHIP.hemi) SHIP.hemi.intensity=.38; },
+  // 추격 시험 (?s=stalk · &vent 를 붙이면 처음부터 환풍구로) — 미션을 넣기 전의 빈 배에서 성체만 (scenes/stalk.js)
+  async sandbox(){ S.phase='play'; P.free=true; goal('자유 탐색 — 성체가 찾아온다 (숨을 곳 : 옷장 · 침대 밑 · 화물 상자 · 동면 캡슐)'); this.save(27,7,Math.PI,async()=>STALK.reset(15));
+    if(/[?&]vent/.test(location.search)) STALK.force='vent'; await STALK.start({first:12,onCatch:()=>this.died()}); },
   async cockpit(){ await FLIGHT.run(); await this.ship(); return this.board(); },
   // 회의 다음 : 발사 → 지구 궤도 출발 → 동면 → 넉 달 뒤 목성 · 웜홀 (scenes/journey.js) → 건너편에서 직접 몰고 도킹
   async journey(from='launch'){ await JOURNEY.run(from); await FLIGHT.run({journey:true}); await this.ship(); return this.board(); },
@@ -50,7 +54,7 @@ const GAME={cp:null,
   /* ---- 1호 불러오기 (어둠 · 시신 · 피) ---- */
   async ship(){ const f=S.flags; await SCENES.ship.enter(); MUSIC.play('derelict',{fade:3}); STORY.show('h1',true); STORY.dark(true); SHIP.dim=.8; if(SHIP.hemi) SHIP.hemi.intensity=.035;      // 붉은 빛 없이 캄캄하게 — 손전등이 비춘 곳만 밝다
     Object.values(SHIP.doors).forEach(d=>d.open());      // 전력이 없어 문은 모두 열린 채
-    await this.bodies(); BEAST.vents(); await HIDE.setup(); TICK.push(dt=>HIDE.tick(dt)); await GUN.hold(); ME.heal(); ME.onDeath=()=>this.died(); DREAD.on();
+    STALK.stop(); STALK.b=null; await this.bodies(); BEAST.vents(); STALK.vents(); await HIDE.setup(); TICK.push(dt=>HIDE.tick(dt)); await GUN.hold(); ME.heal(); ME.onDeath=()=>this.died(); DREAD.on();
     // 어둠 속 소리 : 몇 초마다 어딘가에서 (가끔 머리 위 쿵)
     let t=6; TICK.push(dt=>{ if(S.phase!=='play') return; t-=dt; if(t<=0){ t=7+Math.random()*8; Math.random()<.45?GROWL(.035):Math.random()<.5?THUD(.1):AUDIO.tone(2200+Math.random()*600,.6,'sine',.01,0,-400); } });
     // 입김 : 차가운 배
@@ -78,7 +82,7 @@ const GAME={cp:null,
   async died(){ S.phase='cut'; P.free=false; SCREAM(.5); await fade(true,1400); ME.setCrouch(false); HIDE.reset(); if(LARVA.grab) LARVA.struggle&&(LARVA.grab.need=0,LARVA.struggle());
     const c=this.cp||{x:50.43,z:7,yaw:Math.PI}; warp(c.x,c.z,c.yaw); ME.heal();
     LARVA.list.forEach(l=>{ if(l.state!=='dead'&&Math.hypot(l.wrap.position.x-c.x,l.wrap.position.z-c.z)<8){ const a=Math.random()*6; l.wrap.position.x=c.x+Math.sin(a)*9; l.wrap.position.z=c.z+Math.cos(a)*9; } });
-    if(c.reset) await c.reset();
+    if(c.reset) await c.reset(); else if(STALK.on) STALK.reset(20);
     await sleep(500); await fade(false,1200); toast('다시 — 마지막 저장 지점',2200); S.phase='play'; P.free=true; },
   save(x,z,yaw,reset){ this.cp={x,z,yaw,reset}; },
 
@@ -146,8 +150,8 @@ const GAME={cp:null,
     let chomp=0; const eat=dt=>{ if(b.cur!==b.A.eat) return; chomp-=dt; if(chomp<=0){ chomp=2.6+Math.random()*1.5; SFX.play('beast_eat',{at:b.wrap.position}); } }; TICK.push(eat);
     // 문 앞 : 아직 보이지 않는다 — 소리만 (4.7 : 보이기도 전에 VEGA 와 '저것' 이야기를 하던 것)
     STORY.once(54.6,10.5,1.6,()=>TALK.say([I('…안에서 소리가 난다. 뭔가를… 씹는 소리.')]));
-    // 들키면 쫓아온다 · 잡히면 처음부터 (먹던 자리로) — 순찰 자리는 원자로 둘레의 실제 바닥
-    let stop=null; const wake=()=>{ if(stop) return; TICK.splice(TICK.indexOf(eat),1); stop=BEAST.hunt(b,{patrol:[[57,18.5],[64,19.5],[69.3,17.5],[57,14.5],[50,10.5],[38,10.5]],onCatch:()=>this.died()}); };
+    // 들키면 덤빈다 · 잡히면 처음부터 (먹던 자리로)
+    let stop=null; const wake=()=>{ if(stop) return; stop=true; const i=TICK.indexOf(eat); if(i>=0) TICK.splice(i,1); STALK.start({beast:b,onCatch:()=>this.died(),engage:true}); };      // 들켰다 : 눈앞에서 덤빈다 (약점 다섯 발 · 아니면 안 보이는 데로 달아나 숨는다)
     // 처음 눈에 들어온 순간 (손전등 빛 안 · 가리는 것 없음) : 그때 멈춰 서서 본다 — 이미 깨어 쫓아오는 중이면 말할 틈이 없다
     { const seen=()=>{ if(stop){ TICK.splice(TICK.indexOf(seen),1); return; } if(S.phase!=='play'||TALK.on||!P.free) return; const c=camera.getWorldPosition(new THREE.Vector3()), t=new THREE.Vector3(ex,1.1,ez), d=t.clone().sub(c), L=d.length();
         if(L>13||d.normalize().dot(camera.getWorldDirection(new THREE.Vector3()))<.88||!clearShot(c,t,.25)) return; TICK.splice(TICK.indexOf(seen),1);
@@ -155,30 +159,40 @@ const GAME={cp:null,
           await TALK.say([I('…'),VG('(작게) 움직이지 마십시오. 저것이… 1호 대원들을…'),I('먹고 있다.'),VG('원자로 콘솔 둘은 입구 왼쪽과 오른쪽입니다. 웅크리면 덜 보입니다. 저것에게 들키면—'),I('알아.')]);
           P.look=false; S.phase='play'; P.free=true; ME.setCrouch(true); })(); }; TICK.push(seen); }
     const watch=()=>{ if(!stop&&(BEAST.sees(b)&&Math.hypot(P.x-ex,P.z-ez)<6||b.stun>0||S.run)) wake(); }; TICK.push(watch);
-    this.save(54,10.5,Math.PI/2,async()=>{ if(stop){ stop(); stop=null; } BEAST.reset(b); b.wrap.position.set(ex,0,ez); b.wrap.rotation.y=Math.PI/2; BEAST.play(b,'eat'); if(!TICK.includes(eat)) TICK.push(eat); });
+    this.save(54,10.5,Math.PI/2,async()=>{ STALK.stop(); stop=null; BEAST.reset(b); b.wrap.position.set(ex,0,ez); b.wrap.rotation.y=Math.PI/2; BEAST.play(b,'eat'); if(!TICK.includes(eat)) TICK.push(eat); });
     const cons=(R.consoles&&R.consoles.length?R.consoles:[]).slice(0,2); let done=0;
     goal('원자로 제어 콘솔 둘을 켠다 — 0 / 2');
     await Promise.all(cons.map((c,i)=>STORY.at(c,'원자로 제어 콘솔 — 켠다','',{range:2.4}).then(async()=>{ done++; AUDIO.tone(300+i*200,.4,'square',.05); AUDIO.noise(.8,.3,0,500); goal('원자로 제어 콘솔 둘을 켠다 — '+done+' / 2');
       if(done===1){ TALK.say([VG('첫 번째 콘솔 응답. …소리가 컸습니다.')]); wake(); b.heard={x:P.x,z:P.z}; } })));
     TICK.splice(TICK.indexOf(watch),1);
     this.lightsOn(); FX.shake(1.2,.03); AUDIO.tone(55,4,'sawtooth',.08,0,40);
-    await TALK.say([VG('원자로 재점화! 1호 전력 복구 — 12%, 30%…'),VG('함교 조종석으로 가십시오, 크리스. 거기서 1호를 움직일 수 있습니다!')]);
-    if(!stop) wake(); this.stopBeast=()=>{ stop&&stop(); };
+    await TALK.say([VG('원자로 재점화! 1호 전력 복구 — 12%, 30%…'),VG('함교 조종석으로 가십시오, 크리스. 거기서 1호를 움직일 수 있습니다!'),VG('전력이 돌아와 문이 움직입니다. 함교에 들어가면 문부터 닫아 잠그십시오 — 문 안쪽 제어판입니다.')]);
+    if(!stop) wake();
     return this.escape(); },
 
   /* ---- ⑥ 함교로 → 1호를 몰고 웜홀로 ---- */
   async escape(){ const f=S.flags; S.phase='play'; P.free=true;
-    if(!this.beast){ const b=this.beast=await BEAST.spawn({at:{x:57,z:18.5},face:-Math.PI/2,clip:'idle'}); this.stopBeast=BEAST.hunt(b,{patrol:[[40,10.5],[20,10.5],[14,20],[5,10.5]],onCatch:()=>this.died()}); }
-    const rehunt=()=>{ this.stopBeast&&this.stopBeast(); this.stopBeast=BEAST.hunt(this.beast,{roar:false,patrol:[[40,10.5],[20,10.5],[14,20],[5,10.5]],onCatch:()=>this.died()}); };
-    this.save(50,10.5,-Math.PI/2,async()=>{ const b=this.beast; BEAST.reset(b); b.wrap.position.set(57,0,18.5); rehunt(); b.heard={x:52,z:10.5}; });
-    goal('함교로 — 조종석에서 1호를 움직인다 (복도 서쪽 끝)');
-    const cs=SHIP.rooms.bridge.spots.captain||{x:0,z:-1}, seat=new THREE.Mesh(new THREE.CylinderGeometry(.5,.5,1.4,12),PICK); seat.position.set(cs.x,.7,cs.z); WORLD.add(seat);
-    await STORY.at(seat,'함장석 — 1호를 움직인다','함교 함장석으로 — 1호를 움직인다',{range:2.6});
-    this.stopBeast&&this.stopBeast(); S.phase='cut'; P.free=false; ME.setCrouch(false); goal('');
-    const d=SHIP.doors.bridge, b=this.beast; await d.close(); SHIP.lock.bridge=()=>'열면 안 된다!';
-    BEAST.reset(b); BEAST.stop(b); b.wrap.position.set(0,0,10.8); b.wrap.rotation.y=Math.PI;
-    await camTo({x:cs.x,z:cs.z+.1,yaw:0,pitch:.02,eye:1.22},1.2); P.look=true;
-    for(let i=0;i<3;i++){ await sleep(650); THUD(.55); GROWL(.12); FX.shake(.3,.04); toast(['쾅!','쾅!!','쾅!!!'][i],600); }
+    if(!this.beast) this.beast=await BEAST.spawn({at:{x:57,z:18.5},face:-Math.PI/2,clip:'idle'});
+    if(!STALK.on) await STALK.start({beast:this.beast,first:16,onCatch:()=>this.died()});      // 함교까지 가는 동안에도 찾아온다 — 소리가 나면 숨는다
+    this.save(50,10.5,-Math.PI/2,async()=>STALK.reset(18));
+    // 함교 : 들어가서 문을 직접 닫아 잠가야 안전하다 (4.8 — 문도 안 닫았는데 '밀폐' 라던 것) → 그다음 함장석
+    const d=SHIP.doors.bridge, b=this.beast, DZ=SHIP.DOORZ, cs=SHIP.rooms.bridge.spots.captain||{x:0,z:-1};
+    const pn=new THREE.Group(), scr=new THREE.Mesh(new THREE.PlaneGeometry(.2,.26),new THREE.MeshBasicMaterial({color:0x6dffb0,toneMapped:false})); pn.add(new THREE.Mesh(new THREE.BoxGeometry(.3,.42,.06),new THREE.MeshStandardMaterial({color:0x20252b,metalness:.6,roughness:.5})),scr);
+    scr.position.z=-.032; scr.rotation.y=Math.PI; pn.position.set(1.42,1.3,DZ-.2); WORLD.add(pn); const panel=new THREE.Mesh(new THREE.BoxGeometry(.6,.8,.5),PICK); panel.position.set(1.42,1.3,DZ-.35); WORLD.add(panel);
+    for(;;){ await STORY.at(panel,'문 제어판 — 함교 문을 닫아 잠근다','함교로 — 들어가서 문을 닫아 잠근다 (복도 서쪽 끝 · 문 안쪽 제어판)',{range:2.6,up:.5});
+      const w=b.wrap.position; if(P.z>DZ-.35){ toast('함교 안으로 들어가서 잠가야 한다',2400); await sleep(600); continue; }
+      if(b.wrap.visible&&!b.duct&&SHIP.zoneAt(w.x,w.z)==='bridge'){ toast('저것이 함교 안에 있다 — 쫓아내거나, 숨어서 보낸 뒤에',3200); await sleep(1500); continue; }
+      break; }
+    STALK.stop(); S.phase='cut'; P.free=false; ME.setCrouch(false); goal(''); await lookAt(0,1.3,DZ,.6);
+    await d.close(); SHIP.lock.bridge=()=>'열면 안 됩니다. 저것이 문 밖에 있습니다.'; scr.material.color.setHex(0xff5a36); AUDIO.tone(90,.35,'square',.08); AUDIO.tone(70,.5,'square',.06,.2);
+    BEAST.reset(b); b.wrap.position.set(0,0,10.8); b.wrap.rotation.y=Math.PI; BEAST.rest(b);
+    await sleep(900); for(let i=0;i<3;i++){ await sleep(650); THUD(.55); GROWL(.12); FX.shake(.3,.04); toast(['쾅!','쾅!!','쾅!!!'][i],600); }
+    await TALK.say([I('…잠겼다. 문 하나 사이다.'),VG('오래 버티지 못합니다. 함장석으로 — 1호를 움직이십시오.')]);
+    S.phase='play'; P.free=true;
+    const seat=new THREE.Mesh(new THREE.CylinderGeometry(.5,.5,1.4,12),PICK); seat.position.set(cs.x,.7,cs.z); WORLD.add(seat);
+    await STORY.at(seat,'함장석 — 1호를 움직인다','함장석으로 — 1호를 움직인다',{range:2.6});
+    S.phase='cut'; P.free=false; goal('');
+    await camTo({x:cs.x,z:cs.z+.1,yaw:0,pitch:.02,eye:1.22},1.2); P.look=true; THUD(.55); GROWL(.12); FX.shake(.3,.04);
     await TALK.say([VG('함교 문 밀폐. 1호 조종권 확보. 항로… 웜홀 입구까지 사흘.'),I('사흘 동안 저것과 같은 배에.'),VG('네. 그리고 크리스—'),I('…알아. 문이 오래 버티지 못한다는 거.'),
       VG('1호, 출발합니다.')]);
     AUDIO.hum(1.4,34); FX.shake(2,.03); await sleep(1500); await fade(true,2200);

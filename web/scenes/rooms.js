@@ -31,8 +31,10 @@ ROOMS.cryo=async R=>{ deadGlow(R); const X=R.X, sp=R.spots;
   const place=(src,s)=>{ const o=THREE.SkeletonUtils.clone(src); o.position.set(s.x,PODY,s.z+1.25);
     o.quaternion.setFromAxisAngle(new THREE.Vector3(0,0,1),Math.PI/2+(s.x-R.ox<0?-.3:.3)).multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0),-Math.PI/2));
     o.traverse(m=>{ if(m.isMesh){ m.frustumCulled=false; if(/HumanBody/.test(m.material.name)) m.visible=false;
-      if(/glass/i.test(m.material.name)){ m.material=m.material.clone(); m.material.opacity=.22; m.material.emissiveIntensity=.04; m.material.depthWrite=false; } } }); R.add(o); LEVEL.solids.push(o); };
-  Object.entries(PODZ).forEach(([k,z])=>{ const m=sp['pod_'+k], s={x:m?m.x:X(k[0]==='L'?-2.9:2.9),z}; place(OPEN.includes(k)?podOpen:pod,s); plinth(s); });
+      if(/glass/i.test(m.material.name)){ m.material=m.material.clone(); m.material.opacity=.22; m.material.emissiveIntensity=.04; m.material.depthWrite=false; } } }); R.add(o); LEVEL.solids.push(o); return o; };
+  // 빈(열린) 캡슐은 숨을 곳 (scenes/hide.js) — 통로 쪽 side (+1 = 동쪽)
+  R.pods={}; Object.entries(PODZ).forEach(([k,z])=>{ const m=sp['pod_'+k], s={x:m?m.x:X(k[0]==='L'?-2.9:2.9),z}, open=OPEN.includes(k), o=place(open?podOpen:pod,s); plinth(s);
+    if(open) R.pods[k]={open:o,x:s.x,z:s.z,y:PODY,side:s.x-R.ox<0?1:-1}; });
   if(R.items.c07) R.items.c07.visible=false;
   // 관측창 : 얼룩 · 가장자리 서리 · 비스듬히 볼수록 반사
   const gl=R.root.getObjectByName('wf_glass'); { const c=document.createElement('canvas'); c.width=c.height=512; const x=c.getContext('2d');

@@ -13,7 +13,10 @@ const ROUTE={DOOR:{bridge:[[0,7.4],[0,10.5]],deck:[[14,7.4],[14,10.5]],cryo:[[27
   // 기관실 : 문(서쪽)과 원자로 둘레 사이 — 남쪽 · 북쪽 바닥으로 가려면 문 옆 통로를 지난다 (곧장 가면 원자로 벽에 걸린다)
   via(z){ return z>12.3?[[56.6,13.8]]:z<8.4?[[56.3,7.6]]:[]; },
   path(ax,az,bx,bz){ const za=SHIP.zoneAt(ax,az), zb=SHIP.zoneAt(bx,bz), D=this.DOOR; if(za===zb) return [[bx,bz]];
-    const p=[]; if(za==='engine') p.push(...this.via(az)); if(D[za]) p.push(D[za][0],D[za][1]); if(D[zb]) p.push(D[zb][1],D[zb][0]); if(zb==='engine') p.push(...this.via(bz)); p.push([bx,bz]); return p.map(a=>a.slice()); } };
+    const p=[]; if(za==='engine') p.push(...this.via(az)); if(D[za]) p.push(D[za][0],D[za][1]); if(D[zb]) p.push(D[zb][1],D[zb][0]); if(zb==='engine') p.push(...this.via(bz)); p.push([bx,bz]);
+    // 이미 지난 점은 뺀다 (문턱에서 길을 다시 잡을 때 문 바깥 점으로 되돌아가 머뭇거리지 않게)
+    while(p.length>1){ const [a0,a1]=p; if(Math.hypot(ax-a0[0],az-a0[1])<1.2||Math.hypot(ax-a1[0],az-a1[1])<Math.hypot(a0[0]-a1[0],a0[1]-a1[1])) p.shift(); else break; }
+    return p.map(a=>a.slice()); } };
 // 한 걸음 : o(위치 · 방향 rotation.y)를 (tx,tz) 쪽으로 · 앞이 막히면 덜 꺾는 쪽으로 비켜 돈다 → 남은 거리
 function steer(o,tx,tz,speed,dt,{r=.3,y1=.4,y2=1.6,turn=6}={}){ const w=o.position, dx=tx-w.x, dz=tz-w.z, d=Math.hypot(dx,dz); if(d<.05) return d;
   const s=Math.min(d,speed*dt), y=w.y, look=Math.max(s,.25), ok=a=>!SOLID.hit(w.x+Math.sin(a)*look,w.z+Math.cos(a)*look,y+y1,y+y2,r);
@@ -118,7 +121,7 @@ const BEAST=(()=>{ let proto=null; const list=[]; const B={list,H:2.55};
     g.traverse(o=>{ if(o.isMesh&&o.material){ o.material=o.material.clone(); o.material.emissive=new THREE.Color(.05,.012,.01); o.material.envMapIntensity=.25; } });
     const mixer=new THREE.AnimationMixer(g), A={}; for(const [k,re] of Object.entries(NAMES)){ const c=clipOf(src.userData.animations,re); if(c) A[k]=mixer.clipAction(PEOPLE.inPlace(c)); }
     const b={wrap,g,mixer,A,cur:null,path:null,speed:0,stun:0,mode:'idle',step:0,low:false,duct:false,ductId:0}; list.push(b); B.play(b,clip,{fade:0});
-    await B.grow(b);
+    await B.grow(b); B.weakInit(b);
     GUN.targets.push({center:()=>wrap.position.clone().add(new THREE.Vector3(0,b.low?.9:1.5,0)),r:.75,alive:()=>list.includes(b)&&!b.duct,hit:()=>B.shot(b)}); return b; };
   // 살 (4.7) : 창백한 살빛을 애벌레와 같은 어둡고 젖은 붉은 살로 — 같은 종으로 보이게 (그림에 색을 곱한다 · 한 번만)
   B.skin=function(s){ s.traverse(o=>{ if(!o.isMesh||!o.material) return; const m=o.material; m.metalness=0; m.roughness=.46; if(m.normalScale) m.normalScale.setScalar(.8);
@@ -150,40 +153,31 @@ const BEAST=(()=>{ let proto=null; const list=[]; const B={list,H:2.55};
   B.stop=b=>{ b.path=null; b.done=null; };
   // 죽고 다시 시작할 때 : 덕트 속이었으면 꺼내고 · 하던 일을 끊는다
   B.reset=b=>{ b.ductId++; b.duct=false; b.stun=0; b.tough=0; b.wrap.visible=true; b.wrap.scale.setScalar(1); B.stop(b); };
-  B.remove=b=>{ WORLD.remove(b.wrap); const i=list.indexOf(b); if(i>=0) list.splice(i,1); if(b.ai){ const j=TICK.indexOf(b.ai); if(j>=0) TICK.splice(j,1); } };
+  B.remove=b=>{ WORLD.remove(b.wrap); (b.weak||[]).forEach(k=>k.sp.parent&&k.sp.parent.remove(k.sp)); const i=list.indexOf(b); if(i>=0) list.splice(i,1); if(b.ai){ const j=TICK.indexOf(b.ai); if(j>=0) TICK.splice(j,1); } };
   B.clear=()=>list.slice().forEach(B.remove);
   // 맞으면 멈칫 (죽지 않는다) · 소리가 나니 쏜 쪽을 안다
-  B.shot=function(b){ if(b.stun>0||b.duct) return; b.tough=Math.min(3,(b.tough||0)+1); b.stun=[1.5,1.0,.6][b.tough-1];      // 거푸 맞으면 덜 멈칫한다 (6 초 쉬면 다시)
-    B.play(b,Math.random()<.5?'hit':'hit2',{once:true,fade:.05}); AUDIO.tone(220,.6,'sawtooth',.08,0,-120); BLOOD.spray(b.wrap.position.clone().add(new THREE.Vector3(0,1.6,0)),14,2,0xd8ff70); b.heard={x:P.x,z:P.z}; };
+  // 몸통에 맞음 : 통하지 않는다 (살짝 움찔 · 내가 있는 걸 안다)
+  B.shot=function(b){ if(b.duct) return; b.stun=Math.max(b.stun,.16); AUDIO.tone(150,.2,'square',.05,0,-60); BLOOD.spray(b.wrap.position.clone().add(new THREE.Vector3(0,b.low?.9:1.5,0)),6,1.2,0x6a2a2a); b.heard={x:P.x,z:P.z}; if(typeof STALK!=='undefined') STALK.body(b); };
+  /* 약점 (4.8) : 머리 · 가슴(심장) · 다리 사이 — 살 속에서 희미하게 맥동한다 (가까이 · 가리는 것 없이 보일 때만). 여기를 다섯 발 맞히면 물러간다 (STALK.rout)
+     과녁은 뼈 자리의 작은 공 (GUN 이 몸통 과녁보다 먼저 친다 — prio) */
+  B.WEAK=[['머리',/^Jaw_0/,.3,0,0],['가슴',/^spine_3/,.3,-.1,.3],['다리 사이',/^Hips_ctrl/,.27,-.5,.2]];      // [이름, 뼈, 반지름, 아래로, 앞으로] — 등뼈는 등 쪽에 있어 앞으로 민다
+  B.weakInit=function(b){ if(!B.glow){ const c=document.createElement('canvas'); c.width=c.height=64; const g=c.getContext('2d'), r=g.createRadialGradient(32,32,0,32,32,32); r.addColorStop(0,'rgba(255,240,200,1)'); r.addColorStop(.35,'rgba(255,170,60,.55)'); r.addColorStop(1,'rgba(255,120,20,0)'); g.fillStyle=r; g.fillRect(0,0,64,64); B.glow=new THREE.CanvasTexture(c); }
+    b.weak=B.WEAK.map(([name,re,r,dy,df])=>{ let bone=null; b.g.traverse(o=>{ if(!bone&&o.isBone&&re.test(o.name)) bone=o; }); if(!bone) return null;
+      const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:B.glow,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthTest:false,depthWrite:false,toneMapped:false,fog:false})); sp.scale.setScalar(r*2.6); sp.renderOrder=45; WORLD.add(sp);
+      const k={name,bone,r,dy,df,sp,pos:new THREE.Vector3(),ph:Math.random()*6}; GUN.targets.push({center:()=>k.pos.clone(),r,prio:2,alive:()=>list.includes(b)&&!b.duct&&b.wrap.visible,hit:p=>B.weakHit(b,k,p)}); return k; }).filter(Boolean); };
+  B.weakHit=function(b,k,p){ if(b.duct) return; GUN.marker&&GUN.marker(true); BLOOD.spray(p||k.pos,24,3,0xffd060); SFX.play('beast_roar',{at:k.pos,rate:1.7,vol:.7}); b.heard={x:P.x,z:P.z};
+    if(b.enraged){ b.stun=Math.max(b.stun,.15); return; }      // 환풍구로 온 것은 멈추지 않는다
+    b.wk=(b.wk||0)+1; b.stun=.9; B.play(b,Math.random()<.5?'hit':'hit2',{once:true,fade:.05}); k.flash=1; if(typeof STALK!=='undefined') STALK.weak(b); };
+  const _cam=new THREE.Vector3();
+  // 덤빌 때만 빛난다 (벽 · 문 너머로 자리가 드러나지 않게)
+  B.weakTick=function(b,dt){ if(!b.weak) return; const show=b.wrap.visible&&!b.duct&&b.mode==='chase'&&!b.enraged&&!b.rout&&!HIDE.in; camera.getWorldPosition(_cam); b.wT=(b.wT||0)-dt; const chk=b.wT<=0; if(chk) b.wT=.2;
+    for(const k of b.weak){ k.bone.getWorldPosition(k.pos); k.pos.y+=k.dy; k.pos.x+=Math.sin(b.wrap.rotation.y)*k.df; k.pos.z+=Math.cos(b.wrap.rotation.y)*k.df; k.sp.position.copy(k.pos); if(chk) k.vis=show&&k.pos.distanceTo(_cam)<15&&clearShot(_cam,k.pos,.4); k.flash=Math.max(0,(k.flash||0)-dt*2.5);
+      k.sp.material.opacity=lerp(k.sp.material.opacity,k.vis?.62+.25*Math.sin(S.t*5+k.ph)+k.flash*.4:0,Math.min(1,dt*8)); } };
   // 보이나 : 거리 · 앞쪽 · 가리는 것 (웅크려 가구 뒤면 가까이 와야 보인다)
   B.sees=function(b){ if(b.duct||HIDE.in&&!HIDE.seen) return false; const w=b.wrap.position, dx=P.x-w.x, dz=P.z-w.z, d=Math.hypot(dx,dz), lim=ME.crouch?6.5:17; if(d>lim) return false;
     let a=Math.atan2(dx,dz)-b.wrap.rotation.y; a=Math.atan2(Math.sin(a),Math.cos(a)); if(Math.abs(a)>1.05&&d>2.6) return false;
     return clearShot(new THREE.Vector3(w.x,w.y+(b.low?1.1:1.9),w.z),camera.getWorldPosition(new THREE.Vector3()),.25); };
-  // 사냥 : 둘러보기(순찰 점들) → 보이면 울부짖고 쫓는다 → 놓치면 마지막 자리를 뒤진다. 닿으면 onCatch
-  B.hunt=function(b,{patrol=[],onCatch,speed=3.3,roar=true}={}){ let mode='patrol', pi=0, last=null, lost=0, busy=false, roared=!roar, srch=0, ductCd=7;
-    const next=()=>{ if(!patrol.length) return; const [x,z]=patrol[pi++%patrol.length]; B.go(b,x,z,{speed:1.25,clip:'walk'}).then(()=>{ if(mode==='patrol') setTimeout(()=>{ if(mode==='patrol'&&!b.path) next(); },1500+Math.random()*2000); }); };
-    next();
-    const ai=b.ai=async dt=>{ if(busy||S.phase!=='play'||b.stun>0) return; const w=b.wrap.position, d=Math.hypot(P.x-w.x,P.z-w.z), see=B.sees(b);
-      b.mode=mode;
-      if(see){ last={x:P.x,z:P.z}; lost=0;
-        if(mode!=='chase'){ mode='chase'; B.stop(b); if(!roared){ roared=true; busy=true; b.wrap.rotation.y=Math.atan2(P.x-w.x,P.z-w.z); SFX.play('beast_roar',{at:w}); STING(.5); FX.shake(.4,.04); await B.play(b,'roar',{once:true}); busy=false; } } }
-      else if(mode==='chase'){ lost+=dt; if(lost>2.2){ mode='search'; srch=7; B.go(b,last.x,last.z,{speed:2,clip:'walk'}); } }
-      // 환기 덕트 : 쫓는데 멀거나 놓쳤으면 — 천장으로 올라가 앞질러 떨어진다 (16 초에 한 번 · 숨어 있으면 하지 않는다)
-      ductCd-=dt; if(ductCd<=0&&(mode==='chase'||mode==='search')&&last&&!HIDE.in&&B.VENTS[0].mesh){ const tgt=mode==='chase'?{x:P.x,z:P.z}:last;
-        if(Math.abs(tgt.x-w.x)+Math.abs(tgt.z-w.z)>11){ const ex=B.exitVent(tgt,w); if(ex&&Math.abs(ex.x-w.x)>9){ busy=true; ductCd=16; const ok=await B.duct(b,ex); busy=false; if(mode==='done') return; if(ok){ mode='chase'; lost=0; last={x:P.x,z:P.z}; roared=true; } return; } } }
-      if(b.heard&&mode!=='chase'){ last=b.heard; b.heard=null; mode='search'; srch=7; B.go(b,last.x,last.z,{speed:2.4,clip:'run'}); }
-      if(HIDE.in&&!busy){ const s=HIDE.in, fr=HIDE.front(s,1.1), ds=Math.hypot(fr.x-w.x,fr.z-w.z);
-        if(HIDE.seen||HIDE.noisy(b)){ if(mode!=='found'){ mode='found'; b.path=ROUTE.path(w.x,w.z,fr.x,fr.z); b.speed=speed; b.move='run'; B.play(b,'run'); GROWL(.12); }
-          if(ds<.7||(!b.path&&ds<2)){ busy=true; B.stop(b); b.wrap.rotation.y=Math.atan2(s.x-w.x,s.z-w.z); SFX.play('found'); if(s.dl) HIDE.doors(s,true,.25); await B.play(b,'swipe',{once:true,fade:.05}); FX.flash('#900000',900); SCREAM(.6); busy=false; mode='done'; onCatch&&onCatch(); return; }
-          return; }
-        if(mode==='chase'){ mode='search'; srch=9; B.go(b,fr.x,fr.z,{speed:1.6,clip:'walk'}); } }
-      if(mode==='chase'){ if(d<1.45){ busy=true; B.stop(b); b.wrap.rotation.y=Math.atan2(P.x-w.x,P.z-w.z); AUDIO.tone(700,.3,'sawtooth',.07,0,-300); B.play(b,'swipe',{once:true,fade:.05}); P.free=false; await sleep(450); FX.flash('#900000',900); SCREAM(.6); busy=false; mode='done'; onCatch&&onCatch(); return; }
-        if(!b.path||b.path.length>1||Math.hypot(b.path[0][0]-P.x,b.path[0][1]-P.z)>.8){ b.path=ROUTE.path(w.x,w.z,P.x,P.z); b.speed=speed; b.move='run'; B.play(b,'run'); } }
-      if(mode==='search'&&!b.path){ srch-=dt; if(srch<=0){ mode='patrol'; next(); } else if(!b.low&&b.cur!==b.A.battle) B.play(b,'battle'); } };
-    TICK.push(ai); return ()=>{ mode='done'; b.ductId++; const i=TICK.indexOf(ai); if(i>=0) TICK.splice(i,1); B.stop(b); }; };
-  /* ---- 환기 덕트 (4.7) : 복도 천장의 격자 여덟 — 성체는 몸집 때문에 복도에서 느리지만, 덕트로 올라가 머리 위를 지나 앞질러 떨어진다 ----
-     벽 · 가구 충돌은 그대로 (바닥에서는 걸리는 대로 걸린다) — 대신 길이 하나 더 있다. 지나가는 동안 머리 위에서 쿵쿵 · 먼지 · 심장 소리가 따라온다
-     떨어질 격자는 나에게서 5 m 넘게 · 격자가 먼저 떨어져 알려 준다 → 쏘면 멈칫 (그 틈에 지나가거나 옷장에 숨는다) */
+  /* ---- 환기 덕트 : 복도 천장의 격자 여덟 (방 천장 격자는 STALK.vents) — 성체는 여기로 드나든다 (scenes/stalk.js 가 부린다) ---- */
   B.VENTS=[4,10,18,24,30,40,48,53].map(x=>({x,z:10.5,y:2.35,mesh:null,open:false}));
   B.vents=function(){ const cv=document.createElement('canvas'); cv.width=cv.height=128; const g=cv.getContext('2d'); g.fillStyle='#07080a'; g.fillRect(0,0,128,128); g.fillStyle='#2b3036'; for(let i=0;i<9;i++) g.fillRect(10,12+i*12.4,108,5);
     g.strokeStyle='#454b53'; g.lineWidth=8; g.strokeRect(4,4,120,120); const t=new THREE.CanvasTexture(cv); t.encoding=THREE.sRGBEncoding;
@@ -195,32 +189,16 @@ const BEAST=(()=>{ let proto=null; const list=[]; const B={list,H:2.55};
   B.openVent=function(v){ if(v.open||!v.mesh) return; v.open=true; v.mesh.material=B.hole; SFX.play('locker_open',{at:v,vol:1}); AUDIO.noise(.25,.3,0,2400);
     const m=new THREE.Mesh(v.mesh.geometry,B.grate); m.position.copy(v.mesh.position); m.rotation.x=Math.PI/2; WORLD.add(m); const y0=m.position.y, y1=floorAt(v.x,v.z)+.05, sx=(Math.random()-.5)*1.2;
     anim(.42,k=>{ m.position.y=lerp(y0,y1,k*k); m.position.x=v.x+sx*k; m.rotation.x=Math.PI/2+k*2.6; m.rotation.z=k*1.3; }).then(()=>{ m.rotation.set(Math.PI/2,0,.6); SFX.play('locker_close',{at:v,vol:1}); AUDIO.noise(.3,.35,0,1500); BLOOD.spray(new THREE.Vector3(v.x,v.y-.1,v.z),8,.7,0x8a8a8a); }); };
-  // 어느 격자로 떨어질까 : 내가 가는 쪽 앞 (서 있으면 성체 반대쪽) 4.5 ~ 12 m · 방 안에 있으면 그 방 문 앞
-  B.exitVent=function(tgt,w){ const zone=SHIP.zoneAt(tgt.x,tgt.z), D=ROUTE.DOOR[zone], hx=zone==='hall'||!D?tgt.x:D[1][0], inHall=SHIP.zoneAt(P.x,P.z)==='hall', ok=v=>!inHall||Math.abs(v.x-P.x)>=5;
-    const dir=Math.abs(P.vx||0)>.6?Math.sign(P.vx):Math.sign(tgt.x-w.x)||1, near=(a,c)=>Math.abs(a.x-hx)-Math.abs(c.x-hx);
-    const ahead=B.VENTS.filter(v=>ok(v)&&(v.x-hx)*dir>=4.5&&(v.x-hx)*dir<=12).sort(near)[0]; if(ahead&&zone==='hall') return ahead;
-    return B.VENTS.filter(ok).sort(near)[0]||null; };
-  B.duct=async function(b,to){ const w=b.wrap.position, id=++b.ductId, live=()=>b.ductId===id&&list.includes(b), from=B.VENTS.reduce((a,v)=>Math.hypot(v.x-w.x,v.z-w.z)<Math.hypot(a.x-w.x,a.z-w.z)?v:a);
-    if(from===to) return false;
-    // ① 격자 아래로 달려가 (5 초 안에 못 가면 그만둔다)
-    const got=await Promise.race([B.go(b,from.x,from.z,{speed:4.2,clip:'run'}).then(()=>true),sleep(5000).then(()=>false)]); B.stop(b); if(!live()) return false; if(!got) { B.rest(b); return false; }
-    // ② 뛰어올라 격자를 뜯고 들어간다
-    B.openVent(from); B.play(b,'jump',{once:true,fade:.08}); SFX.play('beast_growl',{at:w,vol:1}); await sleep(360); if(!live()) return false;
-    const y0=w.y; await anim(.4,k=>{ if(!live()) return; w.y=lerp(y0,from.y-1.1,k*k); b.wrap.scale.setScalar(1-.4*k); }); if(!live()) return false;
-    b.duct=true; b.wrap.visible=false; b.wrap.scale.setScalar(1); THUD(.5); AUDIO.noise(.3,.3,0,1200);
-    if(!B.told){ B.told=1; VOICE.play('크리스, 머리 위입니다! 환기 덕트로 움직입니다!'); toast('VEGA — 머리 위입니다! 환기 덕트로 움직입니다!',3000); }
-    // ③ 머리 위를 지난다 : 쿵쿵 · 먼지 (심장 소리는 그 자리를 따라온다)
-    const L=Math.abs(to.x-from.x), T=Math.max(1.5,L/10); let th=0; await anim(T,k=>{ if(!live()) return; w.set(lerp(from.x,to.x,k),from.y,10.5); th-=1/30; if(th<=0){ th=.26; SFX.play('beast_step',{at:{x:w.x,y:2.4,z:w.z},vol:1}); if(Math.abs(P.x-w.x)<4&&Math.abs(P.z-10.5)<2.5){ FX.shake(.18,.02); BLOOD.spray(new THREE.Vector3(w.x,2.2,10.5+(Math.random()-.5)*.8),4,.4,0x8a8a8a); } } });
-    if(!live()) return false;
-    // ④ 격자가 먼저 떨어지고 (알림) → 내려와 선다
-    B.openVent(to); await sleep(750); if(!live()) return false;
-    w.set(to.x,to.y-1.2,to.z); b.wrap.rotation.y=Math.atan2(P.x-w.x,P.z-w.z); b.wrap.visible=true; b.duct=false; b.low=true; B.play(b,'crawl',{fade:0}); if(b.A.crawl) b.A.crawl.timeScale=1;
-    const yf=floorAt(to.x,to.z); await anim(.3,k=>{ if(live()) w.y=lerp(to.y-1.2,yf,k*k); }); THUD(.6); FX.shake(.5,.05); SFX.play('beast_roar',{at:w,vol:.9}); BLOOD.spray(new THREE.Vector3(w.x,.1,w.z),8,1,0x8a8a8a);
-    if(B.told===1){ B.told=2; setTimeout(()=>{ VOICE.play('쏘면 잠깐 멈춥니다. 그 틈에 지나가십시오!'); toast('VEGA — 쏘면 잠깐 멈춥니다. 그 틈에 지나가거나 숨으십시오!',3600); },700); }
-    await sleep(450); return live(); };
+  // 격자에서 떨어진다 : 격자가 먼저 떨어지고(알림) → 내려와 선다 / 격자로 올라간다 : 뛰어올라 뜯고 사라진다 (scenes/stalk.js)
+  B.dropFrom=async function(b,v,live){ B.openVent(v); await sleep(750); if(!live()) return false; const w=b.wrap.position; BEAST.reset(b); w.set(v.x,v.y-1.2,v.z); b.wrap.rotation.y=Math.atan2(P.x-w.x,P.z-w.z); b.low=true; B.play(b,'crawl',{fade:0}); if(b.A.crawl) b.A.crawl.timeScale=1;
+    const yf=floorAt(v.x,v.z), h=Math.max(.5,v.y-1.2-yf); await anim(clamp(Math.sqrt(h)*.3,.3,.65),k=>{ if(live()) w.y=lerp(v.y-1.2,yf,k*k); }); if(!live()) return false;
+    THUD(.6); FX.shake(.5,.05); SFX.play('beast_roar',{at:w,vol:.9}); BLOOD.spray(new THREE.Vector3(w.x,.1,w.z),8,1,0x8a8a8a); return true; };
+  B.climbInto=async function(b,v,live){ B.stop(b); B.openVent(v); B.play(b,'jump',{once:true,fade:.08}); SFX.play('beast_growl',{at:b.wrap.position,vol:1}); await sleep(360); if(!live()) return false;
+    const w=b.wrap.position, y0=w.y; await anim(.4,k=>{ if(!live()) return; w.y=lerp(y0,v.y-1.1,k*k); b.wrap.scale.setScalar(1-.4*k); }); if(!live()) return false;
+    b.duct=true; b.wrap.visible=false; b.wrap.scale.setScalar(1); THUD(.5); AUDIO.noise(.3,.3,0,1200); return true; };
   // 매 프레임 : 천장이 낮은 곳(복도 2.3 m · 문)에서는 네 발로 긴다 — 선 키(2.55 m)로는 천장을 뚫는다 · 넓은 방(기관실 · 라운지)에서는 일어서 걷고 뛴다
   B.rest=function(b){ if(b.low&&b.A.crawl){ B.play(b,'crawl'); b.A.crawl.timeScale=.12; } else B.play(b,'idle'); };
-  B.tick=function(dt){ for(const b of list){ b.mixer.update(dt); B.tentTick(b,dt); if(b.duct) continue; if(b.tough){ b.calmT=(b.calmT||0)+dt; if(b.calmT>6){ b.tough=0; b.calmT=0; } } if(b.stun>0){ b.stun-=dt; b.calmT=0; continue; }
+  B.tick=function(dt){ for(const b of list){ b.mixer.update(dt); B.tentTick(b,dt); B.weakTick(b,dt); if(b.duct) continue; if(b.tough){ b.calmT=(b.calmT||0)+dt; if(b.calmT>6){ b.tough=0; b.calmT=0; } } if(b.stun>0){ b.stun-=dt; b.calmT=0; continue; }
     const w=b.wrap.position; b.lowT=(b.lowT||0)-dt; if(b.lowT<=0){ b.lowT=.2; b.low=!!SOLID.g&&SOLID.hit(w.x,w.z,w.y+2.05,w.y+2.75,.65); }
     if(b.path){ const want=b.low&&b.A.crawl?'crawl':b.move; if(b.A[want]&&b.cur!==b.A[want]) B.play(b,want); if(b.low&&b.A.crawl) b.A.crawl.timeScale=clamp(b.speed/1.5,.9,2.4);
       const [tx,tz]=b.path[0], left=steer(b.wrap,tx,tz,b.speed,dt,b.low?{r:.3,y1:.3,y2:1.15,turn:6}:{r:.32,y1:.45,y2:1.9,turn:5}), gy=SOLID.top(w.x,w.z,w.y+.5,.2); w.y+=((gy===null?floorAt(w.x,w.z):Math.max(gy,floorAt(w.x,w.z)))-w.y)*Math.min(1,dt*8);      // 턱 · 원자로 단을 오른다

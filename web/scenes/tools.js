@@ -204,9 +204,10 @@ const GUN={held:null,kick:0,cool:0,targets:[],
   shoot(){ if(LARVA.grab){ LARVA.struggle(); return; } if(!this.held||S.phase!=='play'||TALK.on||this.cool>0||HIDE.in) return; this.cool=.32; this.kick=1;
     SFX.play('shot');
     const o=camera.getWorldPosition(new THREE.Vector3()), d=camera.getWorldDirection(new THREE.Vector3());
-    let hit=null, best=40;
-    for(const t of this.targets){ if(t.alive&&!t.alive()) continue; const c=t.center(), k=c.clone().sub(o).dot(d); if(k<0||k>best) continue;
-      if(o.clone().addScaledVector(d,k).distanceTo(c)<t.r&&clearShot(o,c)){ hit=t; best=k; } }
+    let hit=null, best=40, bp=-1;      // 과녁 고르기 : prio 가 높은 것(성체의 약점) 먼저 · 같으면 가까운 것
+    for(const t of this.targets){ if(t.alive&&!t.alive()) continue; const c=t.center(), k=c.clone().sub(o).dot(d), pr=t.prio||0; if(k<0||k>40||pr<bp||(pr===bp&&k>best)) continue;
+      if(o.clone().addScaledVector(d,k).distanceTo(c)<t.r&&clearShot(o,c)){ hit=t; best=k; bp=pr; } }
+    if(typeof STALK!=='undefined') STALK.noise(5);      // 총소리는 성체를 부른다
     // 벽에 막히면 거기까지
     let far=hit?best:40; if(!hit) for(let k=.5;k<40;k+=.25){ const p=o.clone().addScaledVector(d,k); if(SOLID.hit(p.x,p.z,p.y-.03,p.y+.03,.02)){ far=k; break; } }
     const m=this.muzzle.getWorldPosition(new THREE.Vector3()), end=o.clone().addScaledVector(d,far);
