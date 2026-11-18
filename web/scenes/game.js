@@ -88,6 +88,8 @@ const GAME={cp:null,
 
   /* ---- ② 1호 에어록 → 복도 ---- */
   async board(){ const f=S.flags; warp(50.43,6.6,Math.PI); this.save(50.43,6.6,Math.PI); await fade(false,1800); S.phase='play'; P.free=true;
+    // 우주복을 입고 건너왔다 (scenes/flight.js) : VEGA 가 1호 안의 공기를 재고 → 헬멧을 벗는다 (그제야 입김이 보인다)
+    if(HELMET.is){ await TALK.say([VG('기압 정상. 산소 19 퍼센트. 독성 기체 없음. 숨 쉴 수 있습니다, 크리스.'),I('…믿는다, VEGA.')]); SFX.play('airlock',{vol:.5}); SFX.play('cloth'); HELMET.on(false); await sleep(1100); }
     await TALK.say([I('…춥다. 입김이 나.'),VG('1호 비상 전력 0. 모든 문이 열린 채입니다. 생명 신호는 배 앞쪽, 동면 구역 C 입니다.'),I('손전등뿐이군.')]);
     goal('생존자를 찾는다 — 동면 구역 C (복도 서쪽)');
     STORY.once(45,9.7,3.2,()=>TALK.say([I('…사람이다. 아니, 사람이었던 것.'),I('…1호 대원복. 여기까지 끌려왔다. 그리고… 뭔가에 뜯긴 자국.'),VG('맥박 없음. 사망한 지 수 주로 추정됩니다.')]));

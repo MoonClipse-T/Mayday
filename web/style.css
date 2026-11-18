@@ -287,6 +287,17 @@ body.flying #talk{width:min(820px,calc(100vw - 2*var(--pad) - 520px))}      /* �
 #flight .pads button{position:relative;touch-action:none;user-select:none;-webkit-user-select:none} #flight .pads button small{position:absolute;right:5px;top:3px;font:500 10px var(--mono);opacity:.55}
 #flight .pads button.want{border-color:#6dffb0;color:#fff;box-shadow:0 0 0 2px rgba(109,255,176,.45),0 0 18px rgba(109,255,176,.4);animation:want .9s ease-in-out infinite}
 @keyframes want{50%{background:rgba(109,255,176,.3)}}
+/* 4.9 도킹 세 단계 : 위의 단계 띠(접근 · 회전 맞추기 · 도킹) · 한 줄 도움말 · 가운데 원(② 2초 채우기 · ③ 고리에 겹치는 조준 원 — 겹치면 초록) · 그 단계에 안 쓰는 단추는 흐리게 */
+#flight .stage{display:none;justify-content:center;gap:6px;margin:0 0 8px;padding:0;list-style:none;counter-reset:st}
+#flight.stg .stage{display:flex}
+#flight .stage li{min-width:108px;padding:5px 10px;font-size:12px;letter-spacing:.06em;text-align:center;border:1px solid var(--hair);color:var(--dim);background:rgba(6,8,10,.5);counter-increment:st}
+#flight .stage li::before{content:counter(st) ' · '} #flight .stage li.ok{color:#6dffb0;border-color:rgba(109,255,176,.4)} #flight .stage li.ok::before{content:'✓ '}
+#flight .stage li.cur{color:#fff;border-color:#6dffb0;background:rgba(109,255,176,.18)}
+#flight .hud .h{font:500 15px/1.45 var(--sans);letter-spacing:0;color:#fff;max-width:min(560px,60vw);margin:.5em auto 0}
+#flight .ret{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:none;overflow:visible;fill:none;pointer-events:none}
+#flight .ret .c{stroke:rgba(233,231,226,.9);stroke-width:2;vector-effect:non-scaling-stroke} #flight .ret .x{stroke:rgba(233,231,226,.9);stroke-width:1.5;vector-effect:non-scaling-stroke}
+#flight .ret .k{stroke:#6dffb0;stroke-width:2.6;stroke-linecap:round} #flight .ret.ok .c,#flight .ret.ok .x{stroke:#6dffb0}
+#flight[data-m=spin] .pads button:not([data-k=rl]):not([data-k=rr]),#flight[data-m=dock] .pads [data-k=rl],#flight[data-m=dock] .pads [data-k=rr],#flight[data-m=hold] .pads button{opacity:.28}
 #flight .nose{position:absolute;left:50%;top:50%;width:0;height:0;display:none;pointer-events:none}
 #flight .nose i{position:absolute;left:44px;top:-1px;width:56px;height:3px;background:#6dffb0;border-radius:2px;animation:nose 1s ease-in-out infinite}
 #flight .nose i::after{content:'';position:absolute;right:-12px;top:-7px;border-left:14px solid #6dffb0;border-top:8px solid transparent;border-bottom:8px solid transparent} #flight .nose span{display:none}
@@ -313,6 +324,7 @@ body.hiding #stick,body.hiding #run,body.hiding #jump,body.hiding #act,body.hidi
 #hideout{display:none;align-items:center;justify-content:center;border-color:#6dffb0;color:#6dffb0} #hideout.on{display:flex}
 /* 4.8 · 숨은 곳 안에서 보는 모습 : 화물 상자(앞판 틈) · 동면 캡슐(서리 낀 유리) */
 #hidefx.crate{background:linear-gradient(rgba(0,0,0,.97) 0,rgba(0,0,0,.97) 36%,rgba(0,0,0,.25) 40%,rgba(0,0,0,0) 44%,rgba(0,0,0,0) 56%,rgba(0,0,0,.25) 60%,rgba(0,0,0,.97) 64%)}
+#hidefx.duct{background:linear-gradient(rgba(0,0,0,.96) 0,rgba(0,0,0,.8) 14%,rgba(0,0,0,0) 30%,rgba(0,0,0,0) 78%,rgba(0,0,0,.85) 100%),linear-gradient(90deg,rgba(0,0,0,.9) 0,rgba(0,0,0,0) 16%,rgba(0,0,0,0) 84%,rgba(0,0,0,.9) 100%)}
 #hidefx.pod{background:radial-gradient(ellipse 70% 62% at 50% 46%,rgba(200,225,255,.05) 0,rgba(190,215,245,.16) 55%,rgba(8,12,18,.9) 82%,rgba(0,0,0,.97) 100%)}
 /* 4.8 · 성체 경보 (소리를 못 듣는 교실 디벗도 알게 — 위쪽 글) · 약점 맞힌 수 */
 #stalkfx{position:fixed;left:50%;top:calc(var(--pad) + 64px);transform:translateX(-50%);z-index:9;pointer-events:none;opacity:0;transition:opacity .4s;text-align:center}

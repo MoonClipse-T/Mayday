@@ -109,7 +109,7 @@ const JOURNEY={
     await TALK.say([V('상단 분리 완료. 지구 궤도 진입. R-1, 단독 비행을 시작합니다.'),C('…발아래가 지구다. 그리고 정말로, 혼자다.'),
       V('이온 엔진 점화까지 20분. 그 전에 선내를 점검해 주십시오 — 맨 뒤 해치 방의 외부 해치 잠금입니다.')]);
     // 일어나 배 안을 걷는다 : 해치 방 → 로비 → 조종석 (문제를 끼울 자리 '지구 궤도')
-    R1.view='…창 아래로 지구가 돈다. 구름 아래 어딘가에 휴스턴이 있다.';
+    R1.view='…창 아래로 지구가 돈다. 구름 아래 어딘가에 휴스턴이 있다.'; R1.viewDir={yaw:-1.97,pitch:-.24};
     await R1.stand(head);
     await R1.task('hatch','외부 해치 잠금을 확인한다 — 맨 뒤 해치 방');
     AUDIO.tone(520,.1,'square',.04); AUDIO.tone(780,.12,'square',.04,.12);
@@ -126,7 +126,7 @@ const JOURNEY={
     await sleep(3500); clearInterval(ti);
     // 동면 : 로비 뒤쪽 캡슐로 걸어가 들어간다
     await TALK.say([V('동면 캡슐 준비 완료. 목성 궤도에서 깨워 드리겠습니다.'),V('로비 뒤쪽, 캡슐로 가십시오.')]);
-    R1.view='…지구가 작아진다. 손톱만 해졌다.';
+    R1.view='…지구가 작아진다. 손톱만 해졌다.'; R1.viewDir=null;
     await R1.stand(head);
     await R1.task('capsule','동면 캡슐로 — 로비 뒤쪽');
     await R1.intoCapsule(); AUDIO.noise(2,.08,0,400); AUDIO.tone(140,3,'sine',.05,0,-60);
@@ -193,7 +193,7 @@ const JOURNEY={
     AUDIO.noise(2.2,.08,0,500); await fade(false,2600); AUDIO.hum(.6,36); MUSIC.play('space',{fade:4});
     await TALK.say([V('동면 해제. 크리스, 들립니까? 목성 궤도입니다.')]);
     await R1.outOfCapsule();
-    R1.view='…목성. 창 하나를 가득 채운다. 줄무늬가 천천히 흐른다. 저 옆 어딘가에 웜홀.';
+    R1.view='…목성. 창 하나를 가득 채운다. 줄무늬가 천천히 흐른다. 저 옆 어딘가에 웜홀.'; R1.viewDir=null;
     await TALK.say([C('…몸이 무겁다. 넉 달을 잤다.'),V('창밖을 보십시오. 그리고 조종석으로 와 주십시오. 웜홀까지 41만 km 입니다.')]);
     await this.slot('목성');
     await R1.task('seat','조종석으로 — 웜홀까지 41만 km (창가에서 목성을 볼 수 있다)');

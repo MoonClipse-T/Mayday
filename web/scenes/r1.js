@@ -32,11 +32,12 @@ const R1={g:null,b:null,seated:true,on:{},_wait:{},
     await camTo({x:0,z:-2.55,yaw:Math.PI*.98,pitch:-.3,eye:2.02},.9); await camTo({x:0,z:-3.15,yaw:0,pitch:0,eye:1.66},1.0); S.phase='play'; P.free=true; },
   // 자리 : 보이지 않는 판정 상자 + 이름표 · 기본 동작 (문제를 끼우면 R1.on[id] 가 먼저)
   LABEL:{seat:'조종석 — 앉는다',galley:'식량 배급기',ledge:'창가 — 밖을 본다',shelf:'책장',capsule:'동면 캡슐',locker:'우주복 보관함',aft:'후방 도킹 조종대',hatch:'외부 해치'},
-  BOX:{seat:[[0,.9,-2.78],[1.1,1.6,.25]],galley:[[-.9,1.1,-5.4],[.8,1.6,2.8]],ledge:[[1.2,1.25,-6.65],[.5,.7,1.4]],shelf:[[1.25,1.7,-4.68],[.4,.9,1.4]],
+  BOX:{seat:[[0,.9,-2.78],[1.1,1.6,.25]],galley:[[-1.08,1.12,-6.15],[.5,1.0,.75]],ledge:[[1.2,1.25,-6.65],[.5,.7,1.4]],shelf:[[1.25,1.7,-4.68],[.4,.9,1.4]],
     capsule:[[-.86,1.1,-8.75],[1,2.1,1]],locker:[[-1.12,1.1,-10.6],[.6,2,1.2]],aft:[[1.2,1.3,-10.62],[.45,1.2,1.1]],hatch:[[0,.85,-11.68],[1.4,1.6,.2]]},
+  RANGE:{galley:1.7,ledge:2.0,shelf:2.0},      // 벽에 붙은 작은 것은 가까이 가서 봐야 잡힌다 (배급기가 로비 어디서나 잡히던 것을 고침)
   stations(){ (this._picks||[]).forEach(m=>m.parent&&m.parent.remove(m)); this._picks=[]; this._wait={};      // 묶음은 장면마다 다시 쓰므로 지난 판정 상자는 치운다
     for(const id in this.BOX){ const [c,s]=this.BOX[id], m=new THREE.Mesh(new THREE.BoxGeometry(...s),PICK); m.position.set(...c); this.g.add(m); this._picks.push(m);
-      interact(m,this.LABEL[id],()=>this.use(id),{range:2.6,enabled:()=>!this.seated}); } },
+      interact(m,this.LABEL[id],()=>this.use(id),{range:this.RANGE[id]||2.4,enabled:()=>!this.seated}); } },
   async use(id){ const w=this._wait[id]; if(w){ delete this._wait[id]; return w(); } if(this.on[id]) return this.on[id](); const f=this.FLAVOR[id]; if(f) await f.call(this); },
   // 그 자리를 쓸 때까지 기다린다 (goal 글을 함께)
   task(id,text){ if(text) goal(text); return new Promise(r=>this._wait[id]=r); },
@@ -44,7 +45,11 @@ const R1={g:null,b:null,seated:true,on:{},_wait:{},
   FLAVOR:{
     seat(){ return TALK.say([I('…지금은 자동 항법이다. 앉을 일이 생기면 VEGA 가 부른다.')]); },
     galley(){ AUDIO.tone(880,.08,'sine',.05); AUDIO.noise(1.2,.05,.1,700); return TALK.say([I(['…데운 단백질 죽. 맛은 없다. 따뜻하기는 하다.','…물 한 팩. 지구에서 떠 온 물이 줄어든다.','…넉 달 치 식량. 편도분 연료처럼, 돌아갈 몫은 없다.'][this._g=(this._g||0)%3,this._g++])]); },
-    async ledge(){ S.busy=true; const y0=P.yaw, p0=P.pitch; await camTo({yaw:-Math.PI/2,pitch:-.05},.9); await TALK.say([I(this.view||'…창밖은 별뿐이다. 깜빡이지 않는 별.')]); await camTo({yaw:y0,pitch:p0},.7); S.busy=false; },
+    // 창가 : 창가 바 앞까지 걸어가 → 팔을 짚고 몸을 숙여 창밖을 본다 → 말이 끝나면 몸을 펴고 한 걸음 물러난다 (창을 본 채로)
+    //   R1.viewDir={x,z,yaw,pitch} : 볼 것이 창 정면에 없을 때 설 자리 · 고개를 돌릴 쪽 (지구 궤도 — 지구는 앞 아래에 있다 → 고개를 앞쪽 아래로 조금 돌린다)
+    async ledge(){ S.busy=true; P.free=false; const s=this.spots.ledge||{x:.55,z:-6.65}, x0=P.x, z0=P.z;
+      await camTo({x:s.x+.1,z:s.z,yaw:-Math.PI/2,pitch:0,eye:1.66},.9); const d=this.viewDir||{}; await camTo({x:d.x===undefined?s.x+.1:d.x,z:d.z===undefined?s.z:d.z,eye:1.34,yaw:d.yaw===undefined?-Math.PI/2:d.yaw,pitch:d.pitch===undefined?.03:d.pitch},.9); SFX.play('cloth',{vol:.4});
+      await TALK.say([I(this.view||'…창밖은 별뿐이다. 깜빡이지 않는 별.')]); await camTo({x:x0,z:z0,eye:1.66,pitch:0},.7); P.free=true; S.busy=false; },      // 몸을 펴고 섰던 자리로 한 걸음 물러난다 (바 · 의자에 끼지 않게)
     shelf(){ return doc('R-1 운용 수첩','<p><b>R-1 구조정</b> — 1인 · 동면 캡슐 1 · 이온 엔진 · 연료 <b>편도분</b>.</p><p><b>도킹</b> : R-1 의 도킹 해치는 <b>뒤쪽(외부 해치)</b>에 있다. 도킹할 때는 배를 돌려 뒤를 상대 고리에 대고, 해치 방의 <b>후방 도킹 조종대</b>에서 뒤 카메라를 보며 몬다.</p><p><b>동면</b> : 캡슐에 들어가면 VEGA 가 정해진 날에 깨운다. 깨어나면 몸이 무겁다 — 천천히 일어날 것.</p><p class="dim">— 책 사이에 끼워진 사진 : 1호 대원 열두 명. 맨 끝에 레아 문.</p>','책장 · 둘째 칸'); },
     capsule(){ return TALK.say([I('…넉 달을 저 안에서 잔다. 아니, 잤다.')]); },
     locker(){ SFX.play('locker_open',{vol:.6}); return TALK.say([I('EVA 우주복 한 벌, 산소통 둘. …1호 안은 공기가 있기를.')]); },

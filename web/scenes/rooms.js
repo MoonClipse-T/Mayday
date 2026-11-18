@@ -62,7 +62,7 @@ ROOMS.engine=async R=>{ const it=R.items;
       if(n==='eng_wall') m.material.color.setRGB(.17,.18,.2); if(n==='eng_band') m.material.color.setRGB(.11,.115,.12); if(n==='eng_ceil') m.material.color.setRGB(.1,.1,.11); if(n==='eng_rib'){ m.material.color.setRGB(.05,.055,.06); m.material.metalness=.8; } }); });
   const lamps=[[58.5,4.5],[68,4.5],[58.5,16.2],[68,16.2]].map(([x,z])=>{ const l=new THREE.PointLight(0xc8d8ea,0,18,1.3); l.position.set(x,7.5,z); R.add(l); return l; });
   let rail=null; R.root.parent.traverse(m=>{ if(m.isMesh&&m.material&&m.material.name==='eng_rail') rail=m.material; });
-  if(rail) [9.38,11.32].forEach(z=>{ const p=new THREE.Mesh(new THREE.CylinderGeometry(.028,.028,1.42,12),rail); p.position.set(63.3-Math.sqrt(6.9**2-(z-10.35)**2),.71,z); R.add(p); });
+  const K=SHIP.RAIL, dz=K.cut*K.r/K.r0+.03; if(rail) [10.35-dz,10.35+dz].forEach(z=>{ const p=new THREE.Mesh(new THREE.CylinderGeometry(.028,.028,1.42,12),rail); p.position.set(63.3-Math.sqrt(K.r**2-(z-10.35)**2),.71,z); R.add(p); });      // 난간이 끊긴 두 끝의 기둥
   // 제어 콘솔 둘 (원자로 재가동) : 화면 자리
   R.consoles=['scr_eng0','scr_eng1'].map(k=>it[k]).filter(Boolean);
   emergency(R,58,3,10.35);

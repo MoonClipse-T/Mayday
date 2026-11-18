@@ -24,11 +24,18 @@ const SHIP={OX:{bridge:0,deck:14,cryo:27,lab:39,lobby:20.5,engine:63.3}, OZ:{lob
       ['lab',{ox:O.lab,prep:root=>{ shove(root,['Object_14004','Object_6002','Object_7002','Object_17001','Object_20001','Object_21001'],-2,0);
         root.traverse(o=>{ if(o.isMesh&&/^rura_(gwna_baza|glowna_szybka)/.test(o.material.name)) o.visible=false; }); }}],      // 가운데 큰 관(탱크)은 감춘다 → 그 자리에 유리 격리실(story.glb IT_iso)      // 연구실 : 문 바로 안을 막던 실험대(위 물건째)를 서쪽으로 2 m
       ['lobby',{ox:O.lobby,oz:Z.lobby}],
-      ['engine',{ox:O.engine,oz:Z.engine,prep:root=>cutTris(root,'eng_rail',c=>c.x<57&&c.z>9.4&&c.z<11.3)}],['hall',{}],      // 기관실 : 문 앞을 가로지르던 난간을 끊어 원자로 단으로 바로 오른다
+      ['engine',{ox:O.engine,oz:Z.engine,prep:engineRail}],['hall',{}],      // 기관실 : 난간을 원자로 단에 바짝 붙이고 문 쪽(제어 콘솔 앞)은 튼다 — 4.9
       ['story',{solid:false}],                 // 이야기 소품 (story.glb · 세계 좌표 그대로 · 몸 충돌 없음)
       ['horror',{solid:false}]]; },            // 공포 소품 (horror.glb ← tools/build_horror.py · blender/21_공포소품.blend) : 천장 환기구 · 끌려간 뒤의 피 · 마야의 손전등
   preload(){ return this._pre||(this._pre=LEVEL.preload(this.list()).then(()=>LEVEL.warmBundles(this.list().map(([k,o])=>k+'@'+(o.ox||0)+','+(o.oz||0))))); },
 };
+
+/* 기관실 난간 (4.9) : 맵의 난간은 반지름 6.9 m — 원자로 단(6.3 m)과 벽(7.8 m) 사이 한가운데를 막아, 안으로도 밖으로도 한 바퀴 돌 수 없었다
+   → 단에 바짝(6.5 m) 붙여 벽 쪽에 1.3 m 길을 내고, 문 쪽 제어 콘솔 앞은 틔운다 (끊긴 끝의 기둥은 ROOMS.engine 이 세운다) */
+SHIP.RAIL={r0:6.9,r:6.5,cut:4.05};
+function engineRail(root){ const K=SHIP.RAIL, cx=SHIP.OX.engine, cz=SHIP.OZ.engine; cutTris(root,'eng_rail',c=>c.x<cx-3&&Math.abs(c.z-cz)<K.cut);
+  const piv=new THREE.Group(), L=[]; piv.name='rail_pivot'; root.add(piv); root.updateMatrixWorld(true); root.traverse(o=>{ if(o.isMesh&&o.material&&o.material.name==='eng_rail') L.push(o); });
+  L.forEach(o=>piv.attach(o)); piv.scale.set(K.r/K.r0,1,K.r/K.r0); }
 
 // 맵 안 물체를 세계 좌표로 (dx, dz) 만큼 옮긴다 — 문을 막는 가구 치우기
 function shove(root,names,dx,dz){ root.updateMatrixWorld(true); const w=new THREE.Vector3(), L=[];
