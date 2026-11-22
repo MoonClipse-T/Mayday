@@ -9,10 +9,10 @@
    ③ 도킹 : 화면 가운데의 원(= 내 해치)을 1호의 도킹 고리에 겹치고 [전진]으로 끝까지 — 고리가 화면에 가득 찰 때 어긋남이 고리 지름의 10 % 쯤(0.4 m) 안이면 '탁' 물린다
       축 · 기수 · 표시 맞추기는 없다 (VEGA 가 잡는다) · 빗나가면 밀려났다가 다시 · 두 번 빗나가면 도킹 보조
    물린 뒤 : 1호 안에 공기가 있는지 모른다 → 해치 방 보관함에서 우주복을 입고 → 외부 해치 → 틈 없이 이어진 연결 통로 → 1호 쪽 문 (헬멧은 1호 에어록에서 공기를 확인하고 벗는다 — scenes/game.js board)
-   조작 (키보드와 화면 단추 둘 다) : 이동 ↑↓←→ = R/F/A/D · [전진][후진] = W/S · 화면 끌기(또는 방향키) = 기수(①에서만) · [롤 ◀][롤 ▶] = Q/E · [정지] = X
+   조작 (터치가 기본 · 키보드도) : 화면 끌기 = ① 기수 · ③ 원을 고리 쪽으로 (위아래 · 옆 이동 단추는 4.12 에 뺐다) · [전진][후진] = W/S · [롤 ◀][롤 ▶] = Q/E · [정지] = X
    ============================================================ */
 'use strict';
-const FLIGHT={W:.12,               // 1호 자전 (rad/s ≈ 6.9°/s)
+const FLIGHT={W:.6,                // 1호 자전 (rad/s ≈ 34°/s · 10초에 한 바퀴 — 4.12 사용자 : 아주 빠르게 돈다)
   async run({journey=false}={}){ const self=this; S.phase='cut'; P.free=false; LEVEL.clear(); goal('');
     stamp('구조정 R-1 · 조종석','2091.07 · 웜홀 통과 +00:04');
     SHIP.preload();                                            // 1호 안은 나는 동안 화면 뒤에서 풀어 둔다
@@ -49,7 +49,7 @@ const FLIGHT={W:.12,               // 1호 자전 (rad/s ≈ 6.9°/s)
       :[VG('동면 해제 완료. 웜홀 통과 완료. 선체 이상 없음. 크리스, 들립니까?'),I('…들린다. 넉 달 잤는데 어제 회의실에 있던 것 같군.'),VG('하위헌스 1호의 마지막 녹음을 다시 재생합니다.')]);
     AUDIO.radio(5); await TALK.say([RADIO('…여기는 하위헌스 1호… 대원 열두 명 중… 우리는 지금…'),RADIO('Mayday, Mayday, we are—')]);
     await TALK.say([VG('1호 확인. 앞쪽 640 m. 불빛 없음. 열 반응 없음. 생명 신호… 하나.'),I('하나. …엘레나가 말한 레아 문일까.'),
-      VG('1호가 긴 축을 중심으로 돌고 있습니다. 약 7초에 한 바퀴의 8분의 1. 무언가에 부딪혀 자세 제어를 잃은 것 같습니다.'),
+      VG('1호가 긴 축을 중심으로 빠르게 돌고 있습니다. 10초에 한 바퀴. 무언가에 부딪혀 자세 제어를 잃은 것 같습니다.'),I('…저렇게 도는 문에 어떻게 붙지.'),
       VG(byDevice('조종은 선장님께 넘깁니다. W 전진 · 화면을 끌어(또는 방향키) 기수 · X 정지. 1호 뱃머리의 도킹 고리로 가십시오.','조종은 선장님께 넘깁니다. [전진] · 화면을 끌어 기수 · [정지]. 1호 뱃머리의 도킹 고리로 가십시오.'),'조종은 선장님께 넘깁니다. W 전진 · 끌기로 기수 · X 감속. 1호 뱃머리의 도킹 고리로 가십시오.')]);
     goal(byDevice('1호 도킹 고리로 — W 전진 · 끌어서 기수','1호 도킹 고리로 — [전진] · 끌어서 기수'));
     await new Promise(r=>this.onNear=r);
@@ -62,12 +62,12 @@ const FLIGHT={W:.12,               // 1호 자전 (rad/s ≈ 6.9°/s)
     S.phase='cut'; P.free=false; goal(''); await camTo({x:.62,z:-10.62,yaw:-Math.PI/2,pitch:-.12,eye:1.5},.8);
     AUDIO.tone(660,.1,'square',.04); AUDIO.noise(.4,.08,0,2400); this.aftcam=true; document.body.classList.add('aftcam'); this.ui(true); this.helm=true; S.phase='play';
     // ② 회전 맞추기 : 눈으로 보고 맞춘다 — 같아지면 1호가 멈춰 보인다
-    await TALK.say([VG('후방 카메라 연결. 이제 뒤가 앞입니다.'),VG('축과 기수는 제가 잡겠습니다. 선장님은 회전만 맞추십시오.'),VG('롤 단추로 1호와 같은 방향, 같은 빠르기로 도십시오. 1호가 멈춰 보이면 맞은 겁니다.'),I('…돌아가는 문에 맞춰 들어간다.')]);
-    goal(byDevice('② 회전 맞추기 — Q · E 로 돌아, 1호가 멈춰 보이게 2초','② 회전 맞추기 — [롤] 단추로 돌아, 1호가 멈춰 보이게 2초'));
+    await TALK.say([VG('후방 카메라 연결. 이제 뒤가 앞입니다.'),VG('축과 기수는 제가 잡겠습니다. 선장님은 회전만 맞추십시오.'),VG('롤 단추로 1호와 같은 방향, 같은 빠르기로 도십시오. 1호가 아주 빠릅니다 — 오래 눌러야 합니다.'),VG('뒤 카메라 원 바깥의 주황 점이 1호의 주황 막대입니다. 점이 멈추면 1호가 멈춰 보이는 것이고, 대신 바깥의 별이 돕니다.'),I('…돌아가는 문에 맞춰 들어간다.')]);
+    goal(byDevice('② 회전 맞추기 — Q · E 로 돌아, 1호의 주황 막대가 멈춰 보이게 3초','② 회전 맞추기 — [롤] 단추로 돌아, 1호의 주황 막대가 멈춰 보이게 3초'));
     this.mode='spin'; await new Promise(r=>this.onSync=r);
     // ③ 도킹 : 원을 고리에 겹치고 끝까지
-    await TALK.say([VG('회전 일치. 고정합니다.'),VG('이제 화면의 원을 도킹 고리에 겹치고, 그대로 끝까지 붙이십시오.')]);
-    goal(byDevice('③ 도킹 — R F A D 로 원을 고리에 겹치고, W 로 끝까지','③ 도킹 — 이동 단추로 원을 고리에 겹치고, [전진]으로 끝까지'));
+    await TALK.say([VG('회전 일치. 고정합니다.'),VG(byDevice('이제 화면을 끌어 원을 도킹 고리에 겹치고, 그대로 끝까지 붙이십시오.','이제 화면을 손가락으로 끌어 원을 도킹 고리에 겹치고, 그대로 끝까지 붙이십시오.'))]);
+    goal(byDevice('③ 도킹 — 화면을 끌어 원을 고리에 겹치고, W 로 끝까지','③ 도킹 — 화면을 끌어 원을 고리에 겹치고, [전진]으로 끝까지'));
     this.stage=3; this.mode='dock'; await new Promise(r=>this.onDock=r);
     await this.board(); },
   // 자동 자세 (② · ③) : 이제부터 기수는 1호의 긴 축에 고정 · 도킹 기준점은 외부 해치 · 전조등은 해치 쪽에서 1호를 비춘다
@@ -94,7 +94,7 @@ const FLIGHT={W:.12,               // 1호 자전 (rad/s ≈ 6.9°/s)
     for(let k=0;k<3;k++){ const a=k*Math.PI*2/3, m=new THREE.Mesh(new THREE.ConeGeometry(.28,.6,3),orange); m.position.set(Math.sin(a)*2.45,Math.cos(a)*2.45,-.05); m.rotation.z=-a; port.add(m); this.marks.push(m); }
     // 판 위의 막대 여섯 (흰 다섯 · 굵은 주황 하나) : 1호가 도는 것을 눈으로 읽는 기준 (② 회전 맞추기)
     const white=new THREE.MeshStandardMaterial({color:0xd8dde2,roughness:.6,metalness:0,emissive:0x0b0c0d});
-    for(let k=0;k<6;k++){ const a=k*Math.PI/3, b=new THREE.Mesh(new THREE.BoxGeometry(k?.16:.5,.8,.06),k?white:orange); b.position.set(Math.sin(a)*2.9,Math.cos(a)*2.9,5.76); b.rotation.z=-a; port.add(b); } },
+    for(let k=0;k<6;k++){ const a=k*Math.PI/3, b=new THREE.Mesh(new THREE.BoxGeometry(k?.16:.5,.8,.06),k?white:orange); b.position.set(Math.sin(a)*2.9,Math.cos(a)*2.9,5.76); b.rotation.z=-a; port.add(b); if(!k) this.bar0=b; } },
   // 파편 : 1호에서 떨어져 나온 조각들 (천천히 돌며 떠 있다)
   debris(hb){ const mat=new THREE.MeshStandardMaterial({color:0x5a6068,metalness:.7,roughness:.5}), mat2=new THREE.MeshStandardMaterial({color:0x2a2e33,metalness:.5,roughness:.7}); this.deb=[];
     for(let i=0;i<46;i++){ const big=Math.random()<.25, geo=Math.random()<.5?new THREE.BoxGeometry(1,.08+Math.random()*.3,.6+Math.random()):new THREE.DodecahedronGeometry(.5,0);
@@ -115,20 +115,20 @@ const FLIGHT={W:.12,               // 1호 자전 (rad/s ≈ 6.9°/s)
       const B=(k,t)=>`<button data-k="${k}">${t}${IS_TOUCH?'':`<small>${this.KEYS[k]}</small>`}</button>`;
       el.innerHTML=`<div class="hud"><ol class="stage"><li>접근</li><li>회전 맞추기</li><li>도킹</li></ol><p class="d"></p><p class="s"></p><p class="w"></p><p class="h"></p></div>
       <div class="bracket"><i></i><i></i><i></i><i></i><b></b></div><div class="nose"><i></i><span>끌기</span></div>
-      <svg class="ret" viewBox="-50 -50 100 100"><circle class="c" r="48"/><circle class="k" r="48" pathLength="100" transform="rotate(-90)"/><path class="x" d="M-6 0H6M0 -6V6"/></svg>
-      <div class="pads"><div class="move"><span>이동</span>${B('up','↑')}${B('left','←')}${B('right','→')}${B('down','↓')}</div>
+      <svg class="ret" viewBox="-50 -50 100 100"><circle class="c" r="48"/><g class="m"><path d="M0 -56V-44"/><circle cx="0" cy="-59" r="2.6"/></g><circle class="k" r="48" pathLength="100" transform="rotate(-90)"/><path class="x" d="M-6 0H6M0 -6V6"/></svg>
+      <div class="pads">
         <div class="act">${B('fwd','전진')}${B('back','후진')}${B('rl','롤 ◀')}${B('rr','롤 ▶')}${B('brake','정지')}</div></div>`; document.body.appendChild(el);
       el.querySelectorAll('.pads button').forEach(b=>{ const k=b.dataset.k; b.addEventListener('pointerdown',e=>{ e.stopPropagation(); e.preventDefault(); FLIGHT.btn[k]=true; b.classList.add('on'); });
         ['pointerup','pointerleave','pointercancel'].forEach(t=>b.addEventListener(t,()=>{ FLIGHT.btn[k]=false; b.classList.remove('on'); })); }); }
     el.classList.toggle('on',on); el.classList.remove('stg'); el.dataset.m=''; el.querySelector('.ret').style.display='none'; el.querySelector('.h').textContent='';
     document.body.classList.toggle('flying',on); if(!on) this.btn={};
-    window.dragHook=on?(dx,dy)=>{ if(this.docked||this.auto) return; const k=IS_TOUCH?.0035:.0024; this.av.y-=dx*k*1.6; this.av.x-=dy*k*1.6; }:null; },
+    window.dragHook=on?(dx,dy)=>{ if(this.docked) return; if(this.mode==='dock'){ if(S.phase!=='play'||TALK.on) return; const q=this.rig.quaternion, up=new THREE.Vector3(0,1,0).applyQuaternion(q), rt=new THREE.Vector3().crossVectors(new THREE.Vector3(0,0,1).applyQuaternion(q),up), k=IS_TOUCH?.006:.004; this.v.addScaledVector(rt,dx*k).addScaledVector(up,-dy*k); return; } if(this.auto) return; const k=IS_TOUCH?.0035:.0024; this.av.y-=dx*k*1.6; this.av.x-=dy*k*1.6; }:null; },
   btn:{},
 
   /* ---- 매 프레임 : 힘 · 회전 · 충돌 · 도킹 판정 · 카메라 ----
      STAND 대기 자리(고리 앞 m) · CAP 물리는 거리(고리가 화면에 가득 찰 때) · TOL 회전 빠르기 허용 차(rad/s) · TOL3 원의 허용 어긋남(m ≈ 고리 지름의 10 %)
      ACC 롤 단추의 세기(rad/s²) · HY 외부 해치 한가운데 높이 · GAP 물린 뒤 해치와 고리 사이 */
-  STAND:16, CAP:3, TOL:.02, TOL3:.4, ACC:.05, HY:.85, GAP:.3,
+  STAND:16, CAP:3, TOL:.02, TOL3:.4, ACC:.16, HY:.85, GAP:.3, HOLD:3,
   OFF:new THREE.Vector3(1.8,1.1,0),      // 대기 자리는 축에서 조금 비켜 있다 — ③에서 원을 고리에 겹치는 일이 남는다
   tick(dt){ const rig=this.rig, G=this.G, B=this.btn, K=keys;
     // 1호 자전 · 파편
@@ -151,7 +151,7 @@ const FLIGHT={W:.12,               // 1호 자전 (rad/s ≈ 6.9°/s)
         rig.rotateX(-this.av.x*dt); rig.rotateY(this.av.y*dt); rig.rotateZ(this.av.z*dt);
       } else {
         // ② · ③ : 축 · 기수는 VEGA 가 잡는다 — 남는 것은 롤 하나. ②에서만 손으로 돌리고, 맞으면(2초) 고정된다
-        if(m==='spin'){ if(ctl){ this.av.z=clamp(this.av.z+rIn*this.ACC*dt,-.3,.3); this.syncT=Math.abs(this.av.z-this.W)<this.TOL?this.syncT+dt:0; if(this.syncT>=2) this.locked(); } }
+        if(m==='spin'){ if(ctl){ this.av.z=clamp(this.av.z+rIn*this.ACC*dt+(Math.sin(S.t*1.1)+.6*Math.sin(S.t*2.7))*.05*dt,-1,1); this.syncT=Math.abs(this.av.z-this.W)<this.TOL?this.syncT+dt:0; if(this.syncT>=this.HOLD) this.locked(); } }      // 흔들림 : 자세 제어가 조금씩 밀려 계속 손을 대야 한다
         else if(this.sync) this.av.z=this.W;
         else this.av.z*=1-Math.min(1,dt*1.5);
         // 기수는 1호의 긴 축(+z)으로 · 롤은 외부 해치의 축을 중심으로 (해치가 제자리에서 돈다)
@@ -207,19 +207,20 @@ const FLIGHT={W:.12,               // 1호 자전 (rad/s ≈ 6.9°/s)
       h=turn?byDevice('화면을 화살표 쪽으로 끌어(또는 방향키) 기수를 1호로','화면을 화살표 쪽으로 끌어 기수를 1호로'):W.has('fwd')?byDevice('W 를 눌러 다가간다','[전진] 을 눌러 다가간다'):'';
     } else if(m==='spin'){
       // ② : 1호가 어느 쪽으로 돌아 보이는지 · 어느 단추인지만 알려 준다 — 같아졌는지는 눈으로 (1호가 멈춰 보인다)
-      const e=this.av.z-this.W; good=Math.abs(e)<this.TOL; k=Math.min(1,this.syncT/2); rpx=Math.min(innerWidth,innerHeight)*.2; if(!good) W.add(e<0?'rr':'rl');
-      h=good?'1호가 멈춰 보인다 — 손을 떼고 그대로 2초':e<0?'1호가 시계 방향(↻)으로 돌아 보인다 — '+byDevice('E','[롤 ▶]')+' 를 눌러 같은 쪽으로 돈다':'1호가 거꾸로(↺) 돌아 보인다, 너무 빨리 돌았다 — '+byDevice('Q','[롤 ◀]')+' 로 늦춘다';
+      const e=this.av.z-this.W, a=Math.abs(e), how=a>.3?'빠르게 ':a>.1?'':'천천히 '; good=a<this.TOL; k=Math.min(1,this.syncT/this.HOLD); rpx=Math.min(innerWidth,innerHeight)*.2; if(!good) W.add(e<0?'rr':'rl');
+      // 원 바깥 주황 점 = 1호 판의 주황 막대가 화면에서 있는 쪽 (돌아 보이면 점이 돈다 · 맞으면 멈춘다)
+      const bp=this.bar0.getWorldPosition(new THREE.Vector3()).project(camera), ang=Math.atan2(bp.x*camera.aspect,bp.y)*180/Math.PI; el.querySelector('.ret .m').setAttribute('transform','rotate('+ang.toFixed(1)+')');
+      h=good?'주황 점이 멈췄다 — 그대로 '+this.HOLD+'초 (흔들리면 살짝 고친다)':e<0?'주황 점이 시계 방향(↻)으로 '+how+'돈다 — '+byDevice('E','[롤 ▶]')+' 를 눌러 같은 쪽으로':'주황 점이 거꾸로(↺) '+how+'돈다, 너무 빨리 돌았다 — '+byDevice('Q','[롤 ◀]')+' 로 늦춘다';
     } else if(m==='dock'){
       // ③ : 가운데 원 = 내 해치. 원의 크기는 지금 거리에서 보이는 고리의 크기 — 겹치면 초록
       const cd=Math.max(.6,d-.35), o=pp.clone().sub(this.dockPt()), tx=clamp(o.dot(rt)*.6,-1,1)-this.v.dot(rt), ty=clamp(o.dot(up)*.6,-1,1)-this.v.dot(up);
       rpx=Math.min(Math.min(innerWidth,innerHeight)*.47,1.9/cd/Math.tan(camera.fov*Math.PI/360)*innerHeight/2); good=lat<=this.TOL3; k=good?1:0;
-      if(lat>this.TOL3*.6){ if(Math.abs(tx)>.08) W.add(tx>0?'right':'left'); if(Math.abs(ty)>.08) W.add(ty>0?'up':'down'); h='원을 도킹 고리에 겹친다 — 빛나는 이동 단추'; }
+      if(lat>this.TOL3*.6){ if(Math.hypot(tx,ty)>.08&&S.phase==='play'){ nose.style.display='block'; nose.style.transform=`translate(-50%,-50%) rotate(${Math.atan2(-ty,tx)}rad)`; } h='화면을 화살표 쪽으로 끌어 원을 도킹 고리에 겹친다'; }
       else { if(this.v.dot(fw)<.3) W.add('fwd'); h='원이 고리에 겹쳤다 — '+byDevice('W','[전진]')+' 로 끝까지 붙인다'; }
-      if(!IS_TOUCH){ const ks=[...W].map(x=>this.KEYS[x]).join(' · '); if(ks&&lat>this.TOL3*.6) h+=' ('+ks+')'; }
     } else if(!this.sync&&S.phase==='play') h='VEGA 가 고리 앞 '+this.STAND+' m 에 배를 세우는 중';
     el.querySelector('.w').textContent=w; el.querySelector('.h').textContent=TALK.on?'':h;
     const ret=el.querySelector('.ret'); ret.style.display=rpx?'block':'none';
-    if(rpx){ ret.style.width=ret.style.height=(rpx*2/.96)+'px'; ret.classList.toggle('ok',good); const ring=ret.querySelector('.k'); ring.style.strokeDasharray='100'; ring.style.strokeDashoffset=String(100*(1-k)); ring.style.display=m==='spin'?'':'none'; }
+    if(rpx){ ret.style.width=ret.style.height=(rpx*2/.96)+'px'; ret.classList.toggle('ok',good); const ring=ret.querySelector('.k'); ring.style.strokeDasharray='100'; ring.style.strokeDashoffset=String(100*(1-k)); ring.style.display=m==='spin'?'':'none'; ret.querySelector('.m').style.display=m==='spin'?'':'none'; }
     this.want=W; el.querySelectorAll('.pads button').forEach(b=>b.classList.toggle('want',W.has(b.dataset.k))); },
   // 도킹 고리 기준 : d = 고리 앞으로의 거리 · lat = 축에서 벗어난 거리 · rel = 고리에서 나(도킹 기준점)까지
   portRel(){ const pp=this.port.getWorldPosition(new THREE.Vector3()), out=new THREE.Vector3(0,0,-1), rel=this.dockPt().sub(pp), d=rel.dot(out), lat=rel.clone().addScaledVector(out,-d).length(); return {pp,d,lat,rel,out}; },
@@ -286,7 +287,7 @@ const FLIGHT={W:.12,               // 1호 자전 (rad/s ≈ 6.9°/s)
     // 1호 해치 : 잠금을 풀고 양쪽으로 미끄러진다 → 캄캄한 1호 에어록으로
     SFX.play('airlock',{vol:.8}); let k=0; await new Promise(res=>{ const f=dt=>{ k=Math.min(1,k+dt/1.4); T.h1.position.x=-.375-k*.75; T.h2.position.x=.375+k*.75; T.red.intensity=.7*(1-k); if(k>=1){ TICK.splice(TICK.indexOf(f),1); res(); } }; TICK.push(f); });
     await camTo({x:0,z:-17.4},1.8); AUDIO.noise(1.5,.15,0,600);
-    await fade(true,900); TICK.splice(TICK.indexOf(this.fn),1); this.boarding=false; this.auto=false; this.stage=0; window.dragHook=null; window.camHook=null; document.body.classList.remove('flying'); }
+    fade.next='1호로 들어가는 중'; await fade(true,900); TICK.splice(TICK.indexOf(this.fn),1); this.boarding=false; this.auto=false; this.stage=0; window.dragHook=null; window.camHook=null; document.body.classList.remove('flying'); }
 };
 // 우주복 헬멧 : 화면 가장자리의 헬멧 테 · 유리 반사 · 산소 표시(style.css #helmet) + 헬멧 안 숨소리 — 1호 에어록에서 공기를 확인하고 벗는다 (scenes/game.js board)
 const HELMET={is:false,t:0,

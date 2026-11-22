@@ -180,7 +180,16 @@ function busy(){ S.busy=TALK.on||$('#doc').classList.contains('on'); document.bo
 function doc(title,html,dt=''){ return new Promise(res=>{ const d=$('#doc'); d.querySelector('h2').textContent=title; d.querySelector('.body').innerHTML=html; d.querySelector('.dt').textContent=dt;
   d.classList.add('on'); busy(); d.querySelector('.close').onclick=()=>{ closeDoc(); res(); }; }); }
 function closeDoc(){ $('#doc').classList.remove('on'); AUDIO.click(); busy(); }
-const fadeEl=$('#fade'); function fade(on,ms=900){ fadeEl.style.transitionDuration=ms+'ms'; fadeEl.classList.toggle('on',on); return sleep(ms); }
+const fadeEl=$('#fade');
+// 화면이 어두운 채 1초 넘게 이어지면 '이동 중 …' (멈춘 게 아니라 넘어가는 중) · fade.next 로 다음 한 번의 글을 정한다 (예 : '동면 중') · 불러오기 막대(#loading)가 떠 있으면 숨긴다
+//   멈춤(오류)은 따로 : 처리 못 한 오류가 나면 같은 자리에 빨간 글로 '오류 — 새로 고침'
+const fadeMsg=(()=>{ const e=document.createElement('div'); e.id='fademsg'; document.body.appendChild(e); return e; })(); let fadeT=0;
+function fade(on,ms=900){ fadeEl.style.transitionDuration=ms+'ms'; fadeEl.classList.toggle('on',on); clearTimeout(fadeT); if(!fadeMsg.classList.contains('err')) fadeMsg.classList.remove('on');
+  if(on){ const t=fade.next||'이동 중'; fade.next=null; fadeT=setTimeout(()=>{ if(fadeEl.classList.contains('on')&&!fadeMsg.classList.contains('err')&&!$('#loading').classList.contains('on')){ fadeMsg.textContent=t; fadeMsg.classList.add('on'); } },ms+1000); }
+  return sleep(ms); }
+function stopped(e){ console.error(e); if(!fadeEl.classList.contains('on')||(e&&/NotAllowed|Abort/.test(e.name))) return;      // 어두운 화면에서 멈췄을 때만 (소리 재생 거절 같은 것은 빼고)
+  fadeMsg.textContent='오류로 멈췄습니다 — 새로 고침(F5) 해 주세요'; fadeMsg.classList.add('on','err'); }
+addEventListener('unhandledrejection',e=>stopped(e.reason)); addEventListener('error',e=>{ if(e.error) stopped(e.error); });
 async function card(kick,title,sub,ms=3200){ const c=$('#card'); c.querySelector('.kick').textContent=kick; c.querySelector('.title').textContent=title; c.querySelector('.sub').textContent=sub||'';
   c.classList.add('on'); await sleep(ms); c.classList.remove('on'); await sleep(700); }
 
@@ -409,7 +418,7 @@ function frame(now){ requestAnimationFrame(frame); const dt=Math.min(.1,(now-las
       if(P.vy>0&&SOLID.hit(P.x,P.z,ny+BODY,ny+BODY+.05,P.r*.7)) P.vy=0;       // 머리가 천장에
       if(ny<=g){ if(P.vy<-5) AUDIO.noise(.12,.08,0,500); ny=g; P.vy=0; } P.y=ny; }
     else { P.vy=0; P.y=lerp(P.y,g,1-Math.pow(.0005,dt)); } }               // 턱 · 계단은 부드럽게 올라선다
-  else { P.jump=false; P.vy=0; if(!camAnim) P.y=lerp(P.y,floorAt(P.x,P.z),1-Math.pow(.0005,dt)); }
+  else { P.jump=false; P.vy=0; if(!camAnim&&!P.pinY) P.y=lerp(P.y,floorAt(P.x,P.z),1-Math.pow(.0005,dt)); }      // pinY : 연출이 높이를 쥐고 있을 때 (탁자 위에서 내려다보기 — 탁자 윗면을 바닥으로 잡아 시야가 솟던 것)
   camera.position.set(P.x,P.y+P.eye+Math.sin(P.bob||0)*(P.bobA||0),P.z); camera.rotation.order='YXZ'; camera.rotation.set(P.pitch,P.yaw,0);
   if(window.camHook) camHook();      // 움직이는 배 안을 걸을 때 (scenes/r1.js) : P 는 배 안의 좌표 → 배의 자세를 곱한다 (조사 판정보다 먼저)
   if(P.free&&!S.busy&&S.phase==='play'){ const it=pick(0,0); if(it!==hot){ hot=it; $('#label').textContent=it?it.name:''; $('#label').classList.toggle('on',!!it); $('#reticle').classList.toggle('hot',!!it); $('#act').classList.toggle('on',!!it); } }

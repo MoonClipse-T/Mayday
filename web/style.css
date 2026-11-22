@@ -378,3 +378,10 @@ body.cine #mission,body.at-title #mission{opacity:0}
 #podlock .kb .w{grid-column:span 2}
 #podlock .row{display:flex;gap:10px} #podlock .row button{flex:1;min-height:46px;font-family:var(--mono);letter-spacing:.08em;color:#fff;border:1px solid var(--vega);background:rgba(127,212,255,.12)}
 #podlock .row .ok{border-color:var(--alert);background:rgba(255,90,54,.16)}
+/* 4.12 넘어가는 중 표시 · 오류 표시 (#fademsg — engine.js fade) */
+#fademsg{position:fixed;left:50%;bottom:16vh;transform:translateX(-50%);z-index:45;font-family:var(--mono);font-size:13px;letter-spacing:.28em;color:var(--vega);opacity:0;transition:opacity .5s;pointer-events:none;text-shadow:0 0 6px #000,0 0 12px #000}
+#fademsg.on{opacity:1}
+#fademsg::after{content:'';display:inline-block;width:1.6em;text-align:left;animation:fmdots 1.2s steps(4) infinite}
+@keyframes fmdots{0%{content:''}25%{content:' ·'}50%{content:' · ·'}75%{content:' · · ·'}}
+#fademsg.err{color:var(--alert);letter-spacing:.08em;font-size:15px} #fademsg.err::after{content:none;animation:none}
+#flight .ret .m path{stroke:#ff7a2a;stroke-width:3;stroke-linecap:round;vector-effect:non-scaling-stroke} #flight .ret .m circle{fill:#ff7a2a;stroke:none} #flight .ret.ok .m path{stroke:#6dffb0} #flight .ret.ok .m circle{fill:#6dffb0}

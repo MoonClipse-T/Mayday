@@ -19,28 +19,22 @@ vec3 lens(vec3 d){
   float ps=th-R*R/th; vec3 col=eq(sky,roty(normalize(C*cos(ps)+q*sin(ps)),srot))*1.25;
   col+=vec3(1.0,.92,.82)*exp(-pow((th-R)/(R*.035),2.0))*.6; return col*(1.0+.6*exp(-(th-R)/(R*.5))); }`;
 const SKY=(()=>{ let mesh=null, jup=null, sun=null, mat=null; const U={sky:{value:null},gal:{value:null},C:{value:new THREE.Vector3(0,0,-1)},R:{value:.12},t:{value:0},srot:{value:0},tun:{value:0}};
-  let texP=null; const T={}; const tex=()=>texP||(texP=Promise.all([loadTex('sky.jpg'),loadTex('gal.jpg')]).then(([a,b])=>{ [a,b].forEach(x=>{ x.minFilter=THREE.LinearFilter; x.generateMipmaps=false; }); U.sky.value=a; U.gal.value=b; T.home=a; T.gal=b; }));
-  // 웜홀 건너편 하늘 (4.11) : 은하수 띠가 없다 — 드문 별 · 옅은 성운 · 멀리 커다란 나선 은하 하나 · 작은 은하 둘 (캔버스로 한 번 그린다 · 등장방형)
+  let texP=null; const T={}; const tex=()=>texP||(texP=Promise.all([loadTex('sky.jpg'),loadTex('gal.jpg')]).then(([a,b])=>{ [a,b].forEach(x=>{ x.minFilter=THREE.LinearFilter; x.generateMipmaps=false; }); T.home=a; T.gal=b; U.sky.value=a; U.gal.value=farTex(); }));      // 웜홀 목 안 = 건너편 하늘 (건너가면 그 하늘 안에 있다)
+  // 웜홀 건너편 하늘 (4.12) : 다른 은하 안 — 은하수는 있지만 우리 것과 다르다 (사용자 : 은하가 통째로 보일 수는 없다)
+  //   gal.jpg(우리 은하수 사진)를 좌우로 뒤집고 · 띠를 위아래로 1.6배 넓히고 · 중심 팽대부를 키우고 · 색을 바꾸고(푸른 별빛 · 붉은 성운) · 마젤란 구름은 지운다
   //   목 안(렌즈 안쪽)은 거꾸로 우리 은하수(sky.jpg) — 건너온 곳이 비쳐 보인다
-  function farTex(){ if(T.far) return T.far; const W=LITE?2048:4096, H=W/2, c=document.createElement('canvas'); c.width=W; c.height=H; const x=c.getContext('2d'); let sd=7; const R=()=>(sd=(sd*16807)%2147483647)/2147483647;
-    x.fillStyle='#010103'; x.fillRect(0,0,W,H); x.globalCompositeOperation='lighter';
-    const blob=(px,py,r,col,a)=>{ const g=x.createRadialGradient(px,py,0,px,py,r); g.addColorStop(0,'rgba('+col+','+a+')'); g.addColorStop(1,'rgba('+col+',0)'); x.fillStyle=g; x.fillRect(px-r,py-r,2*r,2*r); };
-    [[.12,.35,.16,'150,60,90',.07],[.18,.42,.1,'60,120,150',.06],[.72,.7,.2,'90,50,120',.05],[.8,.62,.09,'160,80,60',.05],[.45,.2,.12,'50,90,130',.04]].forEach(([u,v,r,c2,a])=>{ for(let i=0;i<14;i++) blob((u+(R()-.5)*r*.8)*W,(v+(R()-.5)*r*.5)*H,r*W*(.15+R()*.3),c2,a); });
-    const N=LITE?3500:7000; for(let i=0;i<N;i++){ const u=R(), v=Math.acos(2*R()-1)/Math.PI, m=Math.pow(R(),9), px=u*W, py=v*H, sz=(.3+m*1.1)*W/4096, t=R(), col=t<.15?'255,190,150':t<.35?'180,205,255':'240,240,255';
-      x.fillStyle='rgba('+col+','+(.2+m*.8)+')'; x.beginPath(); x.arc(px,py,sz,0,7); x.fill(); if(m>.7) blob(px,py,sz*4,col,.1); }
-    // 나선 은하 : 두 팔 로그 나선 · 노란 중심 · 푸른 팔 · 기울어진 원반 (가로로 늘린 것은 등장방형 위도 보정)
-    const gal=(gu,gv,size,tilt,rot,seed)=>{ const cx=gu*W, cy=gv*H, S=size*W, sx=1/Math.cos((gv-.5)*Math.PI); sd=seed; const cs=Math.cos(rot), sn=Math.sin(rot);
-      const at=(ex,ey)=>[cx+(ex*cs-ey*tilt*sn)*sx, cy+ex*sn+ey*tilt*cs];
-      // 원반 빛 (넓고 옅게) → 팔을 따라 뭉게뭉게 → 별 알갱이 → 팔 사이 먼지 → 밝은 중심
-      for(let i=0;i<40;i++){ const a=R()*7, r=S*.35*Math.sqrt(R()); const [X,Y]=at(Math.cos(a)*r,Math.sin(a)*r); blob(X,Y,S*.22,'150,165,210',.025); }
-      const arm=(t,k)=>{ const th=t*1.55+k*Math.PI, r=S*.05*Math.exp(.6*t); return [Math.cos(th)*r,Math.sin(th)*r,r]; };
-      for(let i=0;i<(LITE?260:520);i++){ const t=.4+R()*3.2, [ex,ey,r]=arm(t,i%2), j=r*.22; const [X,Y]=at(ex+(R()-.5)*j,ey+(R()-.5)*j); blob(X,Y,S*(.03+R()*.04),R()<.15?'255,150,180':'140,170,255',.045); }
-      const n=LITE?9000:20000; for(let i=0;i<n;i++){ const t=Math.pow(R(),.8)*3.6, [ex,ey,r]=arm(t,i%2), j=r*(.18+.3*R()); const [X,Y]=at(ex+(R()-.5)*j*2,ey+(R()-.5)*j*2);
-        x.fillStyle=R()<.12?'rgba(255,190,200,.25)':'rgba('+(190+R()*60|0)+','+(205+R()*40|0)+',255,'+(.05+R()*.2)+')'; x.fillRect(X,Y,W/4096*1.3,W/4096*1.3); }
-      x.globalCompositeOperation='source-over'; for(let i=0;i<300;i++){ const t=.5+R()*3, [ex,ey,r]=arm(t+.35,i%2); const [X,Y]=at(ex+(R()-.5)*r*.15,ey+(R()-.5)*r*.15); x.fillStyle='rgba(8,5,6,'+(.04+R()*.06)+')'; x.beginPath(); x.arc(X,Y,S*(.008+R()*.014),0,7); x.fill(); }
-      x.globalCompositeOperation='lighter'; blob(cx,cy,S*.07,'255,236,200',.8); blob(cx,cy,S*.16,'255,215,165',.32); blob(cx,cy,S*.32,'255,205,160',.08); };
-    gal(.62,.4,.15,.42,.5,11); gal(.27,.66,.018,.35,-.3,23); gal(.9,.3,.011,.6,1.1,31);
-    const t=new THREE.CanvasTexture(c); t.encoding=THREE.sRGBEncoding; t.minFilter=THREE.LinearFilter; t.generateMipmaps=false; return T.far=t; }
+  function farTex(){ if(T.far) return T.far; const im=T.gal.image, W=Math.min(LITE?2048:4096,im.width), H=W/2, c=document.createElement('canvas'); c.width=W; c.height=H; const x=c.getContext('2d');
+    x.translate(W,0); x.scale(-1,1); const k=1.6; x.drawImage(im,0,0,im.width,im.height,0,H/2-H*k/2,W,H*k); x.setTransform(1,0,0,1,0,0);
+    // 마젤란 구름 자리(뒤집고 넓힌 뒤) : 옆의 별밭으로 덮는다
+    [[.28,.77,.035],[.34,.9,.022]].forEach(([u,v,r])=>{ const R=r*W; x.save(); x.beginPath(); x.arc(u*W,v*H,R,0,7); x.clip(); x.drawImage(c,u*W-R+.12*W,v*H-R,2*R,2*R,u*W-R,v*H-R,2*R,2*R); x.restore(); });
+    // 색 : 밝은 곳은 푸르고 희게, 어두운 먼지 띠 둘레는 붉은 보라로 — 우리 은하수(누런 갈색)와 다르게
+    const d=x.getImageData(0,0,W,H), p=d.data; for(let i=0;i<p.length;i+=4){ const r=p[i],g=p[i+1],b=p[i+2], L=(r+g+b)/3, t=Math.min(1,L/150);
+      p[i]=Math.min(255,L*(1.05-.25*t)+(r-L)*.4+18*(1-t)*t*2); p[i+1]=Math.min(255,L*(.88+.08*t)); p[i+2]=Math.min(255,L*(1.0+.35*t)+(b-L)*.4+10*(1-t)*t*2); }
+    x.putImageData(d,0,0);
+    // 중심 팽대부를 조금 더 밝고 크게 (다른 은하의 중심)
+    x.globalCompositeOperation='lighter'; const cx=.5*W, cy=.5*H, g=x.createRadialGradient(cx,cy,0,cx,cy,W*.09); g.addColorStop(0,'rgba(255,230,210,.35)'); g.addColorStop(1,'rgba(255,200,190,0)');
+    x.setTransform(1.8,0,0,1,-cx*.8,0); x.fillStyle=g; x.fillRect(cx-W*.09,cy-W*.09,W*.18,W*.18); x.setTransform(1,0,0,1,0,0); x.globalCompositeOperation='source-over';
+    const t=new THREE.CanvasTexture(c); t.minFilter=THREE.LinearFilter; t.generateMipmaps=false; return T.far=t; }
   function clear(){ [mesh,jup,sun].forEach(o=>o&&o.parent&&o.parent.remove(o)); mesh=jup=sun=null; scene.background=new THREE.Color(0x020304); }
   // 밤 도시 : 큰 구 안쪽에 사진을 붙인다 (구 UV = 등장방형). turn = 창밖으로 보일 방향(라디안)
   async function city(turn=0,bright=1){ clear(); const t=await loadTex('city_night.jpg'); t.wrapS=THREE.RepeatWrapping; t.repeat.x=-1;
@@ -48,7 +42,7 @@ const SKY=(()=>{ let mesh=null, jup=null, sun=null, mat=null; const U={sky:{valu
     mesh.rotation.y=turn; mesh.renderOrder=-1; scene.add(mesh); }
   // 우주 : 별지도 + 웜홀(방향 dir, 각 반지름 R) + 목성(방향 jdir, 각 크기 jsize)
   async function space({dir=[0,0,-1],R=.12,jdir=[.6,-.1,-1],jsize=.35,sunDir=[1,.3,.4],srot=0,jupiter=true,ptex='jupiter_map.jpg',far=false}={}){ clear(); await tex();
-    U.sky.value=far?farTex():T.home; U.gal.value=far?T.home:T.gal;      // 건너편 : 다른 하늘 · 목 안에 우리 은하수
+    U.sky.value=far?farTex():T.home; U.gal.value=far?T.home:farTex();      // 건너편 : 다른 하늘 · 목 안에 우리 은하수
     U.C.value.set(...dir).normalize(); U.R.value=R; U.srot.value=srot; U.tun.value=0;
     mat=new THREE.ShaderMaterial({uniforms:U,depthWrite:false,side:THREE.BackSide,
       vertexShader:'varying vec3 vD; void main(){ vec4 w=modelMatrix*vec4(position,1.0); vD=w.xyz-cameraPosition; gl_Position=projectionMatrix*viewMatrix*w; }',

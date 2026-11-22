@@ -1,10 +1,10 @@
 /* ============================================================
    R-1 출발 점검 (4.11) — 지구 궤도에서 조작을 가볍게 익힌다
-   MISSION : 점검표 (화면 왼쪽 종이) — ① 외부 해치 잠금 ② 우주복 상태 ③ 배급기에서 죽 ④ 창가 탁상에서 목성까지의 거리 ⑤ 조종석 · 이온 점화
+   MISSION : 점검표 (화면 왼쪽 종이) — ① 외부 해치 잠금 ② 우주복 상태 ③ 배급기에서 죽 ④ 창가 탁상에서 웜홀까지의 거리 ⑤ 조종석 · 이온 점화
      ①~④ 는 순서 없이 · 다 하면 ⑤
    PARALLAX : ④ — 2.x 라운지의 '다니엘과 시차 그리기' 그대로 (종이에 그려 시차 · 연주 시차 표시 → 계산기 calc.js)
      다니엘은 휴스턴에서 무전 · 크리스는 창가 바에 앉아 종이에 그린다 (탁상 카메라로 보여 준다)
-     과학 : 목성은 반년이면 궤도를 따라 움직여 연주 시차로 바로 잴 수 없다 → 목성 곁에 붙박인 웜홀을 잰다 (= 목성까지의 거리)
+     과학 : 연주 시차로 재는 것은 붙박인 웜홀 (목성 궤도 근처 · 목성은 반년이면 궤도를 따라 움직여 시차로 재지 않는다) — 도착할 무렵 목성이 마침 웜홀 곁에 온다
        tan p = 1 AU / 5.2 AU → p ≈ 11° = 39,600″ → d = 1/39,600 pc × 206,265 AU ≈ 5.2 AU ≈ 7억 8천만 km ÷ 74 km/s ≈ 122일 (넉 달)
    PODLOCK : 동면 캡슐 — 다니엘이 장난으로 건 영어 네 글자 암호 · VEGA 는 힌트만 (답은 말하지 못한다)
    ============================================================ */
@@ -14,7 +14,7 @@ const PODLOCK_PW={answer:'NASA', hints:['(임시 힌트) 다니엘 기관사가 
 
 const MISSION={
   ITEMS:[['hatch','외부 해치 잠금 확인','해치 방 · 맨 뒤'],['locker','우주복 상태 확인','해치 방 · 왼쪽 보관함'],['galley','식량 배급기에서 죽을 먹는다','로비'],
-    ['ledge','창가 탁상에 앉아 목성까지의 거리를 잰다','로비 · 오른쪽 창'],['seat','조종석으로 — 이온 점화','맨 앞']],
+    ['ledge','창가 탁상에 앉아 웜홀까지의 거리를 잰다','로비 · 오른쪽 창'],['seat','조종석으로 — 이온 점화','맨 앞']],
   el:null, left(){ return this.ITEMS.slice(0,4).filter(([id])=>!this.done.has(id)).length; },
   show(){ this.done=new Set(); let e=this.el=$('#mission'); if(!e){ e=this.el=document.createElement('div'); e.id='mission'; document.body.appendChild(e); }
     e.innerHTML='<p class="hd">R-1 출발 점검표</p><ol>'+this.ITEMS.map(([id,t,w],i)=>`<li data-id="${id}"${i===4?' class="last"':''}><b>${i+1}</b><span>${t}<small>${w}</small></span></li>`).join('')+'</ol>';
@@ -80,10 +80,10 @@ const PARALLAX={P_DEG:11, P_SEC:39600,
     this._t={E1,E2,Sun,Star,WALL,ext,paper,CW,CH};                    // 시험용
 
     // ---- 창가 바 의자에 앉는다 → 다니엘 무전 ----
-    S.phase='cut'; const s=R1.spots.ledge||{x:.55,z:-6.65};
+    S.phase='cut'; const s=R1.spots.ledge||{x:.55,z:-6.65}; P.y=0; P.pinY=true;      // 탁자 위에서는 높이를 고정 (엔진이 탁자 윗면을 바닥으로 잡지 않게)
     await camTo({x:s.x+.08,z:tbl.z,yaw:-Math.PI/2,pitch:-.35,eye:1.38},1.0); SFX.play('cloth',{vol:.4}); S.phase='play';
     await TALK.say([C('…창가 탁상. 종이 한 장과 펜. 창 아래로 지구가 돈다.'),
-      DN('R-1, 휴스턴 다니엘. 크리스, 점검표 넷째 줄 봤어요? 목성까지의 거리 — 그거 제가 넣었어요.'),
+      DN('R-1, 휴스턴 다니엘. 크리스, 점검표 넷째 줄 봤어요? 웜홀까지의 거리 — 그거 제가 넣었어요.'),
       DN('근데 솔직히… 거기까지 거리를 어떻게 재요? 줄자를 댈 수도 없고.'),
       C('시차를 이용하면 구할 수 있어.'),
       DN('시차요? 그게 뭔데요?'),
@@ -116,21 +116,22 @@ const PARALLAX={P_DEG:11, P_SEC:39600,
     goal(''); await sleep(1600);
     S.phase='cut'; await camTo({x:s.x+.08,z:tbl.z,yaw:-Math.PI/2,pitch:-.45,eye:1.38},1.2); window.dragHook=prevDrag; MISSION.el&&MISSION.el.classList.add('on'); S.phase='play';
     await TALK.say([C('연주 시차가 1초(1″)일 때의 거리가 1 파섹, 1 pc. 그래서 거리(pc) = 1 ÷ 연주 시차(″).'),
-      DN('그럼 목성은요? 목성도 반년 간격으로 재면 돼요?'),
-      C('목성은 반년이면 제 궤도를 따라 꽤 움직여 버려. 그래서 목성 바로 곁에 꼼짝 않고 떠 있는 웜홀을 쟀지.'),
-      C('반년 간격으로 잰 웜홀의 연주 시차가 약 '+this.P_DEG+'°.'),
+      DN('그럼 웜홀은요?'),
+      C('웜홀은 목성 궤도 근처에 꼼짝 않고 떠 있어. 반년 간격으로 잰 웜홀의 연주 시차가 약 '+this.P_DEG+'°.'),
       DN('그럼 몇 pc 예요? 계산기 띄울게요.')]);
     await this.quiz();
-    await TALK.say([V('계산을 확인합니다. 1/39,600 pc — 1 pc 는 약 20만 6천 AU 이므로 약 5.2 AU. 태양에서 약 7억 8천만 km 입니다.'),
+    await TALK.say([V('계산을 확인합니다. 1/39,600 pc — 1 pc 는 약 20만 6천 AU 이므로 약 5.2 AU. 태양에서 약 7억 8천만 km, 목성 궤도와 거의 같은 거리입니다.'),
       V('R-1 의 비행 경로도 약 7억 8천만 km. 이온 엔진 평균 초속 74 km 로 약 1,050만 초 — 122일, 넉 달입니다.'),
-      DN('넉 달! 그래서 넉 달이었구나. …점검표 마지막 줄 남았죠? 이온 점화.'),
+      DN('넉 달. …1호가 떠날 땐 목성이 웜홀에서 멀리 있어서 항로가 계속 어긋났죠. 이번엔 도착할 즈음 목성이 딱 웜홀 곁에 와 있을 거예요. 운이 좋네요.'),
+      C('창밖으로 목성을 보면서 들어가겠군.'),
+      DN('…점검표 마지막 줄 남았죠? 이온 점화.'),
       C('고마워, 다니엘. 종이는 여기 두고 갈게.')]);
-    S.phase='cut'; await camTo({x:s.x-.1,z:tbl.z,yaw:-Math.PI/2,pitch:0,eye:1.66},.8); S.phase='play'; },
+    S.phase='cut'; await camTo({x:s.x-.1,z:tbl.z,yaw:-Math.PI/2,pitch:0,eye:1.66},.8); P.y=0; P.pinY=false; S.phase='play'; },
 
   // 계산 : 거리(pc) = 1 ÷ [p″] = [d]  — 칸은 옆 계산기로만 채운다 (calc.js). ① 11° → 초 ② 1 ÷ p
   quiz(){ const D=this.P_DEG, P=this.P_SEC, d=1/P;
     return calcQuiz({order:['p','d'],
-      work:`<p class="hd">연주 시차로 목성(웜홀)까지의 거리 구하기</p><p class="q">웜홀의 연주 시차 p ≈ ${D}°</p>
+      work:`<p class="hd">연주 시차로 웜홀까지의 거리 구하기</p><p class="q">웜홀의 연주 시차 p ≈ ${D}°</p>
         <div class="eq"><span class="lhs">거리 <b>d</b><small>pc</small></span><span class="op">=</span><span class="frac"><span class="num">1</span><span class="den"><input class="bx" data-k="p" aria-label="연주 시차 (초)"><em>″</em></span></span>
           <span class="op">=</span><input class="bx" data-k="d" aria-label="거리 (pc)"></div>`,
       check:(k,v,n)=>k==='p'?(v===P?{ok:'맞아요 — '+D+'° = '+P.toLocaleString()+'″. 이제 1 ÷ p'}

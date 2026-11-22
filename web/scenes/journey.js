@@ -70,7 +70,7 @@ const JOURNEY={
     await TALK.say([R('이륙! R-1 출발. 휴스턴, 관제 넘깁니다.',undefined,2600)]);
     await sleep(3200); view(160,1.3,1.6); aim(rb.min.y+y0+H*.5);
     await TALK.say([R('R-1, 휴스턴. 궤적 정상, 고도 12 km. …잘 다녀와요, 크리스. 1호를 찾아 줘요.','휴스턴 · 마야',3200)]);
-    await sleep(2200); const fe=$('#fade'); fe.style.background='#fff'; await fade(true,1400); track=0;
+    await sleep(2200); const fe=$('#fade'); fe.style.background='#fff'; fade.next='궤도로 오르는 중'; await fade(true,1400); track=0;
     this.clean(); cine(false); },
 
   /* ---- 구조정 R-1 (②③ 공통) : 앞 = +z · 조종석 · 로비 · 해치 방 (scenes/r1.js) ----
@@ -133,7 +133,7 @@ const JOURNEY={
     await TALK.say([V('잠금 해제. …다니엘 기관사에게 전할 말이 있으십니까?'),C('돌아가서 직접 할게.')]);
     await R1.intoCapsule(); AUDIO.noise(2,.08,0,400); AUDIO.tone(140,3,'sine',.05,0,-60);
     await TALK.say([C('…다녀오겠습니다.')]);
-    S.phase='cut'; await fade(true,2000); this.clean(); },
+    S.phase='cut'; fade.next='동면 중 · 목성까지 넉 달'; await fade(true,2000); this.clean(); },
 
   /* ---- ③ 넉 달 뒤 : 목성 곁에서 직접 몰고 웜홀로 ----
      목성 · 위성 · 웜홀은 공간에 실제로 놓인 물체 (예전엔 카메라에 붙은 그림이라 웜홀에 들어갈 때 목성이 따라 들어왔다)
@@ -196,7 +196,7 @@ const JOURNEY={
     await TALK.say([V('동면 해제. 크리스, 들립니까? 목성 궤도입니다.')]);
     await R1.outOfCapsule();
     R1.view='…목성. 창 하나를 가득 채운다. 줄무늬가 천천히 흐른다. 저 옆 어딘가에 웜홀.'; R1.viewDir=null;
-    await TALK.say([C('…몸이 무겁다. 넉 달을 잤다.'),V('창밖을 보십시오. 그리고 조종석으로 와 주십시오. 웜홀까지 41만 km 입니다.')]);
+    await TALK.say([C('…몸이 무겁다. 넉 달을 잤다.'),V('목성이 마침 웜홀 곁을 지나고 있습니다. 출발 전에 잰 거리 그대로입니다.'),C('…다니엘 말대로군. 1호 때는 목성이 멀리 있었는데.'),V('창밖을 보십시오. 그리고 조종석으로 와 주십시오. 웜홀까지 41만 km 입니다.')]);
     await this.slot('목성');
     await R1.task('seat','조종석으로 — 웜홀까지 41만 km (창가에서 목성을 볼 수 있다)');
     await R1.sit(); S.phase='play'; head.y=0; head.p=-.04;
@@ -217,7 +217,7 @@ const JOURNEY={
     setTimeout(()=>AUDIO.tone(60,8,'sawtooth',.06,0,-25),300);
     await TALK.say([V('중력 렌즈 경계 통과. 별빛이 고리 안으로 말려 들어갑니다.'),V('선체 응력 87%. 92%.'),C('…그 문장의 끝을, 들으러 간다.')]);
     while(!done) await sleep(100);
-    const fe=$('#fade'); fe.style.background='#fff'; await fade(true,500); AUDIO.hum(.2,30);
+    const fe=$('#fade'); fe.style.background='#fff'; fade.next='웜홀 건너는 중'; await fade(true,500); AUDIO.hum(.2,30);
     this.inTransit=false; FLIGHT.ui(false); this.clean(); U.tun.value=0; camera.far=2000; camera.updateProjectionMatrix();
     await sleep(1400); },
 };
