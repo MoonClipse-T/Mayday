@@ -97,7 +97,7 @@ const STALK={on:false,b:null,state:'off',t:0,type:'hall',last:null,force:null,vi
     if(passed) this.tell('pass'); this.away(this.rand(this.GAP)); },
   // 보는 앞에서 숨었다 : 문 · 뚜껑을 뜯고 끌어낸다
   async found(s){ const b=this.b, id=++this.id, live=()=>id===this.id&&this.on; this.state='found'; b.mode='found'; const st=HIDE.stand(s); await this.go(st.x,st.z,3.1,live,10); if(!live()) return;
-    BEAST.stop(b); const w=b.wrap.position; b.wrap.rotation.y=Math.atan2(s.x-w.x,s.z-w.z); SFX.play('found'); if(s.kind==='locker'||s.lid) HIDE.doors(s,true,.25);
+    BEAST.stop(b); const w=b.wrap.position; b.wrap.rotation.y=Math.atan2(s.x-w.x,s.z-w.z); SFX.play('found'); if(s.dl||s.lid||s.door) HIDE.doors(s,true,.25); if(s.suits) HIDE.sway(s,.2);
     await Promise.race([BEAST.play(b,'swipe',{once:true,fade:.05}),sleep(900)]); if(!live()) return; this.caught(); },
   async grab(){ const b=this.b, id=++this.id, w=b.wrap.position; this.busy=true; BEAST.stop(b); b.wrap.rotation.y=Math.atan2(P.x-w.x,P.z-w.z); AUDIO.tone(700,.3,'sawtooth',.07,0,-300); BEAST.play(b,'swipe',{once:true,fade:.05}); P.free=false; await sleep(450); if(id!==this.id) return; this.caught(); },
   // 잡혀간다
