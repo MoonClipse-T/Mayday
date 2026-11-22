@@ -37,7 +37,7 @@ const R1={g:null,b:null,seated:true,on:{},_wait:{},
   RANGE:{galley:1.7,ledge:2.0,shelf:2.0},      // 벽에 붙은 작은 것은 가까이 가서 봐야 잡힌다 (배급기가 로비 어디서나 잡히던 것을 고침)
   stations(){ (this._picks||[]).forEach(m=>m.parent&&m.parent.remove(m)); this._picks=[]; this._wait={};      // 묶음은 장면마다 다시 쓰므로 지난 판정 상자는 치운다
     for(const id in this.BOX){ const [c,s]=this.BOX[id], m=new THREE.Mesh(new THREE.BoxGeometry(...s),PICK); m.position.set(...c); this.g.add(m); this._picks.push(m);
-      interact(m,this.LABEL[id],()=>this.use(id),{range:this.RANGE[id]||2.4,enabled:()=>!this.seated}); } },
+      interact(m,this.LABEL[id],()=>this.use(id),{range:this.RANGE[id]||2.4,enabled:()=>!this.seated&&!this.lock}); } },
   async use(id){ const w=this._wait[id]; if(w){ delete this._wait[id]; return w(); } if(this.on[id]) return this.on[id](); const f=this.FLAVOR[id]; if(f) await f.call(this); },
   // 그 자리를 쓸 때까지 기다린다 (goal 글을 함께)
   task(id,text){ if(text) goal(text); return new Promise(r=>this._wait[id]=r); },

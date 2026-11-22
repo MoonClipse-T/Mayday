@@ -107,28 +107,30 @@ const JOURNEY={
     await card('지구 궤도','구조정 R-1','한 사람 · 동면 캡슐 하나 · 연료는 편도분',3000);
     S.phase='play';      // 끌어서 둘러볼 수 있게
     await TALK.say([V('상단 분리 완료. 지구 궤도 진입. R-1, 단독 비행을 시작합니다.'),C('…발아래가 지구다. 그리고 정말로, 혼자다.'),
-      V('이온 엔진 점화까지 20분. 그 전에 선내를 점검해 주십시오 — 맨 뒤 해치 방의 외부 해치 잠금입니다.')]);
-    // 일어나 배 안을 걷는다 : 해치 방 → 로비 → 조종석 (문제를 끼울 자리 '지구 궤도')
+      V('이온 엔진 점화까지 20분. 그 전에 선내 점검표를 띄웁니다. 1번부터 4번까지는 순서와 상관없습니다.')]);
+    // 일어나 배 안을 걷는다 : 점검표 ①~④ (순서 없이 · scenes/mission.js) → ⑤ 조종석 (문제를 끼울 자리 '지구 궤도')
     R1.view='…창 아래로 지구가 돈다. 구름 아래 어딘가에 휴스턴이 있다.'; R1.viewDir={yaw:-1.97,pitch:-.24};
     await R1.stand(head);
-    await R1.task('hatch','외부 해치 잠금을 확인한다 — 맨 뒤 해치 방');
-    AUDIO.tone(520,.1,'square',.04); AUDIO.tone(780,.12,'square',.04,.12);
-    await TALK.say([V('외부 해치 잠금 정상. 기압 정상.'),V('동면에 들기 전에 한 끼 드십시오. 넉 달 동안은 먹지 못합니다.')]);
-    await R1.task('galley','로비의 식량 배급기에서 끼니를 때운다');
-    AUDIO.tone(880,.08,'sine',.05); AUDIO.noise(1.4,.05,.1,700);
-    await TALK.say([C('…데운 단백질 죽. 지구에서의 마지막 식사가 이거라니.'),V('점화 2분 전. 조종석으로 돌아와 주십시오.')]);
+    await MISSION.run(this);
+    await TALK.say([V('점검 완료. 점화 2분 전. 조종석으로 돌아와 주십시오.')]);
     await this.slot('지구 궤도');
-    await R1.task('seat','조종석으로 — 이온 엔진 점화');
-    await R1.sit(); head.y=0; head.p=-.04; S.phase='play';
+    await R1.task('seat','점검표 5 — 조종석으로, 이온 점화');
+    await R1.sit(); MISSION.check('seat'); head.y=0; head.p=-.04; S.phase='play';
     await TALK.say([V('목성까지 넉 달. 이온 엔진 점화 준비 완료.'),R('R-1, 휴스턴. 이온 엔진 점화, 허가합니다.','휴스턴 · 마야'),{who:'크리스',ch:'무전',kind:'me',t:'휴스턴, R-1. 이온 엔진 점화.',auto:1900}]);
     thrust=.05; const ti=setInterval(()=>{ thrust=Math.min(1.2,thrust+.08); },120); AUDIO.tone(90,6,'sine',.06,0,40); SFX.play('thruster',{vol:.9});
     await TALK.say([V('점화 확인. 궤도를 벗어납니다.'),R('점화 확인. 좋은 여행 되세요, 크리스. …꼭 돌아와요.','휴스턴 · 마야',3200)]);
-    await sleep(3500); clearInterval(ti);
+    await sleep(3500); clearInterval(ti); MISSION.hide();
     // 동면 : 로비 뒤쪽 캡슐로 걸어가 들어간다
     await TALK.say([V('동면 캡슐 준비 완료. 목성 궤도에서 깨워 드리겠습니다.'),V('로비 뒤쪽, 캡슐로 가십시오.')]);
     R1.view='…지구가 작아진다. 손톱만 해졌다.'; R1.viewDir=null;
     await R1.stand(head);
     await R1.task('capsule','동면 캡슐로 — 로비 뒤쪽');
+    // 캡슐 앞 : 다니엘이 장난으로 걸어 둔 암호 (scenes/mission.js PODLOCK)
+    S.phase='cut'; P.free=false; goal(''); await camTo({x:-.35,z:-8.75,yaw:Math.PI/2,pitch:-.12,eye:1.62},.9);
+    AUDIO.tone(220,.18,'square',.05); AUDIO.tone(180,.25,'square',.05,.2); S.phase='play';
+    await TALK.say([V('캡슐 잠금 해제 실패. 암호가 설정되어 있습니다.'),C('…암호? 이런 걸 건 적이 없는데.'),C('…다니엘이다.')]);
+    goal('캡슐 암호 — 영어 네 글자 (VEGA 에게 힌트를 물을 수 있다)'); await PODLOCK.run(this); goal('');
+    await TALK.say([V('잠금 해제. …다니엘 기관사에게 전할 말이 있으십니까?'),C('돌아가서 직접 할게.')]);
     await R1.intoCapsule(); AUDIO.noise(2,.08,0,400); AUDIO.tone(140,3,'sine',.05,0,-60);
     await TALK.say([C('…다녀오겠습니다.')]);
     S.phase='cut'; await fade(true,2000); this.clean(); },
@@ -158,7 +160,7 @@ const JOURNEY={
     stamp('구조정 R-1 · 목성 궤도','2091.07 · 출발 122일째');
     // 조종 (flight.js 와 같은 단추 · 키 · 끌기)
     const v=new THREE.Vector3(), av=new THREE.Vector3(), U=SKY.U, el=()=>$('#flight'); let ctl=false, near=null, warned=0, th=0;
-    FLIGHT.av=av; FLIGHT.docked=false; FLIGHT.btn={}; FLIGHT.ui(true); FLIGHT.ui(false); el().querySelector('.dock').classList.remove('on');      // 계기 화면은 조종석에 앉은 뒤에
+    FLIGHT.av=av; FLIGHT.docked=false; FLIGHT.btn={}; FLIGHT.ui(true); FLIGHT.ui(false);      // 계기 화면은 조종석에 앉은 뒤에
     this.tick(dt=>{ jup.rotation.y+=dt*.012;
       const q=rig.quaternion, fw=new THREE.Vector3(0,0,1).applyQuaternion(q), up=new THREE.Vector3(0,1,0).applyQuaternion(q), rt=new THREE.Vector3().crossVectors(fw,up), B=FLIGHT.btn, K=keys;
       const live=ctl&&S.phase==='play'&&!TALK.on, on=k=>live&&(K['Key'+FLIGHT.KEYS[k]]||B[k]);

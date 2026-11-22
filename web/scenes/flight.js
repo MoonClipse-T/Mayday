@@ -17,7 +17,7 @@ const FLIGHT={W:.12,               // 1호 자전 (rad/s ≈ 6.9°/s)
     stamp('구조정 R-1 · 조종석','2091.07 · 웜홀 통과 +00:04');
     SHIP.preload();                                            // 1호 안은 나는 동안 화면 뒤에서 풀어 둔다
     const hull=await loadGLB('ship_ext');
-    await SKY.space({dir:[.1,.08,-1],R:.1,srot:2.4,jupiter:false,sunDir:[-.55,.4,.75]});      // 웜홀은 등 뒤 · 행성 없음
+    await SKY.space({dir:[.1,.08,-1],R:.1,srot:2.4,jupiter:false,sunDir:[-.55,.4,.75],far:true});      // 웜홀은 등 뒤 · 행성 없음
     scene.background=new THREE.Color(0x000000);
     WORLD.add(new THREE.HemisphereLight(0x6f7f99,0x050607,.045));
     const sunDir=new THREE.Vector3(-.55,.4,.75).normalize(), sun=new THREE.DirectionalLight(0xfff0dc,1.15); sun.position.copy(sunDir).multiplyScalar(500); WORLD.add(sun);

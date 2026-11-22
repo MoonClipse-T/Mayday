@@ -205,7 +205,8 @@ $('#talk').addEventListener('pointerdown',e=>{ e.stopPropagation(); TALK.next();
 let camAnim=null;
 function yawTo(x,z){ const a=Math.atan2(-(x-P.x),-(z-P.z)); return P.yaw+Math.atan2(Math.sin(a-P.yaw),Math.cos(a-P.yaw)); }
 function pitchTo(x,y,z){ return Math.atan2(y-(P.y+P.eye),Math.hypot(x-P.x,z-P.z)); }
-function camTo(to,dur){ return new Promise(res=>{ camAnim={from:{x:P.x,z:P.z,y:P.y,yaw:P.yaw,pitch:P.pitch,eye:P.eye},to,t:0,dur,res}; }); }
+// 고개는 늘 가까운 쪽으로 돈다 (목표 yaw 를 지금 yaw ±π 안으로 — 180° 넘게 반대로 돌던 것을 고침)
+function camTo(to,dur){ if(to.yaw!==undefined){ to={...to}; to.yaw=P.yaw+Math.atan2(Math.sin(to.yaw-P.yaw),Math.cos(to.yaw-P.yaw)); } return new Promise(res=>{ camAnim={from:{x:P.x,z:P.z,y:P.y,yaw:P.yaw,pitch:P.pitch,eye:P.eye},to,t:0,dur,res}; }); }
 function lookAt(x,y,z,dur=1.2){ return camTo({yaw:yawTo(x,z),pitch:pitchTo(x,y,z)},dur); }
 function tickCam(dt){ if(!camAnim) return; camAnim.t+=dt; const k=Math.min(1,camAnim.t/camAnim.dur), e=k<.5?2*k*k:-1+(4-2*k)*k, f=camAnim.from, t=camAnim.to;
   for(const n of ['x','z','y','yaw','pitch','eye']) P[n]=lerp(f[n],t[n]??f[n],e); if(k>=1){ const r=camAnim.res; camAnim=null; r(); } }

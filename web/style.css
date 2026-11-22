@@ -348,3 +348,33 @@ body.aftcam::after{content:'AFT CAM · 후방 도킹 카메라';position:fixed;i
 #hidefx.shower{background:radial-gradient(ellipse at 50% 55%,rgba(220,235,245,.18) 0,rgba(200,220,235,.42) 70%,rgba(30,40,50,.85) 100%);backdrop-filter:blur(7px) saturate(.6);-webkit-backdrop-filter:blur(7px) saturate(.6)}
 #hidefx.pipes{background:linear-gradient(90deg,rgba(0,0,0,.97) 0,rgba(0,0,0,.95) 22%,rgba(0,0,0,.2) 30%,rgba(0,0,0,0) 34%,rgba(0,0,0,0) 44%,rgba(0,0,0,.92) 48%,rgba(0,0,0,.92) 56%,rgba(0,0,0,0) 60%,rgba(0,0,0,0) 68%,rgba(0,0,0,.25) 72%,rgba(0,0,0,.97) 80%)}
 #hidefx.suits{background:linear-gradient(90deg,rgba(14,12,10,.8) 0,rgba(20,17,14,.45) 30%,rgba(0,0,0,0) 42%,rgba(0,0,0,0) 58%,rgba(20,17,14,.45) 70%,rgba(14,12,10,.8) 100%)}
+
+/* ---------- 4.11 R-1 출발 점검표 (왼쪽 종이) · 동면 캡슐 암호 ---------- */
+#mission{position:fixed;left:calc(var(--pad) + 40px);top:calc(var(--pad) + 40px);z-index:7;width:min(300px,calc(100vw - 32px));padding:14px 16px 12px;
+  background:#efe9dc;color:#2a2f3a;box-shadow:0 10px 30px rgba(0,0,0,.45);transform:rotate(-1.2deg) translateX(-14px);opacity:0;transition:opacity .5s,transform .5s var(--e);pointer-events:none;font-family:var(--sans)}
+#mission.on{opacity:.96;transform:rotate(-1.2deg)}
+#mission .hd{margin:0 0 8px;font-family:var(--mono);font-size:11px;letter-spacing:.2em;color:#8a4a2a}
+#mission ol{list-style:none;margin:0;padding:0}
+#mission li{display:flex;gap:10px;align-items:flex-start;padding:6px 0;border-top:1px dashed rgba(42,47,58,.25);font-size:14px;line-height:1.35}
+#mission li b{flex:0 0 22px;height:22px;border:1.5px solid #2a2f3a;border-radius:50%;display:grid;place-items:center;font-family:var(--mono);font-size:12px}
+#mission li small{display:block;font-size:11px;color:#7a7468}
+#mission li.ok span{text-decoration:line-through;text-decoration-color:#c8382a;color:#7a7468}
+#mission li.ok b{background:#c8382a;border-color:#c8382a;color:#fff;font-size:0} #mission li.ok b::after{content:'✓';font-size:13px}
+#mission li.last{opacity:.45} #mission li.last.now{opacity:1;font-weight:600}
+body.cine #mission,body.at-title #mission{opacity:0}
+@media (max-width:700px){ #mission{width:210px;padding:10px 12px;top:calc(var(--pad) + 30px)} #mission li{font-size:12px;padding:4px 0} #mission li small{display:none} }
+#podlock{position:fixed;left:50%;top:calc(var(--pad) + 30px);transform:translate(-50%,-10px);opacity:0;transition:opacity .35s,transform .35s;z-index:30;width:min(520px,calc(100vw - 24px));
+  padding:18px 20px;background:var(--glass);border-left:2px solid var(--vega);font-family:var(--sans);color:var(--ink);text-align:center}
+#podlock.on{opacity:1;transform:translate(-50%,0)}
+#podlock .hd{margin:0 0 6px;font-family:var(--mono);font-size:12px;letter-spacing:.2em;color:var(--vega)}
+#podlock .note{margin:0 0 12px;font-size:14px;color:var(--mute)}
+#podlock .slots{display:flex;justify-content:center;gap:10px;margin-bottom:6px}
+#podlock .slots i{width:52px;height:60px;display:grid;place-items:center;font-style:normal;font-family:var(--mono);font-size:30px;border:1px solid var(--hair);border-bottom:2px solid var(--vega);background:rgba(0,0,0,.35)}
+#podlock.bad .slots{animation:podshake .35s} #podlock.bad .slots i{border-bottom-color:var(--alert)} #podlock.good .slots i{border-bottom-color:#7fe0a0;color:#7fe0a0}
+@keyframes podshake{25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+#podlock .msg{min-height:1.3em;margin:0 0 8px;font-size:13px;color:var(--alert)} #podlock.good .msg{color:#7fe0a0}
+#podlock .kb{display:grid;grid-template-columns:repeat(10,1fr);gap:5px;margin-bottom:10px}
+#podlock .kb button{min-height:40px;padding:0;font-family:var(--mono);font-size:16px;border:1px solid var(--hair);background:rgba(233,231,226,.06);color:var(--ink)}
+#podlock .kb .w{grid-column:span 2}
+#podlock .row{display:flex;gap:10px} #podlock .row button{flex:1;min-height:46px;font-family:var(--mono);letter-spacing:.08em;color:#fff;border:1px solid var(--vega);background:rgba(127,212,255,.12)}
+#podlock .row .ok{border-color:var(--alert);background:rgba(255,90,54,.16)}
