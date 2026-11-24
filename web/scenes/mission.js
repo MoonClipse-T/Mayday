@@ -85,8 +85,8 @@ const PARALLAX={P_DEG:11, P_SEC:39600,
       C('반년 간격으로 보면, 가까운 것은 먼 별들 앞에서 자리가 어긋나 보인다. 그게 시차.')]);
     const prevDrag=window.dragHook; window.dragHook=()=>{}; S.phase='cut'; MISSION.el&&MISSION.el.classList.remove('on');      // 종이를 가리지 않게
     // 종이를 화면 가득 : 위에서 내려다본다 · 왼쪽에 할 일 글을 둘 자리를 남긴다 (가로 화면) — 종이는 오른쪽으로
-    const wide=camera.aspect>1.15, use=wide?.7:1, tf=Math.tan(THREE.MathUtils.degToRad(camera.fov/2)), fit=Math.max((PH/2+.015)/tf,(PW/2+.015)/(tf*camera.aspect*use)), sh=wide?(1-use)*fit*tf*camera.aspect*.92:0;
-    await camTo({x:tbl.x-.012,z:tbl.z-sh,yaw:-Math.PI/2,pitch:-1.54,eye:top+fit},1.4); S.phase='play';
+    const fitCam=()=>{ const wide=camera.aspect>1.15, use=wide?.7:1, tf=Math.tan(THREE.MathUtils.degToRad(camera.fov/2)), fit=Math.max((PH/2+.015)/tf,(PW/2+.015)/(tf*camera.aspect*use)), sh=wide?(1-use)*fit*tf*camera.aspect*.92:0; return {x:tbl.x-.012,z:tbl.z-sh,yaw:-Math.PI/2,pitch:-1.54,eye:top+fit}; };
+    await camTo(fitCam(),1.4); S.phase='play'; const refit=()=>setTimeout(()=>{ if(want) camTo(fitCam(),.4); },120); addEventListener('resize',refit);      // 화면을 돌리면 종이를 다시 화면에 맞춘다 (4.19)
     cvs.addEventListener('pointerdown',down); addEventListener('pointermove',move); addEventListener('pointerup',up);
     // 할 일 : 화면 왼쪽 가운데에 크게 (표시할 때마다 체크)
     const td=document.createElement('div'); td.id='taskbig'; td.innerHTML='<p class="k">창가 탁상</p><h3>시차와 연주 시차를<br>표시해 보자</h3><ul><li data-k="par">시차</li><li data-k="p">연주 시차</li></ul><p class="h"></p>'; document.body.appendChild(td); requestAnimationFrame(()=>td.classList.add('on'));
@@ -119,7 +119,7 @@ const PARALLAX={P_DEG:11, P_SEC:39600,
         return false; }}; });
     td.classList.remove('on'); setTimeout(()=>td.remove(),500);
     done.push(()=>{ label('p = 1″ 이면 d = 1 pc',CW-50,420,36,'#c8382a','right'); label('거리(pc) = 1 ÷ p(″)',CW-50,495,46,'#2a2f3a','right'); }); base();
-    removeEventListener('pointermove',move); removeEventListener('pointerup',up); cvs.removeEventListener('pointerdown',down);
+    removeEventListener('pointermove',move); removeEventListener('pointerup',up); cvs.removeEventListener('pointerdown',down); removeEventListener('resize',refit);
     goal(''); await sleep(1600);
     S.phase='cut'; await camTo({x:s.x+.08,z:tbl.z,yaw:-Math.PI/2,pitch:-.45,eye:1.38},1.2); window.dragHook=prevDrag; MISSION.el&&MISSION.el.classList.add('on'); S.phase='play';
     await TALK.say([C('연주 시차가 1초(1″)일 때의 거리가 1 파섹, 1 pc. 그래서 거리(pc) = 1 ÷ 연주 시차(″).'),

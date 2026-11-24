@@ -458,3 +458,5 @@ body.eva #hud{z-index:8} body.eva #goal{top:calc(var(--pad) + 4vh);right:auto;le
 body.eva #helmet .rim{inset:-9vmax} body.eva #helmet .hud{left:calc(var(--pad) + 5vw);bottom:calc(var(--pad) + 5vh + 130px);transform:none;text-align:left} body.eva #helmet .o2{width:150px;margin:6px 0 0}
 body.eva #belt{bottom:calc(var(--pad) + 5vh)}
 body.eva #stamp{opacity:0}
+/* 4.19 선외 활동 : 빛나는 고리가 화면 밖일 때 가장자리 화살표 */
+#ringarrow{position:fixed;z-index:14;width:54px;height:54px;pointer-events:none;opacity:0;transition:opacity .25s} #ringarrow.on{opacity:1} #ringarrow::before{content:'';position:absolute;left:14px;top:50%;margin-top:-17px;border-left:30px solid #ffc24a;border-top:17px solid transparent;border-bottom:17px solid transparent;filter:drop-shadow(0 0 6px rgba(0,0,0,.8));animation:nose 1s ease-in-out infinite}

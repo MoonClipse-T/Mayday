@@ -202,7 +202,8 @@ const JOURNEY={
     await TALK.say([C('…목성이 창을 가득 채우고 있다.'),V('앞쪽에 웜홀. 1호의 마지막 항적도 저 안으로 이어집니다.'),C('1호는 저기로 들어가서, 돌아오지 못했다.')]);
     FLIGHT.ui(true);
     await TALK.say([V('조종을 넘깁니다. 웜홀 한가운데로 직접 몰고 들어가십시오.')]);
-    goal(byDevice('웜홀로 — W 전진 · 끌어서(또는 방향키) 기수 · 기수를 돌려 목성도 볼 수 있다','웜홀로 — [전진] · 끌어서 기수 · 기수를 돌려 목성도 볼 수 있다')); ctl=true; P.free=true;
+    goal(byDevice('웜홀로 — W 전진 · 끌어서(또는 방향키) 기수 · 기수를 돌려 목성도 볼 수 있다','웜홀로 — [전진] · 끌어서 기수 · 기수를 돌려 목성도 볼 수 있다')); ctl=true; P.free=false;      // 앉아 있다 : 걷는 조이스틱이 화면 왼쪽 끌기를 가로채지 않게 (디벗 — 4.19)
+   
     await new Promise(r=>this.onEdge=r);
     // 경계 : 자동 조종이 기수를 웜홀 한가운데로 · 속도는 일정하게
     goal(''); S.phase='cut'; P.free=false; FLIGHT.btn={};

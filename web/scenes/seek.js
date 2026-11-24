@@ -136,7 +136,7 @@ const SEEK={
   press(btn){ return new Promise(r=>btn.addEventListener('click',()=>{ AUDIO.click(); r(); },{once:true})); },
   // 밀대 : − [막대] + (누르고 있으면 이어서)
   dial(el,{min,max,step,val,on}){ el.innerHTML=`<button aria-label="줄이기">−</button><input type="range" min="${min}" max="${max}" step="${step}" value="${val}"><button aria-label="늘리기">+</button>`; const r=el.querySelector('input'), B=el.querySelectorAll('button'); let iv=0; const go=()=>on(+(+r.value).toFixed(3));
-    r.addEventListener('input',()=>{ AUDIO.tick(); go(); }); B.forEach((b,i)=>{ const st=()=>{ r.value=+r.value+(i?step:-step); AUDIO.tick(); go(); }, end=()=>{ clearTimeout(iv); clearInterval(iv); }; b.addEventListener('pointerdown',e=>{ e.preventDefault(); st(); iv=setTimeout(()=>iv=setInterval(st,70),380); }); ['pointerup','pointerleave','pointercancel'].forEach(n=>b.addEventListener(n,end)); }); go(); return r; },
+    r.addEventListener('input',()=>{ AUDIO.tick(); go(); }); B.forEach((b,i)=>{ const st=()=>{ if(!b.isConnected) return end(); r.value=+r.value+(i?step:-step); AUDIO.tick(); go(); }, end=()=>{ clearTimeout(iv); clearInterval(iv); iv=0; }; b.addEventListener('pointerdown',e=>{ e.preventDefault(); st(); iv=setTimeout(()=>iv=setInterval(st,70),380); }); ['pointerup','pointerleave','pointercancel'].forEach(n=>b.addEventListener(n,end)); }); go(); return r; },
 
   /* ============ ③ 촬영 ============ */
   makeBoard(){ const G=this.board=new THREE.Group(), W=.98, Hh=.56, c=.12, pts=[]; [[-1,-1],[1,-1],[1,1],[-1,1]].forEach(([a,b])=>{ const x=a*W,y=b*Hh; pts.push(new THREE.Vector3(x,y,0),new THREE.Vector3(x-a*c,y,0),new THREE.Vector3(x,y,0),new THREE.Vector3(x,y-b*c,0)); }); G.add(this.lines(pts,0x9fd8ff,.9));
@@ -146,7 +146,7 @@ const SEEK={
     this.paint(); return G; },
   // 그날의 밝기대로
   paint(){ for(const s of this.S){ const f=this.flux(s.d,this.day)*s.d.m, r=Math.sqrt(f)*s.k; s.hl.scale.setScalar(.17*r); s.core.scale.setScalar(.045*r); s.hl.material.opacity=Math.min(1,.6+.4*f)*(s.a??1)*(this.ba??1); s.core.material.opacity=Math.min(.6,.25+.2*f)*(s.a??1)*(this.ba??1); s.tag.material.opacity=(s.a??1)*(this.ba??1); } },
-  async shoot(){ const {V,C}=this; S.phase='play'; P.free=false; window.dragHook=()=>{};
+  async shoot(){ const {V,C}=this, hk=window.dragHook; S.phase='play'; P.free=false; window.dragHook=()=>{};
     await TALK.say([V('전파가 온 쪽을 촬영합니다. 빛을 내는 것은 모두 담깁니다.')]);
     const b=this.E.querySelector('.bot'); b.className='bot mid on'; b.innerHTML='<button class="go big">촬영</button>'; goal('[촬영]을 눌러 그쪽 하늘을 찍는다'); await this.press(b.querySelector('button')); goal(''); this.off('.bot');
     AUDIO.noise(.08,.25,0,3000); AUDIO.tone(1200,.05,'square',.05); FX.flash('#eaf6ff',500); await sleep(500); AUDIO.noise(.06,.2,0,2200);
@@ -154,7 +154,7 @@ const SEEK={
     // 노출 : 빛이 하나씩 맺힌다
     await Promise.all(this.S.map(async(s,i)=>{ await sleep(250+i*170); AUDIO.tone(900+i*60,.05,'sine',.03); await over(.9,e=>{ s.a=e; this.paint(); }); })); await sleep(400);
     await TALK.say([V('빛을 내는 것, 열셋. 1호는 이 가운데 하나의 곁에 있습니다.'),C('나머지는 지우면 된다. …그런데 밝기가 변하는 건 사진 한 장으로는 모르잖아.'),V('하루에 한 장씩, 열이레 동안 찍겠습니다. 그동안 캡슐에서 쉬십시오.')]);
-    await this.show(G,false,.6); R1.g.remove(G); },
+    await this.show(G,false,.6); R1.g.remove(G); window.dragHook=hk; },      // 4.19 : 끌기를 돌려주지 않아, 캡슐 · 홀로그램까지 걸을 때 고개가 돌아가지 않았다
   // 열이레 : 캡슐에서 잔다
   async rest(){ const {V,C}=this, {head}=this.J; this.E.classList.remove('on'); this.dim(1,1.2); R1.view='…별 몇 개. 그 사이는 그냥 어둠이다.'; R1.viewDir=null; await R1.stand(head); await R1.task('capsule','동면 캡슐로 — 로비 뒤쪽 (열이레 동안 촬영)');
     await R1.intoCapsule(); AUDIO.noise(2,.08,0,400); AUDIO.tone(140,3,'sine',.05,0,-60); S.phase='cut'; fade.next='동면 중 · 하루에 한 장씩 열이레'; await fade(true,1800); await sleep(2600);
@@ -162,7 +162,9 @@ const SEEK={
 
   /* ============ ④ 지우기 (로비의 홀로그램) ============ */
   HZ:-5.75, EYE:{x:0,z:-7.5,yaw:Math.PI,pitch:-.03,eye:1.5},
-  async hologram(){ this.EYE.z=Math.max(-8.6,this.HZ-Math.max(1.75,1.08/(Math.tan(THREE.MathUtils.degToRad(camera.fov/2))*camera.aspect)));      // 세로 화면이면 판이 다 보이게 물러선다
+  // 판이 다 보이는 자리 : 세로 화면이면 물러선다 · 보는 동안 화면을 돌리면 다시 맞춘다 (4.19)
+  fitEye(){ this.EYE.z=Math.max(-8.6,this.HZ-Math.max(1.75,1.08/(Math.tan(THREE.MathUtils.degToRad(camera.fov/2))*camera.aspect))); },
+  async hologram(){ this.fitEye(); this.atHolo=false; if(!this._rs){ this._rs=()=>setTimeout(()=>{ if(!this.atHolo) return; this.fitEye(); if(!camAnim) camTo({...this.EYE},.5); },120); addEventListener('resize',this._rs); }
     const G=this.makeBoard(); this.J.head.y=0; R1.g.add(G); G.position.set(0,1.56,this.HZ); G.rotation.y=Math.PI; this.ba=1; this.S.forEach(s=>s.a=1);
     // 바닥의 투영 장치 : 원판 · 빛기둥
     const base=this.base=new THREE.Group(); R1.g.add(base); base.position.set(0,0,this.HZ); const ring=new THREE.Mesh(new THREE.CylinderGeometry(.2,.24,.05,28),new THREE.MeshStandardMaterial({color:0x22282e,roughness:.6,metalness:.2})), lens=new THREE.Mesh(new THREE.CircleGeometry(.15,28),new THREE.MeshBasicMaterial({color:0x9fe0ff,toneMapped:false})); ring.position.y=.025; lens.rotation.x=-Math.PI/2; lens.position.y=.053; base.add(ring,lens);
@@ -170,7 +172,7 @@ const SEEK={
     const pl=new THREE.PointLight(0x7fd4ff,.34,3.4,1.8); pl.userData.holo=true; pl.position.set(0,1.5,-.3); base.add(pl);
     JOURNEY.tick(()=>{ if(!G.parent) return; G.rotation.y=Math.PI+Math.sin(S.t*.32)*.045; G.position.y=1.56+Math.sin(S.t*.6)*.006; pl.intensity=.34+.04*Math.sin(S.t*11); });
     await camTo({yaw:Math.PI,pitch:-.04},1.1); goal('로비의 홀로그램 앞으로'); P.free=true; S.phase='play'; await until(()=>Math.abs(P.x)<1.1&&Math.abs(P.z-this.EYE.z)<.55);
-    goal(''); S.phase='cut'; P.free=false; await camTo({...this.EYE},1); this.hum(); this.dim(.12,1); S.phase='play'; window.dragHook=()=>{}; },
+    goal(''); S.phase='cut'; P.free=false; await camTo({...this.EYE},1); this.hum(); this.dim(.12,1); S.phase='play'; window.dragHook=()=>{}; this.atHolo=true; },
   // 판 위의 좌표 (화면 → 홀로그램 판)
   pt(e){ const rc=new THREE.Raycaster(); rc.setFromCamera(new THREE.Vector2(e.clientX/innerWidth*2-1,-(e.clientY/innerHeight)*2+1),camera); const G=this.board; G.updateWorldMatrix(true,false); const n=new THREE.Vector3(0,0,1).transformDirection(G.matrixWorld), o=G.getWorldPosition(new THREE.Vector3()), h=rc.ray.intersectPlane(new THREE.Plane().setFromNormalAndCoplanarPoint(n,o),new THREE.Vector3()); return h?G.worldToLocal(h):null; },
   scr(o){ const v=o.getWorldPosition(new THREE.Vector3()).project(camera); return [(v.x+1)/2*innerWidth,(1-v.y)/2*innerHeight]; },
@@ -255,7 +257,7 @@ const SEEK={
         this.no(); miss++; msg.textContent=(r>1?`빈 공간이다. ${n*10} pc 라면 별이 지금보다 ${R(r)}배 밝게 보여야 한다`:`빈 공간이다. ${n*10} pc 라면 별이 지금보다 ${R(1/r)}배 어둡게 보여야 한다`)+(miss>=2?' · 5등급 차이는 밝기 100배':''); }; });
     this.off('.side'); goal(''); await TALK.say([C('등급 차이 5. 밝기로는 100배. 빛은 거리의 제곱으로 퍼지니까, 10배 멀다. 10 pc 의 10배 — 100 pc.'),V('시험 신호가 되돌아왔습니다. 100 pc. 1호의 전파와 같은 자리입니다.'),C('…찾았다.'),
       C('그런데 100 pc 면 빛으로도 326년이야. 1호가 거기까지 어떻게 갔지?'),V('제 힘으로 간 것이 아닙니다. 웜홀이 열릴 때 이 은하의 시공간에도 주름이 잡혔습니다. 1호는 그 주름에 휩쓸려 갔습니다.'),V('1호의 전파도 주름을 타고 왔습니다. 그래서 우리가 들을 수 있었습니다.'),C('그럼 우리도 그 길을 탈 수 있겠군.'),V('방향은 전파에서, 거리는 별빛에서 얻었습니다. 둘이 맞아야 1호 곁에서 내립니다. 조종석으로 오십시오.')]); },
-  async closeHolo(){ this.live=false; prefetch(['r1_ext','rocks']); this.hum(); S.phase='cut'; this.E.classList.remove('on'); await this.show(this.board,false,.8); R1.g.remove(this.board); R1.g.remove(this.base); this.dim(1,1.4); await camTo({z:-7.2,eye:1.66,pitch:0},.8); window.dragHook=(dx,dy,e)=>{ if(R1.seated){ const h=this.J.head,k=IS_TOUCH?.004:.003; h.y=clamp(h.y-dx*k,-1.1,1.1); h.p=clamp(h.p-dy*k,-.6,.5); return; } const k=e&&e.pointerType==='touch'?.0048:.0032; P.yaw-=dx*k; P.pitch=clamp(P.pitch-dy*k,-1.3,1.3); }; S.phase='play'; P.free=true; },
+  async closeHolo(){ this.live=false; this.atHolo=false; prefetch(['r1_ext','rocks']); this.hum(); S.phase='cut'; this.E.classList.remove('on'); await this.show(this.board,false,.8); R1.g.remove(this.board); R1.g.remove(this.base); this.dim(1,1.4); await camTo({z:-7.2,eye:1.66,pitch:0},.8); window.dragHook=(dx,dy,e)=>{ if(R1.seated){ const h=this.J.head,k=IS_TOUCH?.004:.003; h.y=clamp(h.y-dx*k,-1.1,1.1); h.p=clamp(h.p-dy*k,-.6,.5); return; } const k=e&&e.pointerType==='touch'?.0048:.0032; P.yaw-=dx*k; P.pitch=clamp(P.pitch-dy*k,-1.3,1.3); }; S.phase='play'; P.free=true; },
 
   /* ============ ⑧ 도약 → 1호 ============ */
   // 추력 손잡이 : 위로 끝까지 민다 — 놓으면 조금 되돌아온다 (도약 · 엔진 켜기)

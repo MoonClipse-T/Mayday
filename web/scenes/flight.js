@@ -43,7 +43,7 @@ const FLIGHT={W:.6,                // 1호 자전 (rad/s ≈ 34°/s · 10초에 
     TICK.push(this.fn=dt=>this.tick(dt)); MUSIC.play('derelict',{fade:4});
     this.ui(true);
     await fade(false,2200); $('#fade').style.background='';
-    S.phase='play'; P.free=true; P.look=false;
+    S.phase='play'; P.free=false; P.look=false;      // 앉아 있다 : 걷는 조이스틱이 화면 왼쪽 끌기를 가로채지 않게 (디벗 — 4.19)
     await TALK.say([VG('1호 확인. 앞쪽 640 m. 불빛 없음. 열 반응 없음. 생명 신호… 하나.'),I('하나. …엘레나가 말한 레아 문일까.'),
       VG('1호가 긴 축을 중심으로 빠르게 돌고 있습니다. 10초에 한 바퀴. 무언가에 부딪혀 자세 제어를 잃은 것 같습니다.'),I('…저렇게 도는 문에 어떻게 붙지.'),
       VG(byDevice('조종은 선장님께 넘깁니다. W 전진 · 화면을 끌어(또는 방향키) 기수 · X 정지. 1호 뱃머리의 도킹 고리로 가십시오.','조종은 선장님께 넘깁니다. [전진] · 화면을 끌어 기수 · [정지]. 1호 뱃머리의 도킹 고리로 가십시오.'),'조종은 선장님께 넘깁니다. W 전진 · 끌기로 기수 · X 감속. 1호 뱃머리의 도킹 고리로 가십시오.')]);

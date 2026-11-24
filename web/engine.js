@@ -117,14 +117,22 @@ const SOLID={g:null,c:.1,cy:.05,want:false,seq:0, holes:[],      // holes : [x1,
   top(x,z,yMax,r){ if(!this.g) return null; for(let j=Math.min(this.ny-1,Math.floor((yMax-this.y0)/this.cy));j>=0;j--){ const y=this.y0+j*this.cy; if(this.hit(x,z,y+.001,y+.001,r)) return y+this.cy; } return null; },
 };
 function ground(x,z,y){ const t=SOLID.top(x,z,y+STEP,P.r*.6), f=floorAt(x,z); return t===null?f:Math.max(t,f); }
-function blocked(x,z){ const r=P.r, y1=P.y+STEP, y2=P.y+BODY;
+function blocked(x,z,r=P.r,h=BODY){ const y1=P.y+STEP, y2=P.y+h;
   for(const b of COL){ if(b.on&&!b.on()) continue; if(b.y2!==undefined&&(b.y2<y1||b.y1>y2)) continue; if(x+r>b.x1&&x-r<b.x2&&z+r>b.z1&&z-r<b.z2) return true; }
   for(const c of CIRC){ if(c.on&&!c.on()) continue; const dx=x-c.x,dz=z-c.z,rr=c.r+r; if(dx*dx+dz*dz<rr*rr) return true; }
   if(typeof PEOPLE!=='undefined') for(const p of PEOPLE.list){ if(p.solid===false) continue; const w=p.wrap.position, dx=x-w.x, dz=z-w.z, rr=(p.pose==='sit'?.34:.26)+r; if(dx*dx+dz*dz<rr*rr&&y1<w.y+1.8) return true; }
   return SOLID.hit(x,z,y1,y2,r); }
-function move(dx,dz){ if(blocked(P.x,P.z)){ P.x+=dx; P.z+=dz; return; }      // 끼어 있으면 빠져나오게
-  let nx=P.x+dx; if(!blocked(nx,P.z)) P.x=nx; else for(let k=0;k<4;k++){ dx*=.5; if(!blocked(P.x+dx,P.z)){ P.x+=dx; break; } }
-  let nz=P.z+dz; if(!blocked(P.x,nz)) P.z=nz; else for(let k=0;k<4;k++){ dz*=.5; if(!blocked(P.x,P.z+dz)){ P.z+=dz; break; } } }
+// 끼었을 때 (4.19) : 예전에는 어느 쪽으로든 그냥 움직였다 → 점프로 가구에 살짝 끼운 뒤 벽을 뚫고 배 밖으로 나갈 수 있었다
+//   몸이 끼지 않는 만큼 가늘게 보고(r 의 85 % … 30 %) 그보다 깊이 들어가는 쪽으로는 못 간다 · 한가운데까지 박혔으면 마지막 빈자리(P.ok) 쪽으로만
+function move(dx,dz){ let r=P.r, h=BODY; const L=Math.hypot(dx,dz); if(!L) return; const k2=k=>!blocked(P.x,P.z,P.r*k,1.1);
+  if(!blocked(P.x,P.z)) P.ok={x:P.x,z:P.z};
+  else { const k=[.85,.7,.5,.3].find(k=>!blocked(P.x,P.z,P.r*k)); if(k) r=P.r*k;
+    else if(k2(1)||k2(.7)||k2(.4)){ h=1.1; r=P.r*(k2(1)?1:k2(.7)?.7:.4); }      // 머리만 낮은 천장에 걸렸다 : 허리까지만 본다
+    else { const o=P.ok, d=o?Math.hypot(o.x-P.x,o.z-P.z):9; if(d>1.6){ P.x+=dx; P.z+=dz; } else if(d>.01){ const s=Math.min(d,L); P.x+=(o.x-P.x)/d*s; P.z+=(o.z-P.z)/d*s; } return; } }
+  const n=r<P.r?Math.ceil(L/.04):1; dx/=n; dz/=n;
+  for(let i=0;i<n;i++){ let ax=dx, az=dz;
+    if(!blocked(P.x+ax,P.z,r,h)) P.x+=ax; else for(let k=0;k<4;k++){ ax*=.5; if(!blocked(P.x+ax,P.z,r,h)){ P.x+=ax; break; } }
+    if(!blocked(P.x,P.z+az,r,h)) P.z+=az; else for(let k=0;k<4;k++){ az*=.5; if(!blocked(P.x,P.z+az,r,h)){ P.z+=az; break; } } } }
 function addBox(x1,z1,x2,z2,on){ COL.push({x1:Math.min(x1,x2),z1:Math.min(z1,z2),x2:Math.max(x1,x2),z2:Math.max(z1,z2),on}); }
 
 /* ---------------- 입력 : 키보드 · 마우스 끌기 · 터치(왼쪽 조이스틱 · 오른쪽 시점) ---------------- */
@@ -135,6 +143,7 @@ addEventListener('keydown',e=>{ keys[e.code]=true;
   if(e.code==='Space'){ e.preventDefault(); if(!e.repeat) P.jump=true; }
   if(e.code==='KeyE'&&!S.busy) tryInteract(); if(e.code==='Escape'&&$('#doc').classList.contains('on')) closeDoc(); });
 addEventListener('keyup',e=>{ keys[e.code]=false; });
+addEventListener('blur',()=>{ for(const k in keys) keys[k]=false; });      // 창을 벗어나면 누르던 키를 놓은 것으로 (돌아왔을 때 혼자 걷던 것 — 4.19)
 const stick={id:null,cx:0,cy:0,dx:0,dy:0}, look={id:null,lx:0,ly:0,sx:0,sy:0,t0:0,moved:false};
 const stickEl=$('#stick'), knob=$('#knob');
 canvas.addEventListener('pointerdown',e=>{ if(TALK.on&&!P.look){ TALK.next(); return; } if((S.busy&&!P.look)||S.phase!=='play') return; canvas.setPointerCapture(e.pointerId);
@@ -199,12 +208,14 @@ async function card(kick,title,sub,ms=3200){ const c=$('#card'); c.querySelector
    말하는 동안 npc.talking = true (people.js 가 턱 · 고개를 움직인다) */
 const TALK={on:false,q:[],i:0,res:null,timer:0,full:'',
   say(lines){ return new Promise(res=>{ this.q=lines; this.i=0; this.res=res; this.on=true; $('#talk').classList.add('on'); busy(); this.show(); }); },
-  show(){ const L=this.q[this.i], el=$('#talk'); this.full=L.t; el.className='on '+(L.kind||'');
+  show(){ const L=this.q[this.i], el=$('#talk'); this.n++; this.full=L.t; el.className='on '+(L.kind||'');
     el.querySelector('.name').textContent=L.who||(L.kind==='me'?'크리스':''); el.querySelector('.ch').textContent=L.ch||(L.kind==='vega'?'VEGA':L.kind==='radio'?'무전':L.kind==='me'?'생각':'현장');
     const t=el.querySelector('.txt'); t.textContent=''; let k=0; clearInterval(this.timer); TALK.speaker(L.npc);
     if(L.fx) L.fx();
-    this.timer=setInterval(()=>{ k++; t.textContent=L.t.slice(0,k); if(k%3===0&&L.kind==='vega') AUDIO.tick(); if(k>=L.t.length){ clearInterval(this.timer); el.classList.add('done'); TALK.speaker(null); if(L.auto){ const i=this.i, go=()=>{ if(!(this.on&&this.i===i)) return; const v=typeof VOICE!=='undefined'&&VOICE.el; if(v&&!v.ended&&!v.paused) return setTimeout(go,150); this.next(); }; setTimeout(go,L.auto); } } },L.kind==='vega'?28:24); },
-  next(){ const t=$('#talk .txt'); if(t.textContent.length<this.full.length){ clearInterval(this.timer); t.textContent=this.full; $('#talk').classList.add('done'); TALK.speaker(null); return; }
+    this.timer=setInterval(()=>{ k++; t.textContent=L.t.slice(0,k); if(k%3===0&&L.kind==='vega') AUDIO.tick(); if(k>=L.t.length){ clearInterval(this.timer); el.classList.add('done'); TALK.speaker(null); this.arm(L); } },L.kind==='vega'?28:24); },
+  // 저절로 넘어가는 줄(auto) : 글이 다 뜬 뒤 — 눌러서 다 띄웠을 때도 (예전엔 누르면 멈춰 섰다) · 그 줄일 때만(n) (앞 대화의 시계가 다음 대화를 넘기던 것 — 4.19)
+  n:0, arm(L){ if(!L||!L.auto) return; const n=this.n, go=()=>{ if(!this.on||this.n!==n) return; const v=typeof VOICE!=='undefined'&&VOICE.el; if(v&&!v.ended&&!v.paused) return setTimeout(go,150); this.next(); }; setTimeout(go,L.auto); },
+  next(){ const t=$('#talk .txt'); if(t.textContent.length<this.full.length){ clearInterval(this.timer); t.textContent=this.full; $('#talk').classList.add('done'); TALK.speaker(null); this.arm(this.q[this.i]); return; }
     this.i++; if(this.i<this.q.length) return this.show();
     this.on=false; $('#talk').classList.remove('on'); TALK.speaker(null); busy(); const r=this.res; this.res=null; r&&r(); },
   cur:null, speaker(npc){ if(this.cur) this.cur.talking=false; this.cur=npc||null; if(npc) npc.talking=true; },
@@ -414,10 +425,11 @@ function frame(now){ requestAnimationFrame(frame); const dt=Math.min(.1,(now-las
     const sp2=Math.hypot(P.vx,P.vz), air=P.y>P.gy+.03; P.bob=(P.bob||0)+(air?0:sp2*dt*6.5); P.bobA=lerp(P.bobA||0,sp2>.3&&!air?.022:0,.1); }
   // 위아래 : 걷는 동안은 중력 · 점프 · 턱 오르기, 연출 중에는 바닥 높이만 따라간다
   // 가구에 낀 자리에 서면 한 턱씩(의자 발판 → 앉는 면 → 탁자) 타고 올라 천장까지 솟던 것 : 몸이 막힌 칸 속에 있으면 올라서지 않는다 (4.14)
-  if(P.free&&S.phase==='play'&&!camAnim){ let g=ground(P.x,P.z,P.y); if(g>P.y+.02&&SOLID.hit(P.x,P.z,P.y+STEP+.05,P.y+1.2,P.r*.5)) g=P.y; P.gy=g;
+  if(P.free&&S.phase==='play'&&!camAnim){ let g=ground(P.x,P.z,P.y); if(g>P.y+.02&&(SOLID.hit(P.x,P.z,P.y+STEP+.05,P.y+1.2,P.r*.5)||SOLID.hit(P.x,P.z,P.y+1.2,g+BODY,P.r*.5))) g=P.y;      // 머리 위가 막히면 올라서지 않는다 (의자 위에서 천장에 머리가 박히던 것 — 4.19)
+    P.gy=g;
     if(P.jump&&!S.busy&&P.y<=g+.03){ P.vy=JUMP; AUDIO.tone(180,.12,'sine',.04,0,-60); } P.jump=false;
     if(P.vy>0||P.y>g+.03){ P.vy-=GRAV*dt; let ny=P.y+P.vy*dt;
-      if(P.vy>0&&SOLID.hit(P.x,P.z,ny+BODY,ny+BODY+.05,P.r*.7)) P.vy=0;       // 머리가 천장에
+      if(P.vy>0&&(SOLID.hit(P.x,P.z,ny+BODY,ny+BODY+.05,P.r*.7)||SOLID.hit(P.x,P.z,P.y+1.3,ny+BODY,P.r*.4))){ P.vy=0; ny=P.y; }       // 머리가 천장에
       if(ny<=g){ if(P.vy<-5) AUDIO.noise(.12,.08,0,500); ny=g; P.vy=0; } P.y=ny; }
     else { P.vy=0; P.y=lerp(P.y,g,1-Math.pow(.0005,dt)); } }               // 턱 · 계단은 부드럽게 올라선다
   else { P.jump=false; P.vy=0; if(!camAnim&&!P.pinY) P.y=lerp(P.y,floorAt(P.x,P.z),1-Math.pow(.0005,dt)); }      // pinY : 연출이 높이를 쥐고 있을 때 (탁자 위에서 내려다보기 — 탁자 윗면을 바닥으로 잡아 시야가 솟던 것)
