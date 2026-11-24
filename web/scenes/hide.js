@@ -76,97 +76,100 @@ const HIDE={in:null,spots:[],seen:false,busy:false,
     s.zone=SHIP.zoneAt(f.x,f.z); s.name=s.kind==='locker'?(this.LOCKNAME[s.zone]||'옷장')+' — 들어가 숨는다':this.NAME[s.kind]; interact(pk,s.name,()=>this.enter(s),{range:2.5,enabled:()=>!this.in&&!this.busy}); this.spots.push(s); },
   // 문 · 뚜껑 : 경첩을 축으로
   // open : true 다 열기 · false 닫기 · 숫자 그만큼 (실험대 문은 틈을 남긴다) · 샤워 부스 문은 옆으로 민다
-  doors(s,open,dur=.6){ return new Promise(res=>{ let k=0; const lid=!!s.lid, sl=!!s.door, a0=sl?s.door.position.x:lid?-s.lid.rotation.x:s.dr?s.dr.rotation.y:0;
+  doors(s,open,dur=.6){ const my=s.da=(s.da||0)+1; return new Promise(res=>{ let k=0; const lid=!!s.lid, sl=!!s.door, a0=sl?s.door.position.x:lid?-s.lid.rotation.x:s.dr?s.dr.rotation.y:0;
     const a1=typeof open==='number'?open:open?(sl?1.05:s.kind==='duct'?1.4:lid?1.25:s.kind==='bench'?1.55:1.75):0;
-    const f=dt=>{ k=Math.min(1,k+dt/dur); const e=k*k*(3-2*k), a=lerp(a0,a1,e); if(sl) s.door.position.x=a; else if(lid) s.lid.rotation.x=-a; else { if(s.dl) s.dl.rotation.y=-a; if(s.dr) s.dr.rotation.y=a; } if(k>=1){ TICK.splice(TICK.indexOf(f),1); res(); } }; TICK.push(f); }); },
+    const f=dt=>{ if(my!==s.da){ TICK.splice(TICK.indexOf(f),1); return res(); } k=Math.min(1,k+dt/dur); const e=k*k*(3-2*k), a=lerp(a0,a1,e); if(sl) s.door.position.x=a; else if(lid) s.lid.rotation.x=-a; else { if(s.dl) s.dl.rotation.y=-a; if(s.dr) s.dr.rotation.y=a; } if(k>=1){ TICK.splice(TICK.indexOf(f),1); res(); } }; TICK.push(f); }); },
   // 우주복이 흔들린다 (헤치고 들어갈 때 · 나올 때)
   sway(s,amp=.22){ (s.suits||[]).forEach((o,i)=>{ const z0=o.userData.z0??(o.userData.z0=o.rotation.z), x0=o.userData.x0??(o.userData.x0=o.rotation.x); let t=0; const f=dt=>{ t+=dt; const k=Math.exp(-t*1.6)*amp*(i?-1:1); o.rotation.z=z0+Math.sin(t*5.5)*k; o.rotation.x=x0+Math.sin(t*4.1+1)*k*.5; if(t>3){ o.rotation.z=z0; o.rotation.x=x0; TICK.splice(TICK.indexOf(f),1); } }; TICK.push(f); }); },
   front(s,d){ return {x:s.x+Math.sin(s.yaw)*d,z:s.z+Math.cos(s.yaw)*d}; },
   // 성체가 찾아와 설 자리 (숨은 곳 앞 · 빈 바닥)
   stand(s){ const f=this.front(s,s.kind==='bed'?1.7:1.75), [x,z]=freeSpot(f.x,f.z,{r:.45,y1:.3,y2:1.1}); return {x,z}; },
   yawFace(tx,tz,from){ return Math.atan2(-(tx-from.x),-(tz-from.z)); },
-  async enter(s){ if(this.in||this.busy) return; this.busy=true; P.free=false; ME.setCrouch(false);
+  // 들어가고 나오는 동작의 한 걸음 : 그 사이 죽어서 되돌렸으면(n 이 바뀌면) 거기서 끊는다 (4.18 : 다시 시작한 뒤에도 이어져 옛 자리에 숨어 버렸다)
+  n:0, at:null, step(id,f){ return id!==this.n?new Promise(()=>{}):f().then(()=>id===this.n?undefined:new Promise(()=>{})); },
+  async enter(s){ if(this.in||this.busy) return; this.busy=true; P.free=false; ME.setCrouch(false); const id=++this.n; this.at=s; const cam=(t,d)=>this.step(id,()=>camTo(t,d)), door=(...a)=>this.step(id,()=>this.doors(...a));
     // 들어가는 걸 성체가 봤나 (보는 앞에서 숨으면 들킨다)
     this.seen=BEAST.list.some(b=>!b.duct&&b.wrap.visible&&BEAST.sees(b));
     const out=this.front(s,1.05);
     if(s.kind==='locker'){
-      await camTo({x:out.x,z:out.z,yaw:this.yawFace(s.x,s.z,out),pitch:0,eye:1.66},.5);
-      SFX.play('locker_open',{at:s}); await this.doors(s,true,.6);
-      const inn=this.front(s,-.02); await camTo({x:inn.x,z:inn.z,eye:1.6},.8); SFX.play('cloth');
-      await camTo({yaw:s.yaw+Math.PI,pitch:0},.6);      // 돌아서서 문 쪽(밖)을 본다
-      SFX.play('locker_close',{at:s}); await this.doors(s,false,.5);
+      await cam({x:out.x,z:out.z,yaw:this.yawFace(s.x,s.z,out),pitch:0,eye:1.66},.5);
+      SFX.play('locker_open',{at:s}); await door(s,true,.6);
+      const inn=this.front(s,-.02); await cam({x:inn.x,z:inn.z,eye:1.6},.8); SFX.play('cloth');
+      await cam({yaw:s.yaw+Math.PI,pitch:0},.6);      // 돌아서서 문 쪽(밖)을 본다
+      SFX.play('locker_close',{at:s}); await door(s,false,.5);
     } else if(s.kind==='bed'){
       // 침대 : 긴 옆쪽(±z)에 웅크리고 → 엎드려 → 밑으로
       const side=P.z<s.z?-1:1, sx=s.x, sz=s.z+side*1.05;
-      await camTo({x:sx,z:sz,yaw:this.yawFace(s.x,s.z,{x:sx,z:sz}),pitch:-.3,eye:1.0},.6); SFX.play('kneel');
-      await camTo({eye:.32,pitch:-.05},.6); SFX.play('crawl');
-      await camTo({x:s.x,z:s.z+side*.15,eye:.24},1.3);
-      await camTo({yaw:this.yawFace(s.x,s.z+side*5,{x:s.x,z:s.z}),pitch:.02},.5);
+      await cam({x:sx,z:sz,yaw:this.yawFace(s.x,s.z,{x:sx,z:sz}),pitch:-.3,eye:1.0},.6); SFX.play('kneel');
+      await cam({eye:.32,pitch:-.05},.6); SFX.play('crawl');
+      await cam({x:s.x,z:s.z+side*.15,eye:.24},1.3);
+      await cam({yaw:this.yawFace(s.x,s.z+side*5,{x:s.x,z:s.z}),pitch:.02},.5);
     } else if(s.kind==='crate'){
       // 화물 상자 : 앞에 서서 뚜껑을 열고 → 넘어 들어가 웅크리고 → 앞판 틈 쪽을 보고 → 뚜껑을 닫는다
-      await camTo({x:out.x,z:out.z,yaw:this.yawFace(s.x,s.z,out),pitch:-.35,eye:1.66},.5);
-      SFX.play('locker_open',{at:s}); await this.doors(s,true,.7);
-      await camTo({x:s.x,z:s.z,eye:1.25,pitch:-.6},.8); SFX.play('cloth');
-      await camTo({eye:.56,yaw:s.yaw+Math.PI,pitch:0},.8);
-      SFX.play('locker_close',{at:s}); await this.doors(s,false,.5);
+      await cam({x:out.x,z:out.z,yaw:this.yawFace(s.x,s.z,out),pitch:-.35,eye:1.66},.5);
+      SFX.play('locker_open',{at:s}); await door(s,true,.7);
+      await cam({x:s.x,z:s.z,eye:1.25,pitch:-.6},.8); SFX.play('cloth');
+      await cam({eye:.56,yaw:s.yaw+Math.PI,pitch:0},.8);
+      SFX.play('locker_close',{at:s}); await door(s,false,.5);
     } else if(s.kind==='duct'){
       // 환기 덕트 : 앞에 무릎을 꿇고 격자를 들어 올린다 → 등을 돌려 엎드린다 → 발부터 뒤로 밀고 들어간다 → 격자를 당겨 닫는다
-      await camTo({x:out.x,z:out.z,yaw:this.yawFace(s.x,s.z,out),pitch:-.5,eye:1.66},.5); SFX.play('kneel'); await camTo({eye:.95,pitch:-.3},.5);
-      SFX.play('locker_open',{at:s,vol:.7}); await this.doors(s,true,.6);
-      await camTo({yaw:s.yaw+Math.PI,pitch:-.4},.7); await camTo({eye:.42,pitch:-.06},.6); SFX.play('crawl');
-      const inn=this.front(s,.14); await camTo({x:inn.x,z:inn.z,eye:.42,pitch:.03},1.5);
-      SFX.play('locker_close',{at:s,vol:.7}); await this.doors(s,false,.5);
+      await cam({x:out.x,z:out.z,yaw:this.yawFace(s.x,s.z,out),pitch:-.5,eye:1.66},.5); SFX.play('kneel'); await cam({eye:.95,pitch:-.3},.5);
+      SFX.play('locker_open',{at:s,vol:.7}); await door(s,true,.6);
+      await cam({yaw:s.yaw+Math.PI,pitch:-.4},.7); await cam({eye:.42,pitch:-.06},.6); SFX.play('crawl');
+      const inn=this.front(s,.14); await cam({x:inn.x,z:inn.z,eye:.42,pitch:.03},1.5);
+      SFX.play('locker_close',{at:s,vol:.7}); await door(s,false,.5);
     } else if(s.kind==='bench'){
       // 실험대 수납장 : 앞에 무릎 꿇고 → 아래 문 둘을 열고 → 기어 들어가 돌아앉고 → 문을 반쯤 닫는다 (틈 사이로 바깥)
-      await camTo({x:out.x,z:out.z,yaw:this.yawFace(s.x,s.z,out),pitch:-.45,eye:1.66},.5); SFX.play('kneel'); await camTo({eye:.9,pitch:-.25},.5);
-      SFX.play('locker_open',{at:s,vol:.7}); await this.doors(s,true,.6);
-      await camTo({eye:.5,pitch:-.05},.5); SFX.play('crawl'); const inn=this.front(s,-.08); await camTo({x:inn.x,z:inn.z,eye:.5},1.2);
-      await camTo({yaw:s.yaw+Math.PI,pitch:0},.6);
-      SFX.play('locker_close',{at:s,vol:.6}); await this.doors(s,.42,.5);
+      await cam({x:out.x,z:out.z,yaw:this.yawFace(s.x,s.z,out),pitch:-.45,eye:1.66},.5); SFX.play('kneel'); await cam({eye:.9,pitch:-.25},.5);
+      SFX.play('locker_open',{at:s,vol:.7}); await door(s,true,.6);
+      await cam({eye:.5,pitch:-.05},.5); SFX.play('crawl'); const inn=this.front(s,-.08); await cam({x:inn.x,z:inn.z,eye:.5},1.2);
+      await cam({yaw:s.yaw+Math.PI,pitch:0},.6);
+      SFX.play('locker_close',{at:s,vol:.6}); await door(s,.42,.5);
     } else if(s.kind==='shower'){
       // 제염 샤워 부스 : 서리 유리문을 옆으로 밀고 → 들어가 돌아서고 → 문을 닫는다 (닫힐 때 칙 — 제염 안개)
-      await camTo({x:out.x,z:out.z,yaw:this.yawFace(s.x,s.z,out),pitch:0,eye:1.66},.5);
-      SFX.play('airlock',{at:s,vol:.45}); await this.doors(s,true,.7);
-      const inn=this.front(s,-.05); await camTo({x:inn.x,z:inn.z,eye:1.62},.8); SFX.play('cloth');
-      await camTo({yaw:s.yaw+Math.PI,pitch:0},.6);
-      SFX.play('airlock',{at:s,vol:.4}); await this.doors(s,false,.6); AUDIO.noise(1.6,.06,0,3000,'highpass');
+      await cam({x:out.x,z:out.z,yaw:this.yawFace(s.x,s.z,out),pitch:0,eye:1.66},.5);
+      SFX.play('airlock',{at:s,vol:.45}); await door(s,true,.7);
+      const inn=this.front(s,-.05); await cam({x:inn.x,z:inn.z,eye:1.62},.8); SFX.play('cloth');
+      await cam({yaw:s.yaw+Math.PI,pitch:0},.6);
+      SFX.play('airlock',{at:s,vol:.4}); await door(s,false,.6); AUDIO.noise(1.6,.06,0,3000,'highpass');
     } else if(s.kind==='pipes'){
       // 배관 틈 : 배관 옆 끝에 서서 → 몸을 옆으로 돌려 배관과 벽 사이로 비집고 들어간다 → 배관 쪽(밖)을 본다
       const side=this.local(s,1.25,-.25), mid=this.local(s,.75,-.25), inn=this.local(s,.2,-.25);
-      await camTo({x:side.x,z:side.z,yaw:this.yawFace(mid.x,mid.z,side),pitch:0,eye:1.66},.6); SFX.play('cloth');
-      await camTo({x:mid.x,z:mid.z,eye:1.6,pitch:-.05},.8); SFX.play('crawl',{vol:.4}); await camTo({x:inn.x,z:inn.z},.9);
-      await camTo({yaw:s.yaw+Math.PI,pitch:0},.6); AUDIO.noise(1.2,.05,0,1800);
+      await cam({x:side.x,z:side.z,yaw:this.yawFace(mid.x,mid.z,side),pitch:0,eye:1.66},.6); SFX.play('cloth');
+      await cam({x:mid.x,z:mid.z,eye:1.6,pitch:-.05},.8); SFX.play('crawl',{vol:.4}); await cam({x:inn.x,z:inn.z},.9);
+      await cam({yaw:s.yaw+Math.PI,pitch:0},.6); AUDIO.noise(1.2,.05,0,1800);
     } else if(s.kind==='suits'){
       // 우주복 걸이 : 우주복 둘 사이를 헤치고 → 뒤 벽에 등을 붙이고 → 돌아서서 우주복 사이로 본다
-      await camTo({x:out.x,z:out.z,yaw:this.yawFace(s.x,s.z,out),pitch:0,eye:1.66},.5);
-      SFX.play('cloth'); this.sway(s,.12); const inn=this.front(s,-.3); await camTo({x:inn.x,z:inn.z,eye:1.6},1.0);
-      await camTo({yaw:s.yaw+Math.PI,pitch:0},.6); this.sway(s,.05);
+      await cam({x:out.x,z:out.z,yaw:this.yawFace(s.x,s.z,out),pitch:0,eye:1.66},.5);
+      SFX.play('cloth'); this.sway(s,.12); const inn=this.front(s,-.3); await cam({x:inn.x,z:inn.z,eye:1.6},1.0);
+      await cam({yaw:s.yaw+Math.PI,pitch:0},.6); this.sway(s,.05);
     } else {
       // 동면 캡슐 : 통로 쪽에 서서 → 올라가 눕는다
       const side=this.front(s,1.15);
-      await camTo({x:side.x,z:side.z,yaw:this.yawFace(s.x,s.z,side),pitch:-.4,eye:1.66},.6); SFX.play('cloth');
-      await camTo({x:s.x,z:s.z,eye:s.eye+.3,pitch:-.2},1.0);
-      await camTo({eye:s.eye,yaw:s.yaw+Math.PI,pitch:.08},.7);
-      SFX.play('airlock',{at:s,vol:.5}); FX.black(.7); await sleep(180); s.o.visible=false; FX.black(0);      // 안에서는 캡슐이 눈을 가리지 않게 (서리 낀 유리 테는 화면 덮개로)
+      await cam({x:side.x,z:side.z,yaw:this.yawFace(s.x,s.z,side),pitch:-.4,eye:1.66},.6); SFX.play('cloth');
+      await cam({x:s.x,z:s.z,eye:s.eye+.3,pitch:-.2},1.0);
+      await cam({eye:s.eye,yaw:s.yaw+Math.PI,pitch:.08},.7);
+      SFX.play('airlock',{at:s,vol:.5}); FX.black(.7); await this.step(id,()=>sleep(180)); s.o.visible=false; FX.black(0);      // 안에서는 캡슐이 눈을 가리지 않게 (서리 낀 유리 테는 화면 덮개로)
     }
     this.fx(s.kind); this.in=s; this.busy=false; P.look=true; this.base={yaw:P.yaw}; this.ui(true); },
-  async leave(){ const s=this.in; if(!s||this.busy) return; this.busy=true; this.ui(false); this.fx(null); P.look=false;
-    if(s.kind==='locker'){ SFX.play('locker_open',{at:s}); await this.doors(s,true,.5); const out=this.front(s,1.0); await camTo({x:out.x,z:out.z,eye:1.66},.7); await this.doors(s,false,.6); SFX.play('locker_close',{at:s}); }
-    else if(s.kind==='bed'){ const side=Math.sign(P.z-s.z)||1; SFX.play('crawl'); await camTo({x:s.x,z:s.z+side*1.05,eye:.32},1.2); await camTo({eye:1.66,pitch:0},.7); }
-    else if(s.kind==='duct'){ SFX.play('locker_open',{at:s,vol:.7}); await this.doors(s,true,.5); SFX.play('crawl'); const out=this.front(s,1.05); await camTo({x:out.x,z:out.z,eye:.42},1.2); await camTo({eye:1.66,pitch:0},.8); await this.doors(s,false,.5); SFX.play('locker_close',{at:s,vol:.6}); }
-    else if(s.kind==='crate'){ SFX.play('locker_open',{at:s}); await this.doors(s,true,.5); await camTo({eye:1.25},.6); const out=this.front(s,1.05); await camTo({x:out.x,z:out.z,eye:1.66,pitch:0},.8); await this.doors(s,false,.6); SFX.play('locker_close',{at:s}); }
-    else if(s.kind==='bench'){ SFX.play('locker_open',{at:s,vol:.6}); await this.doors(s,true,.45); SFX.play('crawl'); const out=this.front(s,1.0); await camTo({x:out.x,z:out.z,eye:.5},1.1); await camTo({eye:1.66,pitch:0},.7); await this.doors(s,false,.5); SFX.play('locker_close',{at:s,vol:.6}); }
-    else if(s.kind==='shower'){ SFX.play('airlock',{at:s,vol:.45}); await this.doors(s,true,.6); const out=this.front(s,1.0); await camTo({x:out.x,z:out.z,eye:1.66,pitch:0},.8); await this.doors(s,false,.6); }
-    else if(s.kind==='pipes'){ const mid=this.local(s,.75,-.25), side=this.local(s,1.3,-.25); SFX.play('cloth'); await camTo({x:mid.x,z:mid.z,yaw:this.yawFace(side.x,side.z,mid)},.8); await camTo({x:side.x,z:side.z,eye:1.66,pitch:0},.7); }
-    else if(s.kind==='suits'){ SFX.play('cloth'); this.sway(s,.12); const out=this.front(s,1.0); await camTo({x:out.x,z:out.z,eye:1.66,pitch:0},.9); }
-    else { SFX.play('airlock',{at:s,vol:.5}); s.o.visible=true; await camTo({eye:s.eye+.3},.6); const side=this.front(s,1.15); await camTo({x:side.x,z:side.z,eye:1.66,pitch:0},.9); }
+  async leave(){ const s=this.in; if(!s||this.busy) return; this.busy=true; const id=++this.n; this.at=s; const cam=(t,d)=>this.step(id,()=>camTo(t,d)), door=(...a)=>this.step(id,()=>this.doors(...a)); this.ui(false); this.fx(null); P.look=false;
+    if(s.kind==='locker'){ SFX.play('locker_open',{at:s}); await door(s,true,.5); const out=this.front(s,1.0); await cam({x:out.x,z:out.z,eye:1.66},.7); await door(s,false,.6); SFX.play('locker_close',{at:s}); }
+    else if(s.kind==='bed'){ const side=Math.sign(P.z-s.z)||1; SFX.play('crawl'); await cam({x:s.x,z:s.z+side*1.05,eye:.32},1.2); await cam({eye:1.66,pitch:0},.7); }
+    else if(s.kind==='duct'){ SFX.play('locker_open',{at:s,vol:.7}); await door(s,true,.5); SFX.play('crawl'); const out=this.front(s,1.05); await cam({x:out.x,z:out.z,eye:.42},1.2); await cam({eye:1.66,pitch:0},.8); await door(s,false,.5); SFX.play('locker_close',{at:s,vol:.6}); }
+    else if(s.kind==='crate'){ SFX.play('locker_open',{at:s}); await door(s,true,.5); await cam({eye:1.25},.6); const out=this.front(s,1.05); await cam({x:out.x,z:out.z,eye:1.66,pitch:0},.8); await door(s,false,.6); SFX.play('locker_close',{at:s}); }
+    else if(s.kind==='bench'){ SFX.play('locker_open',{at:s,vol:.6}); await door(s,true,.45); SFX.play('crawl'); const out=this.front(s,1.0); await cam({x:out.x,z:out.z,eye:.5},1.1); await cam({eye:1.66,pitch:0},.7); await door(s,false,.5); SFX.play('locker_close',{at:s,vol:.6}); }
+    else if(s.kind==='shower'){ SFX.play('airlock',{at:s,vol:.45}); await door(s,true,.6); const out=this.front(s,1.0); await cam({x:out.x,z:out.z,eye:1.66,pitch:0},.8); await door(s,false,.6); }
+    else if(s.kind==='pipes'){ const mid=this.local(s,.75,-.25), side=this.local(s,1.3,-.25); SFX.play('cloth'); await cam({x:mid.x,z:mid.z,yaw:this.yawFace(side.x,side.z,mid)},.8); await cam({x:side.x,z:side.z,eye:1.66,pitch:0},.7); }
+    else if(s.kind==='suits'){ SFX.play('cloth'); this.sway(s,.12); const out=this.front(s,1.0); await cam({x:out.x,z:out.z,eye:1.66,pitch:0},.9); }
+    else { SFX.play('airlock',{at:s,vol:.5}); s.o.visible=true; await cam({eye:s.eye+.3},.6); const side=this.front(s,1.15); await cam({x:side.x,z:side.z,eye:1.66,pitch:0},.9); }
     this.in=null; this.busy=false; P.free=true; },
   // 죽거나 처음부터 : 숨은 상태를 풀고 문 · 뚜껑 · 덮개를 되돌린다
-  reset(){ const s=this.in; if(s){ if(s.dl||s.lid||s.door) this.doors(s,false,.01); if(s.kind==='pod') s.o.visible=true; } this.in=null; this.busy=false; this.seen=false; this.ui(false); this.fx(null); P.look=false; },
+  reset(){ this.n++; for(const s of this.spots){ s.da=(s.da||0)+1; if(s.door) s.door.position.x=0; else if(s.lid) s.lid.rotation.x=0; else { if(s.dl) s.dl.rotation.y=0; if(s.dr) s.dr.rotation.y=0; } if(s.kind==='pod') s.o.visible=true; }
+    this.in=null; this.at=null; this.busy=false; this.seen=false; this.ui(false); this.fx(null); P.look=false; },
   fx(kind){ const e=FXEL('hidefx'); e.className=kind?'on '+kind:''; e.innerHTML=kind?'<p>숨어 있다 — '+byDevice('E 나가기','[나가기]')+'</p>':''; },
   ui(on){ let out=$('#hideout'); if(!out){ out=document.createElement('button'); out.id='hideout'; out.className='ring'; out.textContent='나가기'; $('#hud').appendChild(out); out.addEventListener('pointerdown',e=>{ e.stopPropagation(); HIDE.leave(); }); }
     document.body.classList.toggle('hiding',on); out.classList.toggle('on',on); if(GUN.held) GUN.held.visible=!on;
-    if(STORY.spot){ if(on){ this._tk=STORY.spot.intensity>0?(S.flags.power?.5:1):0; STORY.torch(this._tk*.2); } else STORY.torch(this._tk||0); } },      // 숨어 있는 동안 : 총은 내리고 · 손전등은 손으로 가린다 (희미하게만)
+    STORY.cover(on); },      // 숨어 있는 동안 : 총은 내리고 · 손전등은 손으로 가린다 (희미하게만)
   LOOK:{locker:[.75,-.5,.4],bed:[.75,-.15,.12],crate:[.6,-.14,.16],pod:[.7,-.2,.4],duct:[.6,-.1,.34],bench:[.45,-.25,.2],shower:[.8,-.4,.35],pipes:[.55,-.35,.35],suits:[.5,-.35,.3]},
   tick(dt){ if(!this.in) return; const [ya,p0,p1]=this.LOOK[this.in.kind];
     // 틈 · 매트리스 아래 · 유리 너머 : 너무 멀리 고개를 돌리지 못하게

@@ -43,10 +43,10 @@ const clipOf=(clips,re)=>clips.find(c=>re.test(c.name));
    시신을 찢고 나온다(rise) → 기어 온다(crawl : 속도가 붙고 줄며 · 촉수가 먼저) → 3 m 안이면 얼굴로 뛰어오른다(leap)
    → 얼굴에 달라붙는다(grab : 입이 화면을 가득 채운다 · 피 한 칸 · F 또는 화면 연타로 떼어 낸다) → 바닥에 떨어져 버둥(stun) → 다시 기어 온다
    맞으면 움찔하며 밀려난다(hurt) · 세 발이면 죽는다(die : 터지고 오그라든다) */
-const LARVA=(()=>{ let proto=null; const hosts=[], list=[]; const L={hosts,list,on:false,onKill:null,YAW:Math.PI,SIZE:.9,HP:3,grab:null,FACE:{size:2.2,tilt:-.8,y:-.01,z:-.3}};      // 머리(부리)가 모델의 −z
+const LARVA=(()=>{ let proto=null; const hosts=[], list=[]; const L={hosts,list,pend:0,on:false,onKill:null,YAW:Math.PI,SIZE:.9,HP:3,grab:null,FACE:{size:2.2,tilt:-.8,y:-.01,z:-.3}};      // 머리(부리)가 모델의 −z
   L.host=function({x,z,y=0,near=5.5}){ const h={x,z,y,near,done:false}; hosts.push(h); return h; };
-  L.left=()=>hosts.filter(h=>!h.done).length+list.filter(l=>l.state!=='dead').length;
-  L.clear=()=>{ if(L.grab) release(L.grab,false); list.forEach(l=>{ l.state='dead'; l.wrap.parent&&l.wrap.parent.remove(l.wrap); }); list.length=0; hosts.length=0; L.on=false; GUN.targets.length=0; };
+  L.left=()=>L.pend+hosts.filter(h=>!h.done).length+list.filter(l=>l.state!=='dead').length;
+  L.clear=()=>{ if(L.grab) release(L.grab,false); list.forEach(l=>{ l.state='dead'; l.wrap.parent&&l.wrap.parent.remove(l.wrap); }); list.length=0; hosts.length=0; L.pend=0; L.on=false; GUN.targets.length=0; };
   // 살 : 어둡고 젖은 느낌 (밝은 분홍에 격자가 또렷하면 칼집 낸 햄처럼 보인다) — 색을 낮추고 · 결(노멀)을 죽이고 · 빛 반사는 좁게
   function wetFlesh(s){ s.traverse(o=>{ if(!o.isMesh||!o.material) return; const m=o.material; m.metalness=0; m.side=THREE.DoubleSide; if(m.normalScale) m.normalScale.setScalar(.4);
       if(/Body/.test(m.name)){ m.color.setRGB(.9,.6,.55); m.roughness=.48;
@@ -66,20 +66,25 @@ const LARVA=(()=>{ let proto=null; const hosts=[], list=[]; const L={hosts,list,
   function play(l,k,{once=false,fade=.2,speed=1}={}){ const a=l.A[k]; if(!a) return; a.timeScale=speed; if(l.cur===a&&!once) return; a.reset(); a.setLoop(once?THREE.LoopOnce:THREE.LoopRepeat,Infinity); a.clampWhenFinished=once; a.play(); if(l.cur&&l.cur!==a) l.cur.crossFadeTo(a,fade,false); l.cur=a; }
   // 시신을 찢고 나온다 : 피 · 살점이 튀며 → 작게 웅크렸다가 몸을 일으킨다
   async function burst(h){ h.done=true; const p=new THREE.Vector3(h.x,h.y+.3,h.z); SFX.play('burst',{at:p}); BLOOD.spray(p,50,3.4); BLOOD.pool(h.x,h.z,1.2); FX.shake(.25,.03);
-    const l=await spawn(h.x,h.z,h.y); l.wrap.rotation.y=Math.atan2(P.x-h.x,P.z-h.z); play(l,'bite',{once:true,fade:0}); l.state='rise'; l.t=.9; l.wrap.scale.setScalar(.2);
+    L.pend++; const l=await spawn(h.x,h.z,h.y).finally(()=>L.pend--); l.wrap.rotation.y=Math.atan2(P.x-h.x,P.z-h.z); play(l,'bite',{once:true,fade:0}); l.state='rise'; l.t=.9; l.wrap.scale.setScalar(.2);
     if(!L.seen){ L.seen=true; L.onFirst&&L.onFirst(l); } return l; }
   // 맞음 : 세 발째에 죽는다 — 그 전엔 움찔 · 밀려남 · 비명 · 녹색 체액
   function hit(l,p,d){ if(l.state==='dead') return; const at=p||l.wrap.getWorldPosition(new THREE.Vector3());
     BLOOD.spray(at,18,2.2,0xd8ff70); l.hp--; GUN.marker&&GUN.marker(l.hp<=0);
     if(l.state==='grab'){ release(l,true); if(l.hp>0) return; }
     if(l.hp<=0) return die(l,at,d);
-    SFX.play('larva_hurt',{at}); l.state='hurt'; l.t=.5; l.spd=0; if(d) l.kb.set(d.x,0,d.z).normalize().multiplyScalar(2.6); play(l,'back',{once:true,fade:.05,speed:1.6}); }
+    SFX.play('larva_hurt',{at}); l.state='hurt'; l.t=.5; l.spd=0; l.wrap.rotation.x=l.wrap.rotation.z=0; if(d) l.kb.set(d.x,0,d.z).normalize().multiplyScalar(2.6); play(l,'back',{once:true,fade:.05,speed:1.6}); }
   function die(l,p,d){ l.state='dead'; play(l,'die',{once:true,fade:.05}); SFX.play('larva_die',{at:p});
     BLOOD.spray(p,40,3,0xd8ff70); const g=BLOOD.pool(l.wrap.position.x,l.wrap.position.z,.9); g.material=g.material.clone(); g.material.color.setRGB(.5,.8,.2);
     if(d) l.kb.set(d.x,0,d.z).normalize().multiplyScalar(1.8);
-    let t=0; const f=dt=>{ t+=dt; l.wrap.position.addScaledVector(l.kb,dt); l.kb.multiplyScalar(1-Math.min(1,dt*5)); if(t>2.5){ const k=Math.min(1,(t-2.5)/2); l.wrap.scale.setScalar(1-k*.5); l.wrap.position.y=-k*.12; }
+    let t=0; const f=dt=>{ t+=dt; const w=l.wrap.position, y0=floorAt(w.x,w.z); knock(l,dt,5); l.wrap.rotation.x*=1-Math.min(1,dt*6); if(t<=2.5) w.y=Math.max(y0,w.y-dt*3.2); else { const k=Math.min(1,(t-2.5)/2); l.wrap.scale.setScalar(1-k*.5); w.y=y0-k*.12; }
       if(t>4.5){ TICK.splice(TICK.indexOf(f),1); WORLD.remove(l.wrap); const i=list.indexOf(l); if(i>=0) list.splice(i,1); } }; TICK.push(f);
     L.onKill&&L.onKill(L.left()); }
+  // 밀려나기 : 벽에 막히면 선다 (벽 너머 · 선체 밖으로 밀려나 잡을 수 없게 되던 것 — 4.18)
+  function knock(l,dt,k){ const w=l.wrap.position, nx=w.x+l.kb.x*dt, nz=w.z+l.kb.z*dt; if(SOLID.hit(nx,nz,w.y+.12,w.y+.45,.15)) l.kb.set(0,0,0); else { w.x=nx; w.z=nz; } l.kb.multiplyScalar(1-Math.min(1,dt*k)); }
+  // 내 앞 바닥 : 막히기 전까지만 (최대 far m)
+  function ahead(far){ const d=camera.getWorldDirection(new THREE.Vector3()); d.y=0; d.normalize(); let k=0; while(k<far&&!SOLID.hit(P.x+d.x*(k+.1),P.z+d.z*(k+.1),P.y+.12,P.y+.5,.2)) k+=.1; return [P.x+d.x*k,P.z+d.z*k]; }
+  function drop(l,x,z,t){ l.wrap.position.set(x,floorAt(x,z),z); l.wrap.rotation.set(0,Math.atan2(P.x-x,P.z-z),0); l.state='stun'; l.t=t; l.cd=3.5; l.spd=0; l.kb.set(0,0,0); play(l,'back',{once:true,fade:.05}); }
   // 얼굴로 뛰어오른다 : 바닥에서 눈높이로 포물선 (0.45 초) → 달라붙는다
   function leap(l){ l.state='leap'; l.lt=0; l.p0=l.wrap.position.clone(); play(l,'bite',{once:true,fade:.05,speed:1.3}); SFX.play('larva_leap',{at:l.p0}); }
   function grab(l){ L.grab=l; l.state='grab'; l.need=5; l.t=0; l.bit=0; l.jx=0; WORLD.remove(l.wrap); camera.add(l.wrap); l.wrap.scale.setScalar(L.FACE.size); l.wrap.rotation.set(L.FACE.tilt,Math.PI,0);      // 입이 나를 본다 (빨판 촉수가 양옆으로 화면을 덮는다)
@@ -96,19 +101,23 @@ const LARVA=(()=>{ let proto=null; const hosts=[], list=[]; const L={hosts,list,
   // 떼어 내기 : 연타 한 번마다 흔들림 — 다 채우면 바닥으로 내던진다
   L.struggle=function(){ const l=L.grab; if(!l) return false; l.need--; FX.shake(.15,.05); SFX.play('struggle'); l.jx=(Math.random()-.5)*.09; if(l.need<=0) release(l,true); return true; };
   function release(l,thrown){ L.grab=null; if(l.over){ l.over.stop(); l.over.setEffectiveWeight(1); l.over=null; } FXEL('grabfx').classList.remove('on'); camera.remove(l.wrap); WORLD.add(l.wrap); l.wrap.scale.setScalar(1); GUN.face(false); belly().visible=false; if(l.state==='dead') return;
-    const d=camera.getWorldDirection(new THREE.Vector3()); d.y=0; d.normalize(); const [x,z]=freeSpot(P.x+d.x*1.7,P.z+d.z*1.7,{r:.2,y1:.1,y2:.5});
-    l.wrap.position.set(x,floorAt(x,z),z); l.wrap.rotation.set(0,Math.atan2(P.x-x,P.z-z),0); l.state='stun'; l.t=1.4; l.cd=3.5; l.spd=0; play(l,'back',{once:true,fade:.05}); if(thrown) SFX.play('thrown',{at:l.wrap.position}); }
-  L.tick=function(dt){ for(const l of list) l.mixer.update(dt*(l.state==='crawl'?.6+l.spd*.35:1)); if(!L.on||S.phase!=='play') return;
+    drop(l,...ahead(1.7),1.4); if(thrown) SFX.play('thrown',{at:l.wrap.position}); }
+  // 죽고 다시 : 붙은 것을 떼고 · 하던 짓(뛰어오르는 중 …)을 끊고 · 저장 지점(c) 9 m 안의 것은 다른 시신 자리로 (아무 데나 옮기면 벽 속 · 선체 밖에 놓였다 — 4.18)
+  L.back=function(c){ if(L.grab) release(L.grab,false); const far=hosts.filter(h=>Math.hypot(h.x-c.x,h.z-c.z)>=9);
+    for(const l of list){ if(l.state==='dead') continue; const w=l.wrap.position; if(l.wrap.parent!==WORLD){ camera.remove(l.wrap); WORLD.add(l.wrap); } l.wrap.scale.setScalar(1); l.wrap.rotation.x=l.wrap.rotation.z=0; l.kb.set(0,0,0); l.spd=0; l.cd=4; l.t=0; l.state='crawl'; play(l,'crawl');
+      if(Math.hypot(w.x-c.x,w.z-c.z)<9&&far.length){ const open=far.filter(h=>!list.some(o=>o!==l&&o.state!=='dead'&&Math.hypot(o.wrap.position.x-h.x,o.wrap.position.z-h.z)<2)), h=(open.length?open:far).reduce((a,b)=>Math.hypot(a.x-w.x,a.z-w.z)<=Math.hypot(b.x-w.x,b.z-w.z)?a:b), [x,z]=freeSpot(h.x,h.z,{r:.25,y1:.1,y2:.5}); w.x=x; w.z=z; } w.y=floorAt(w.x,w.z); } };
+  // 대화가 떠 있는 동안에는 멈춘다 (나는 움직일 수도 쏠 수도 없다 — 4.18)
+  L.tick=function(dt){ for(const l of list) l.mixer.update(dt*(l.state==='crawl'?.6+l.spd*.35:1)); if(!L.on||S.phase!=='play'||TALK.on) return;
     for(const h of hosts){ if(h.done) continue; const d=Math.hypot(P.x-h.x,P.z-h.z); if(d<2.6||d<h.near&&clearShot(new THREE.Vector3(h.x,h.y+1,h.z),camera.position)) burst(h); }
     const eye=camera.getWorldPosition(new THREE.Vector3());
     for(const l of list){ if(l.state==='dead') continue; const w=l.wrap.position, dx=P.x-w.x, dz=P.z-w.z, d=Math.hypot(dx,dz); l.t-=dt; l.cd-=dt;
       if(l.state==='rise'){ l.wrap.scale.setScalar(Math.min(1,l.wrap.scale.x+dt*1.2)); if(l.t<=0){ l.state='crawl'; play(l,'crawl'); } continue; }
-      if(l.state==='hurt'||l.state==='stun'){ w.addScaledVector(l.kb,dt); l.kb.multiplyScalar(1-Math.min(1,dt*6)); if(l.t<=0){ l.state='crawl'; play(l,'crawl',{fade:.3}); } continue; }
+      if(l.state==='hurt'||l.state==='stun'){ knock(l,dt,6); w.y=Math.max(floorAt(w.x,w.z),w.y-dt*3.2); if(l.t<=0){ l.state='crawl'; play(l,'crawl',{fade:.3}); } continue; }
       if(l.state==='crawl'){ l.spd=lerp(l.spd,d<1.2?.4:2.2,Math.min(1,dt*2.2)); steer(l.wrap,P.x,P.z,l.spd,dt,{r:.18,y1:.12,y2:.45,turn:5}); w.y=lerp(w.y,floorAt(w.x,w.z),Math.min(1,dt*8));
         l.hiss-=dt; if(l.hiss<=0){ l.hiss=1.8+Math.random()*2.5; if(d<14) SFX.play('larva_hiss',{at:w}); }
-        if(d<3.4&&l.cd<=0&&!L.grab&&!ME.dead&&!HIDE.in&&clearShot(new THREE.Vector3(w.x,.6,w.z),eye)) leap(l); continue; }
+        if(d<3.4&&l.cd<=0&&!L.grab&&!list.some(o=>o.state==='leap')&&!ME.dead&&!HIDE.in&&!HIDE.busy&&clearShot(new THREE.Vector3(w.x,.6,w.z),eye)) leap(l); continue; }
       if(l.state==='leap'){ l.lt+=dt; const k=Math.min(1,l.lt/.45), tgt=eye.clone().add(camera.getWorldDirection(new THREE.Vector3()).multiplyScalar(.4)); w.lerpVectors(l.p0,tgt,k*k); w.y+=Math.sin(k*Math.PI)*.45-.25*k;
-        l.wrap.rotation.y=Math.atan2(P.x-w.x,P.z-w.z); l.wrap.rotation.x=-k*.9; if(k>=1) grab(l); continue; }
+        l.wrap.rotation.y=Math.atan2(P.x-w.x,P.z-w.z); l.wrap.rotation.x=-k*.9; if(k>=1){ if(L.grab||ME.dead||HIDE.in||HIDE.busy) drop(l,...ahead(.7),.9); else grab(l); } continue; }      // 이미 하나 붙었거나 · 그 사이 숨었으면 발치에 떨어진다 (둘이 붙으면 하나가 영영 안 떨어졌다 — 4.18)
       if(l.state==='grab'){ l.wrap.rotation.x=L.FACE.tilt+Math.sin(S.t*8)*.05; l.wrap.rotation.z=Math.sin(S.t*5.3)*.04; fitFace(l); l.bit+=dt; if(l.bit>2.4){ l.bit=0; ME.hurt(1); FX.shake(.4,.07); SFX.play('bite'); } } } };
   L.proto=()=>proto||(proto=loadRig('larva',{drop:/^Eyes$/,pose:/Swim_Forward/}).then(wetFlesh)); L.burst=burst; L.spawn=spawn; return L; })();
 
@@ -198,7 +207,8 @@ const BEAST=(()=>{ let proto=null; const list=[]; const B={list,H:2.55};
     b.duct=true; b.wrap.visible=false; b.wrap.scale.setScalar(1); THUD(.5); AUDIO.noise(.3,.3,0,1200); return true; };
   // 매 프레임 : 천장이 낮은 곳(복도 2.3 m · 문)에서는 네 발로 긴다 — 선 키(2.55 m)로는 천장을 뚫는다 · 넓은 방(기관실 · 라운지)에서는 일어서 걷고 뛴다
   B.rest=function(b){ if(b.low&&b.A.crawl){ B.play(b,'crawl'); b.A.crawl.timeScale=.12; } else B.play(b,'idle'); };
-  B.tick=function(dt){ for(const b of list){ b.mixer.update(dt); B.tentTick(b,dt); B.weakTick(b,dt); if(b.duct) continue; if(b.tough){ b.calmT=(b.calmT||0)+dt; if(b.calmT>6){ b.tough=0; b.calmT=0; } } if(b.stun>0){ b.stun-=dt; b.calmT=0; continue; }
+  B.tick=function(dt){ for(const b of list){ const hold=TALK.on&&!!b.path; b.mixer.update(hold?0:dt); B.tentTick(b,dt); B.weakTick(b,dt); if(b.duct) continue; if(b.tough){ b.calmT=(b.calmT||0)+dt; if(b.calmT>6){ b.tough=0; b.calmT=0; } } if(b.stun>0){ b.stun-=dt; b.calmT=0; continue; } if(hold) continue;      // 대화가 떠 있는 동안에는 다가오지 않는다 (4.18)
+   
     const w=b.wrap.position; b.lowT=(b.lowT||0)-dt; if(b.lowT<=0){ b.lowT=.2; b.low=!!SOLID.g&&SOLID.hit(w.x,w.z,w.y+2.05,w.y+2.75,.65); }
     if(b.path){ const want=b.low&&b.A.crawl?'crawl':b.move; if(b.A[want]&&b.cur!==b.A[want]) B.play(b,want); if(b.low&&b.A.crawl) b.A.crawl.timeScale=clamp(b.speed/1.5,.9,2.4);
       const [tx,tz]=b.path[0], left=steer(b.wrap,tx,tz,b.speed,dt,b.low?{r:.3,y1:.3,y2:1.15,turn:6}:{r:.32,y1:.45,y2:1.9,turn:5}), gy=SOLID.top(w.x,w.z,w.y+.5,.2); w.y+=((gy===null?floorAt(w.x,w.z):Math.max(gy,floorAt(w.x,w.z)))-w.y)*Math.min(1,dt*8);      // 턱 · 원자로 단을 오른다

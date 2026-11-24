@@ -165,8 +165,9 @@ const PICK=new THREE.MeshBasicMaterial({transparent:true,opacity:0,depthWrite:fa
 function pick(nx,ny){ ray.setFromCamera(new THREE.Vector2(nx,ny),camera); ray.camera=camera; const list=INTER.filter(i=>i.mesh.visible!==false&&(!i.enabled||i.enabled()));
   const hits=ray.intersectObjects(list.map(i=>i.mesh),true);
   for(const h of hits){ let o=h.object; while(o){ const it=list.find(i=>i.mesh===o); if(it) return h.distance<=(it.range||2.6)?it:null; o=o.parent; } } return null; }
-function tapAt(cx,cy){ if(!P.free||S.busy) return; const it=pick(cx/innerWidth*2-1,-(cy/innerHeight)*2+1); if(it){ AUDIO.click(); it.fn(); } }
-function tryInteract(){ if(!P.free||S.busy) return; const it=hot||pick(0,0); if(it){ AUDIO.click(); it.fn(); } }
+const faceOn=()=>typeof LARVA!=='undefined'&&!!LARVA.grab;      // 2부 : 애벌레가 얼굴에 붙은 동안 (연타가 옷장 · 문까지 누르지 않게)
+function tapAt(cx,cy){ if(!P.free||S.busy||faceOn()) return; const it=pick(cx/innerWidth*2-1,-(cy/innerHeight)*2+1); if(it){ AUDIO.click(); it.fn(); } }
+function tryInteract(){ if(!P.free||S.busy||faceOn()) return; const it=hot||pick(0,0); if(it){ AUDIO.click(); it.fn(); } }
 $('#act').addEventListener('pointerdown',e=>{ e.stopPropagation(); tryInteract(); });
 // 조사 대상 붙이기 : mesh(또는 IT_ 이름), 이름표, 동작
 function interact(mesh,name,fn,o={}){ if(typeof mesh==='string') mesh=LEVEL.items[mesh]; if(!mesh) return null; const it={mesh,name,fn,range:o.range,enabled:o.enabled}; INTER.push(it); return it; }

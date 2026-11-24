@@ -84,16 +84,16 @@ const GAME={part:2, cp:null,
       { let best=0, ang=0; for(let i=0;i<12;i++){ const a=i/12*6.283+ry; let t=.6; while(t<5.5&&!SOLID.hit(x+Math.sin(a)*t,z+Math.cos(a)*t,.05,.6,.2)) t+=.25; if(t>best){ best=t; ang=a; } } if(best>1.4) BLOOD.trail(x+Math.sin(ang)*.3,z+Math.cos(ang)*.3,ang,Math.min(best-.3,3.2+Math.random()*1.6),.5+Math.random()*.25); }
       BLOOD.scraps(x,z,8,RAGS[k]);
       this.hosts.push(LARVA.host({x,z,near:k==='a'?4.5:5.2})); } },
-  // 죽으면 : 마지막 저장 지점부터
-  async died(){ S.phase='cut'; P.free=false; SCREAM(.5); await fade(true,1400); ME.setCrouch(false); HIDE.reset(); if(LARVA.grab) LARVA.struggle&&(LARVA.grab.need=0,LARVA.struggle());
-    const c=this.cp||{x:50.43,z:7,yaw:Math.PI}; warp(c.x,c.z,c.yaw); ME.heal();
-    LARVA.list.forEach(l=>{ if(l.state!=='dead'&&Math.hypot(l.wrap.position.x-c.x,l.wrap.position.z-c.z)<8){ const a=Math.random()*6; l.wrap.position.x=c.x+Math.sin(a)*9; l.wrap.position.z=c.z+Math.cos(a)*9; } });
+  // 죽으면 : 마지막 저장 지점부터 — 몸(눈높이 · 걸음) · 손전등 · 숨기 · 애벌레 · 성체를 모두 처음 상태로 (4.18)
+  async died(){ if(this.dying) return; this.dying=true; S.phase='cut'; P.free=false; HIDE.n++; camAnim=null; SCREAM(.5); await fade(true,1400);
+    const c=this.cp||{x:50.43,z:7,yaw:Math.PI}; HIDE.reset(); ME.setCrouch(false); P.eye=1.66; P.speed=2.2; P.look=false; P.jump=false; FX.black(0); GUN.aimT=0; LARVA.back(c); FXEL('grabfx').classList.remove('on'); GUN.face(false);
+    warp(c.x,c.z,c.yaw); ME.heal();
     if(c.reset) await c.reset(); else if(STALK.on) STALK.reset(20);
-    await sleep(500); await fade(false,1200); toast('다시 — 마지막 저장 지점',2200); S.phase='play'; P.free=true; },
+    await sleep(500); camAnim=null; await fade(false,1200); toast('다시 — 마지막 저장 지점',2200); S.phase='play'; P.free=true; this.dying=false; },
   save(x,z,yaw,reset){ this.cp={x,z,yaw,reset}; },
 
   /* ---- ② 1호 에어록 → 복도 ---- */
-  async board(){ const f=S.flags; warp(50.43,6.6,Math.PI); this.save(50.43,6.6,Math.PI); await fade(false,1800); S.phase='play'; P.free=true;
+  async board(){ const f=S.flags; warp(50.43,6.6,Math.PI); P.eye=1.66; P.look=false; P.pinY=false; this.save(50.43,6.6,Math.PI); await fade(false,1800); S.phase='play'; P.free=true;
     // 우주복을 입고 건너왔다 (scenes/flight.js) : VEGA 가 1호 안의 공기를 재고 → 헬멧을 벗는다 (그제야 입김이 보인다)
     if(HELMET.is){ await TALK.say([VG('기압 정상. 산소 19 퍼센트. 독성 기체 없음. 숨 쉴 수 있습니다, 크리스.'),I('…믿는다, VEGA.')]); SFX.play('airlock',{vol:.5}); SFX.play('cloth'); HELMET.on(false); await sleep(1100); }
     await TALK.say([I('…춥다. 입김이 나.'),VG('1호 비상 전력 0. 모든 문이 열린 채입니다. 생명 신호는 배 앞쪽, 동면 구역 C 입니다.'),I('손전등뿐이군.')]);
@@ -111,13 +111,13 @@ const GAME={part:2, cp:null,
     const LE=t=>({who:'레아',t,npc:le}), MUT=['…차가워야 해… 차가우면 잠들어…','…움직여… 안에서 움직여…','…쏘지 마… 나 아직… 나야…'];
     { let k=0, cd=0; const fn=dt=>{ if(f.leahFound||!PEOPLE.list.includes(le)) return TICK.splice(TICK.indexOf(fn),1); cd-=dt; if(cd>0) return; if(Math.hypot(P.x-lx,P.z-lz)<9&&!TALK.on){ cd=6; TALK.say([LE(MUT[k++%MUT.length])]); } }; TICK.push(fn); }
     await new Promise(res=>PEOPLE.talkable(le,()=>{ if(f.leahFound) return; f.leahFound=true; res(); }));
-    this.save(27,6.8,0);
+    this.save(28.5,10.5,.69);      // 문 앞 복도 — 방 안이면 되살아나자마자 옆(3 m) 시신에서 깨어났다 (4.18)
     S.phase='cut'; P.free=false; ME.setCrouch(false); await camTo({x:lx+.9,z:lz-.6,yaw:yawTo(lx,lz-1.3),pitch:-.75,eye:1.55},1); P.look=true;
     await TALK.say([I('…레아 문? 1호 생물학자, 레아 문.'),LE('…누구…'),I('구조하러 왔어요. NASA, 크리스. 혼자예요.'),LE('…혼자… 다행이다… 다른 사람은 데려오지 마…'),
       I('무슨 일이 있었던 거예요. 다른 대원들은?'),LE('…그게 우리를 먹었어. 하나씩. 그리고… 먹다 남긴 몸마다… 알을…'),LE('…나도야. 느껴져. 안에서— 아, 아아—')]);
     const larva=await this.birth(le); P.look=false;
     // 첫 사격 : 덮쳐 오는 애벌레
-    await TALK.say([VG('크리스! 쏘십시오!')]); goal(byDevice('쏴라 — F 또는 [사격]','쏴라 — [사격]')); S.phase='play'; P.free=true;
+    await TALK.say([VG('크리스! 쏘십시오!')]); goal(byDevice('쏴라 — F 또는 [사격]','쏴라 — [사격]')); P.eye=1.66; S.phase='play'; P.free=true;
     LARVA.on=true; await new Promise(r=>{ LARVA.onKill=()=>r(); });
     goal(''); await sleep(600);
     await TALK.say([I('…하아… 하아…'),VG('생체 반응… 늘어납니다. 일곱, 여덟… 1호 곳곳의 시신마다 하나씩입니다.'),
@@ -139,7 +139,7 @@ const GAME={part:2, cp:null,
   leahDead(){ const lx=24.5, lz=-5.0; this.leahBody(lx,lz).then(le=>{ le.wear.add([[.5,.68,.9,.11,'w'],[.5,.6,.85,.13,'b']]); le.wrap.rotation.x=-Math.PI/2+.12; }); BLOOD.pool(lx,lz-1,2.2); S.flags.leahFound=true; },
 
   /* ---- ④ 애벌레 사냥 ---- */
-  async hunt(){ const f=S.flags; S.phase='play'; P.free=true; LARVA.on=true; this.save(27,7.4,Math.PI);
+  async hunt(){ const f=S.flags; S.phase='play'; P.free=true; LARVA.on=true; this.save(28.5,10.5,.69);
     const show=n=>goal(n>0?'애벌레를 모두 없앤다 — 남은 생체 반응 '+n:'');
     show(LARVA.left()); toast('시신에 다가가면 깨어난다 — 쏴라',3000);
     await new Promise(res=>{ LARVA.onKill=n=>{ show(n); if(n===0) res(); else if(n===4) TALK.say([VG('절반입니다. 남은 반응 넷.')]); };
@@ -166,12 +166,14 @@ const GAME={part:2, cp:null,
         (async()=>{ S.phase='cut'; P.free=false; await lookAt(ex,1.2,ez,1); P.look=true;
           await TALK.say([I('…'),VG('(작게) 움직이지 마십시오. 저것이… 1호 대원들을…'),I('먹고 있다.'),VG('원자로 콘솔 둘은 입구 왼쪽과 오른쪽입니다. 웅크리면 덜 보입니다. 저것에게 들키면—'),I('알아.')]);
           P.look=false; S.phase='play'; P.free=true; ME.setCrouch(true); })(); }; TICK.push(seen); }
-    const watch=()=>{ if(!stop&&(BEAST.sees(b)&&Math.hypot(P.x-ex,P.z-ez)<6||b.stun>0||S.run)) wake(); }; TICK.push(watch);
-    this.save(54,10.5,Math.PI/2,async()=>{ STALK.stop(); stop=null; BEAST.reset(b); b.wrap.position.set(ex,0,ez); b.wrap.rotation.y=Math.PI/2; BEAST.play(b,'eat'); if(!TICK.includes(eat)) TICK.push(eat); });
+    // 달리는 소리 : 기관실 안에서 실제로 뛰어 움직일 때만 (달리기 단추가 켜져 있기만 해도 먼 복도에서 깨던 것 — 4.18)
+    const watch=()=>{ if(stop||S.phase!=='play'||TALK.on) return; const D=Math.hypot(P.x-ex,P.z-ez), run=(S.run||keys.ShiftLeft||keys.ShiftRight)&&Math.hypot(P.vx,P.vz)>2.6&&SHIP.zoneAt(P.x,P.z)==='engine'&&D<11;
+      if(BEAST.sees(b)&&D<6||b.stun>0||run) wake(); }; TICK.push(watch);
+    this.save(54,10.5,-Math.PI/2,async()=>{ STALK.stop(); stop=null; BEAST.reset(b); b.wrap.position.set(ex,0,ez); b.wrap.rotation.y=Math.PI/2; BEAST.play(b,'eat'); if(!TICK.includes(eat)) TICK.push(eat); });
     const cons=(R.consoles&&R.consoles.length?R.consoles:[]).slice(0,2); let done=0;
     goal('원자로 제어 콘솔 둘을 켠다 — 0 / 2');
     await Promise.all(cons.map((c,i)=>STORY.at(c,'원자로 제어 콘솔 — 켠다','',{range:2.4}).then(async()=>{ done++; AUDIO.tone(300+i*200,.4,'square',.05); AUDIO.noise(.8,.3,0,500); goal('원자로 제어 콘솔 둘을 켠다 — '+done+' / 2');
-      if(done===1){ TALK.say([VG('첫 번째 콘솔 응답. …소리가 컸습니다.')]); wake(); b.heard={x:P.x,z:P.z}; } })));
+      if(done===1){ await TALK.say([VG('첫 번째 콘솔 응답. …소리가 컸습니다.')]); wake(); b.heard={x:P.x,z:P.z}; } })));
     TICK.splice(TICK.indexOf(watch),1);
     this.lightsOn(); FX.shake(1.2,.03); AUDIO.tone(55,4,'sawtooth',.08,0,40);
     await TALK.say([VG('원자로 재점화! 1호 전력 복구 — 12%, 30%…'),VG('함교 조종석으로 가십시오, 크리스. 거기서 1호를 움직일 수 있습니다!'),VG('전력이 돌아와 문이 움직입니다. 함교에 들어가면 문부터 닫아 잠그십시오 — 문 안쪽 제어판입니다.')]);
@@ -182,7 +184,7 @@ const GAME={part:2, cp:null,
   async escape(){ const f=S.flags; S.phase='play'; P.free=true;
     if(!this.beast) this.beast=await BEAST.spawn({at:{x:57,z:18.5},face:-Math.PI/2,clip:'idle'});
     if(!STALK.on) await STALK.start({beast:this.beast,first:16,onCatch:()=>this.died()});      // 함교까지 가는 동안에도 찾아온다 — 소리가 나면 숨는다
-    this.save(50,10.5,-Math.PI/2,async()=>STALK.reset(18));
+    this.save(50,10.5,Math.PI/2,async()=>STALK.reset(18));
     // 함교 : 들어가서 문을 직접 닫아 잠가야 안전하다 (4.8 — 문도 안 닫았는데 '밀폐' 라던 것) → 그다음 함장석
     const d=SHIP.doors.bridge, b=this.beast, DZ=SHIP.DOORZ, cs=SHIP.rooms.bridge.spots.captain||{x:0,z:-1};
     const pn=new THREE.Group(), scr=new THREE.Mesh(new THREE.PlaneGeometry(.2,.26),new THREE.MeshBasicMaterial({color:0x6dffb0,toneMapped:false})); pn.add(new THREE.Mesh(new THREE.BoxGeometry(.3,.42,.06),new THREE.MeshStandardMaterial({color:0x20252b,metalness:.6,roughness:.5})),scr);
@@ -205,7 +207,7 @@ const GAME={part:2, cp:null,
       VG('1호, 출발합니다.')]);
     AUDIO.hum(1.4,34); FX.shake(2,.03); await sleep(1500); await fade(true,2200);
     await card('하위헌스 1호 — 웜홀로','이야기는 여기까지 (다음 : 웜홀 속에서)','분기점 · 문제는 사용자 지시를 기다린다',5200);
-    location.search=''; },
+    location.href=location.pathname; },
 };
 // 입김 : 작은 흰 안개가 퍼지며 사라진다
 function breath(p){ const t=BREATH_TEX(); const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:t,transparent:true,depthWrite:false,opacity:.0})); sp.position.copy(p); sp.scale.setScalar(.15); WORLD.add(sp);

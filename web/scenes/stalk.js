@@ -81,7 +81,7 @@ const STALK={on:false,b:null,state:'off',t:0,type:'hall',last:null,force:null,vi
   // 몸통에 맞았다 : 통하지 않는다 — 다만 내가 있는 걸 안다
   body(b){ if(b!==this.b||!this.on) return; if(!this.told.body){ this.told.body=1; toast('몸통은 통하지 않는다 — 빛나는 약점을 노려라',3200); } if(['warn','prowl','leave'].includes(this.state)&&!b.rout&&!HIDE.in) this.attack(b.enraged,true); },
   rout(){ const b=this.b; this.id++; this.busy=false; b.rout=true; b.mode='prowl'; this.ui(''); this.tell('rout'); SFX.play('beast_roar',{at:b.wrap.position,rate:1.5}); FX.shake(.3,.03); this.leave(false); },
-  go(x,z,speed,live,max=18){ const b=this.b; return Promise.race([BEAST.go(b,x,z,{speed,clip:speed>2.6?'run':'walk'}),new Promise(r=>{ let t=0; const f=dt=>{ t+=dt; if(t>max||!live()){ const i=TICK.indexOf(f); if(i>=0) TICK.splice(i,1); r(); } }; TICK.push(f); })]); },
+  go(x,z,speed,live,max=18){ const b=this.b; return Promise.race([BEAST.go(b,x,z,{speed,clip:speed>2.6?'run':'walk'}),new Promise(r=>{ let t=0; const f=dt=>{ if(!TALK.on) t+=dt; if(t>max||!live()){ const i=TICK.indexOf(f); if(i>=0) TICK.splice(i,1); r(); } }; TICK.push(f); })]); },
   // 숨은 곳 앞에서 서성인다 → 돌아간다
   async prowl(s){ const b=this.b, id=++this.id, live=()=>id===this.id&&this.on; this.state='prowl'; b.mode='prowl'; this.busy=false; this.ui('hide');
     const st=HIDE.stand(s); await this.go(st.x,st.z,1.5,live,16); if(!live()) return;
@@ -99,11 +99,11 @@ const STALK={on:false,b:null,state:'off',t:0,type:'hall',last:null,force:null,vi
   async found(s){ const b=this.b, id=++this.id, live=()=>id===this.id&&this.on; this.state='found'; b.mode='found'; const st=HIDE.stand(s); await this.go(st.x,st.z,3.1,live,10); if(!live()) return;
     BEAST.stop(b); const w=b.wrap.position; b.wrap.rotation.y=Math.atan2(s.x-w.x,s.z-w.z); SFX.play('found'); if(s.dl||s.lid||s.door) HIDE.doors(s,true,.25); if(s.suits) HIDE.sway(s,.2);
     await Promise.race([BEAST.play(b,'swipe',{once:true,fade:.05}),sleep(900)]); if(!live()) return; this.caught(); },
-  async grab(){ const b=this.b, id=++this.id, w=b.wrap.position; this.busy=true; BEAST.stop(b); b.wrap.rotation.y=Math.atan2(P.x-w.x,P.z-w.z); AUDIO.tone(700,.3,'sawtooth',.07,0,-300); BEAST.play(b,'swipe',{once:true,fade:.05}); P.free=false; await sleep(450); if(id!==this.id) return; this.caught(); },
+  async grab(){ const b=this.b, id=++this.id, w=b.wrap.position; this.busy=true; BEAST.stop(b); b.wrap.rotation.y=Math.atan2(P.x-w.x,P.z-w.z); AUDIO.tone(700,.3,'sawtooth',.07,0,-300); BEAST.play(b,'swipe',{once:true,fade:.05}); P.free=false; await sleep(450); if(id!==this.id){ if(this.state!=='caught'&&S.phase==='play'&&!HIDE.in&&!HIDE.busy) P.free=true; return; } this.caught(); },      // 잡히는 순간 다섯 발째를 맞히면 물러간다 — 그때 발이 묶인 채 남던 것 (4.18)
   // 잡혀간다
   caught(){ this.id++; this.busy=true; this.state='caught'; this.ui(''); FX.flash('#900000',900); SCREAM(.6); this.onCatch&&this.onCatch(); },
 
-  tick(dt){ if(!this.on||S.phase!=='play') return;
+  tick(dt){ if(!this.on||S.phase!=='play'||TALK.on) return;
     if(this.state==='away'){ if(!TALK.on&&!HIDE.busy) this.t-=dt; if(this.t<=0) this.come(); }
     else if(this.state==='warn') this.warn(dt);
     else if(this.state==='attack'||this.state==='prowl'||this.state==='leave') this.act(dt); },

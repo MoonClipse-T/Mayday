@@ -30,7 +30,9 @@ const STORY={
       if(m.emissive){ if(m.userData.ei===undefined) m.userData.ei=m.emissiveIntensity; m.emissiveIntensity=m.userData.ei*(on?.2:1); }
       else if(m.isMeshBasicMaterial&&m.color&&!m.map&&m.color.getHex()===0x9fd8ff){ if(!m.userData.c0) m.userData.c0=m.color.clone(); m.color.copy(m.userData.c0).multiplyScalar(on?.12:1); } }); },
   // 손전등 세기 (1 = 캄캄한 배 · .5 = 전력이 돌아온 뒤)
-  torch(k){ if(!this.spot) return; this.spot.intensity=(LITE?7:4.6)*k; if(this.hot) this.hot.intensity=4.6*k; },
+  //   tk = 지금 장면의 세기 · cv = 숨어서 손으로 가렸나 (4.18 : 숨기가 '숨기 전 밝기' 를 따로 외우다가, 숨은 적 없이 죽으면 0 으로 되돌려 손전등이 꺼졌다)
+  tk:0, cv:false, torch(k){ this.tk=k; this.lit(); }, cover(on){ this.cv=!!on; this.lit(); },
+  lit(){ if(!this.spot) return; const k=this.tk*(this.cv?.2:1); this.spot.intensity=(LITE?7:4.6)*k; if(this.hot) this.hot.intensity=4.6*k; },
   // 기다리기 : 물건을 누를 때까지
   wait(mesh,name,o={}){ return new Promise(res=>{ const it=interact(mesh,name,()=>{ if(!it.done){ it.done=true; INTER.splice(INTER.indexOf(it),1); res(); } },{range:o.range||3,enabled:o.enabled}); }); },
   // 위치에 닿을 때까지
@@ -105,7 +107,7 @@ const SQUELCH=(v=.2)=>{ AUDIO.noise(.35,v,0,700); AUDIO.tone(90,.3,'sine',v*.4,0
 const FX={
   black(op){ FXEL('blackout').style.opacity=op; },                          // 순간 암전 (1 = 완전히)
   flash(color='#ff2a10',ms=420){ const e=FXEL('flashfx'); e.style.transition='none'; e.style.background=color; e.style.opacity=.8; setTimeout(()=>{ e.style.transition=`opacity ${ms}ms`; e.style.opacity=0; },30); },
-  shake(dur=.5,amp=.06){ let t=0; const f=dt=>{ t+=dt; const k=amp*Math.max(0,1-t/dur); camera.position.x+=(Math.random()-.5)*k; camera.position.y+=(Math.random()-.5)*k; camera.rotation.z=(Math.random()-.5)*k*.6; if(t>dur){ camera.rotation.z=0; TICK.splice(TICK.indexOf(f),1); } }; TICK.push(f); },
+  shake(dur=.5,amp=.06){ let t=0; const f=dt=>{ t+=dt; const k=amp*Math.max(0,1-t/dur); camera.position.x+=(Math.random()-.5)*k; camera.position.y+=(Math.random()-.5)*k; camera.rotateZ((Math.random()-.5)*k*.6); if(t>dur) TICK.splice(TICK.indexOf(f),1); }; TICK.push(f); },      // 기울기는 더하기만 (도킹 때 함께 도는 화면이 바로 섰다가 다시 기울던 것 — 4.18)
   // 조명이 이따금 끊긴다 → 멈추는 함수
   flicker(){ let next=1+Math.random()*2, off=0; const f=dt=>{ if(off>0){ off-=dt; if(off<=0) FX.black(0); return; } next-=dt;
       if(next<=0){ next=1.5+Math.random()*3.5; off=.06+Math.random()*.14; FX.black(.88); AUDIO.noise(.08,.05,0,6000); } };
@@ -180,7 +182,7 @@ const ME={hp:3,max:3,crouch:false,dead:false,onDeath:null,
   // 웅크리기 : 눈높이 · 속도를 낮춘다 (가구 뒤에 숨으면 성체가 못 본다)
   setCrouch(on){ if(this.crouch===on) return; this.crouch=on; P.eye=on?1.0:1.66; P.speed=on?1.1:2.2; const b=$('#crouch'); if(b) b.classList.toggle('on2',on); },
 };
-addEventListener('keydown',e=>{ if(e.code==='KeyC'&&!e.repeat&&S.phase==='play'&&P.free) ME.setCrouch(!ME.crouch); });
+addEventListener('keydown',e=>{ if(e.code==='KeyC'&&!e.repeat&&S.phase==='play'&&P.free&&!S.busy) ME.setCrouch(!ME.crouch); });
 
 // 손에 든 것 (4.14 · 손 = scenes/hands.js) : 평소에는 왼손에 손전등 · 오른손에 권총 → 쏠 때는 왼손을 오른손 아래에 받친다 (잠시 뒤 다시 내린다)
 //   F 키 · [사격] 단추. 맞히면 GUN.targets 의 hit(t) 를 부른다 · 손전등 빛은 왼손에서 나간다 (STORY.dark)
@@ -201,7 +203,7 @@ const GUN={held:null,kick:0,cool:0,targets:[],aim:0,aimT:0,
       L.position.lerpVectors(C,D,e); L.position.x+=Math.cos(b*.5+1)*.007*w; L.position.y+=Math.sin(b+1.4)*.008*w+this.kick*.018*e; L.position.z+=this.kick*.045*e; L.quaternion.copy(this.LQ0).slerp(this.LQ1,e); });
     let b=$('#fire'); if(!b){ b=document.createElement('button'); b.id='fire'; b.className='ring'; b.textContent='사격'; $('#hud').appendChild(b); b.addEventListener('pointerdown',e=>{ e.stopPropagation(); GUN.shoot(); }); }
     b.classList.add('on');
-    let c=$('#crouch'); if(!c){ c=document.createElement('button'); c.id='crouch'; c.className='ring small'; c.textContent='웅크림'; $('#hud').appendChild(c); c.addEventListener('pointerdown',e=>{ e.stopPropagation(); ME.setCrouch(!ME.crouch); AUDIO.click(); }); }
+    let c=$('#crouch'); if(!c){ c=document.createElement('button'); c.id='crouch'; c.className='ring small'; c.textContent='웅크림'; $('#hud').appendChild(c); c.addEventListener('pointerdown',e=>{ e.stopPropagation(); if(S.phase!=='play'||!P.free||S.busy) return; ME.setCrouch(!ME.crouch); AUDIO.click(); }); }
     c.classList.add('on');
     if(!this.fk){ this.fk=true; addEventListener('keydown',e=>{ if(e.code==='KeyF'&&!e.repeat) GUN.shoot(); }); } },
   // 애벌레가 얼굴에 붙으면 : 총은 가려지고 · 그 빛이 얼굴 앞의 살을 비춘다 (빛 개수를 바꾸면 화면이 멈칫하니 옮기기만 한다)
@@ -210,10 +212,10 @@ const GUN={held:null,kick:0,cool:0,targets:[],aim:0,aimT:0,
   // 쏘기 : 화면 가운데로 · 가장 가까운 과녁 (과녁 = {center():Vector3, r, hit(), alive()})
   // 맞힌 표시 : 조준점이 잠깐 빨갛게 (죽이면 더 크게)
   marker(kill){ const r=$('#reticle'); r.classList.remove('hit','kill'); void r.offsetWidth; r.classList.add(kill?'kill':'hit'); setTimeout(()=>r.classList.remove('hit','kill'),kill?420:180); },
-  shoot(){ if(typeof LARVA==='undefined') return; if(LARVA.grab){ LARVA.struggle(); return; } if(!this.held||S.phase!=='play'||TALK.on||this.cool>0||HIDE.in) return;
+  shoot(){ if(typeof LARVA==='undefined') return; if(LARVA.grab){ LARVA.struggle(); return; } if(!this.held||S.phase!=='play'||TALK.on||this.cool>0||HIDE.in||HIDE.busy) return;
     // 왼손이 먼저 받친다 (내려 들고 있었으면 0.12 초 뒤에 나간다) — 1.6 초 동안 겨눈 자세
     this.aimT=1.6; if(this.aim<.75){ this.cool=.2; setTimeout(()=>this.fire(),120); return; } this.fire(); },
-  fire(){ if(!this.held||S.phase!=='play'||TALK.on) return; this.cool=.32; this.kick=1; this.aimT=1.6;
+  fire(){ if(!this.held||S.phase!=='play'||TALK.on||HIDE.in||HIDE.busy||LARVA.grab) return; this.cool=.32; this.kick=1; this.aimT=1.6;
     SFX.play('shot');
     const o=camera.getWorldPosition(new THREE.Vector3()), d=camera.getWorldDirection(new THREE.Vector3());
     let hit=null, best=40, bp=-1;      // 과녁 고르기 : prio 가 높은 것(성체의 약점) 먼저 · 같으면 가까운 것
