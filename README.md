@@ -4,8 +4,8 @@
 NASA 긴급 브리핑(프롤로그)에서 시작해, 크리스는 혼자 1인 구조정을 타고 웜홀 너머 하위헌스 1호를 찾아간다. 1호는 이미 전멸했고, 시신마다 애벌레가 들어 있다. 총으로 애벌레를 없애고, 성체를 피해 숨고 도망치며, 1호를 몰고 웜홀로 돌아와야 한다. (4판 · 2026-11-03 — 동료 · 장 구분 · 문제는 뺐다. 문제는 나중에 하나씩 끼운다)
 
 - **1부** (1호를 찾기까지): https://moonclipse-t.github.io/Mayday/
-- **2부 「열세 번째 대원」** (1호를 찾고 돌아가기까지): https://moonclipse-t.github.io/Mayday/thirteenth.html
-- 고치는 중엔 `&dev` 를 붙이면 캐시 없이 받는다 · 올릴 때는 index.html 과 thirteenth.html 의 `window.V` 를 **둘 다** 같은 번호로 올린다
+- **2부 「Mayday_The Atrox」** (1호를 찾고 돌아가기까지): https://moonclipse-t.github.io/Mayday/atrox.html
+- 고치는 중엔 `&dev` 를 붙이면 캐시 없이 받는다 · 올릴 때는 index.html 과 atrox.html 의 `window.V` 를 **둘 다** 같은 번호로 올린다
 - 제작용 바로 가기 `?s=` : `meeting`(처음 · 브리핑) · `launch`(발사) · `depart`(지구 궤도) · `jupiter`(목성 · 웜홀) · `cockpit`(웜홀 건너편 비행) · `board`(1호 에어록) · `survivor`(생존자) · `hunt`(애벌레 사냥) · `engine`(기관실 · 성체) · `bridge`(함교 · 출발)
 - 이야기 · 흐름: [STORY.md](STORY.md)
 - 별과 우주 아카이브 : 1부 · 2부 모두 '준비 중' (2026-11-24). 열 때는 아카이브 소스 EXTRAS 의 `url` 을 1부부터 채운다 (2부부터 하는 일이 없게).
@@ -18,7 +18,7 @@ NASA 긴급 브리핑(프롤로그)에서 시작해, 크리스는 혼자 1인 �
 ## 폴더 (이 폴더 = GitHub 저장소 Mayday, OneDrive 에도 그대로)
 ```
 index.html            1부 화면 틀 (바이저 HUD · 교신 자막 · 장 카드 · 시작 화면)
-thirteenth.html       2부 「열세 번째 대원」 화면 틀 (같은 틀 · 불러오는 파일만 다르다)
+atrox.html       2부 「Mayday_The Atrox」 화면 틀 (같은 틀 · 불러오는 파일만 다르다)
 web/
   engine.js           엔진 : 이동 · 충돌 · 조사 · 교신 자막 TALK · 장 카드 · LEVEL(맵) · SOLID(몸 충돌 칸)
   people.js           실사 인물 (생존자 레아) : 뼈로 자세 · 숨쉬기 · 턱

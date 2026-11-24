@@ -1,10 +1,10 @@
 /* ============================================================
-   MAYDAY 2부 「열세 번째 대원」 (4.13 · thirteenth.html) — 1호를 찾고 나서 돌아가기까지
+   2부 「Mayday_The Atrox」 (4.13 · atrox.html) — 1호를 찾고 나서 돌아가기까지
    시작 화면 뒤에서 1호를 미리 불러온다 → [1호로 들어간다] → 지난 이야기 → 제목 → 에어록 (우주복을 입은 채)
    ② 1호 : 암흑 · 손전등 · 찢긴 시신 · 피 → ③ 동면 구역 C 의 생존자 레아 → 가슴에서 애벌레 → 첫 사격
    ④ 애벌레 사냥 (시신마다 하나) → ⑤ 기관실 원자로 재가동 · 시신을 먹던 성체 → 숨고 · 도망쳐 ⑥ 함교 → 1호를 몰고 웜홀로 (다음 이야기 : 사용자 지시 대기)
    1부(회의 → 발사 → 웜홀 → 도킹)는 scenes/part1.js (index.html)
-   저장 지점 : 죽으면 그 자리부터 (GAME.cp) · 제작용 바로 가기 thirteenth.html?s=board · survivor · hunt · engine · bridge · stalk
+   저장 지점 : 죽으면 그 자리부터 (GAME.cp) · 제작용 바로 가기 atrox.html?s=board · survivor · hunt · engine · bridge · stalk
    ============================================================ */
 'use strict';
 // 시신 (애벌레가 든 몸) : 자리 · 모델(a 벽에 기대 앉은 방호복 — 등이 모델의 −z · b · c 대원복 차림으로 쓰러진 몸) · 방향
@@ -31,7 +31,7 @@ const GAME={part:2, cp:null,
   // [1호로 들어간다] : 지난 이야기 → 2부 제목 → 에어록
   async begin(){ S.phase='cut'; document.body.classList.add('overfade'); await fade(true,1200); MUSIC.play('derelict',{fade:4});
     await this.recap([['2091년, 목성 곁','웜홀이 열렸다'],['너머로 떠난 하위헌스 1호','대원 열두 명 · 312일째, “Mayday, Mayday, we are—”'],['1인 구조정 R-1','편도분의 연료 · 넉 달의 잠 · 다른 은하'],['도킹 완료','돌아가는 길은 하나 — 1호를 깨워, 1호를 몰고']]);
-    await card('MAYDAY 2부','열세 번째 대원','1호의 대원은 열두 명. 발소리는 열셋.',4600);
+    await card('2부','Mayday_The Atrox','',4200);
     document.body.classList.remove('overfade'); GUN.held.visible=true; HELMET.on(true); return this.board(); },
   // 지난 이야기 : 검은 화면에 한 장면씩 (화면을 누르거나 Space 로 건너뛴다)
   recap(list){ const e=document.createElement('div'); e.id='recap'; e.innerHTML='<p class="k">지난 이야기</p><h2></h2><p class="s"></p><button>건너뛰기</button>'; document.body.appendChild(e); requestAnimationFrame(()=>e.classList.add('on'));
