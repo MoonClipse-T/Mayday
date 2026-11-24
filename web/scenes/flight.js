@@ -1,11 +1,11 @@
 /* ============================================================
    구조정 R-1 비행 · 도킹 (4.9) — 내가 몬다 · 도킹은 세 단계
    우주는 그림이 아니게 : 1호는 진짜 3D 물체(둘레를 돌며 볼 수 있다 · 부딪히면 튕긴다) · 둘레의 먼지 · 떨어져 나온 파편 · 먼 별 하나(해) · 행성 없음
-   1호는 죽은 배 : 전력 0 — 불빛이 하나도 없다. 구조정 전조등이 비춰야 드러난다. 긴 축을 중심으로 천천히 돈다
+   1호는 죽은 배 : 전력 0 — 불빛이 하나도 없다. 구조정 전조등이 비춰야 드러난다. 긴 축을 중심으로 10초에 한 바퀴 돈다
    ① 접근 : 웜홀을 막 지난 자리(640 m)에서 직접 몰고 간다 — 고리 앞 70 m 안으로 들어오면 다음 단계
       (R-1 의 도킹 해치는 뒤쪽 → VEGA 가 고리 앞 16 m 에 배를 세우고 · 축과 기수를 잡고 · 배를 돌리는 동안 해치 방의 후방 도킹 조종대로 걸어간다)
    ② 회전 맞추기 : 뒤 카메라로 1호를 보며 [롤]로 같은 쪽 · 같은 빠르기로 돈다 — 같아지면 1호가 멈춰 보인다 (눈으로 판단 · 숫자 없음)
-      돌 방향은 알려 준다(빛나는 단추) · 같은 빠르기를 2초 지키면 회전이 저절로 고정된다
+      돌 방향은 알려 준다(빛나는 단추) · 같은 빠르기를 3초 지키면 회전이 저절로 고정된다 · 고리는 화면 한가운데에 붙잡아 둔다 (변수는 회전 하나 — 4.15)
    ③ 도킹 : 화면 가운데의 원(= 내 해치)을 1호의 도킹 고리에 겹치고 [전진]으로 끝까지 — 고리가 화면에 가득 찰 때 어긋남이 고리 지름의 10 % 쯤(0.4 m) 안이면 '탁' 물린다
       축 · 기수 · 표시 맞추기는 없다 (VEGA 가 잡는다) · 빗나가면 밀려났다가 다시 · 두 번 빗나가면 도킹 보조
    물린 뒤 : 1호 안에 공기가 있는지 모른다 → 해치 방 보관함에서 우주복을 입고 → 외부 해치 → 틈 없이 이어진 연결 통로 → 1호 쪽 문 → 1부 끝 (scenes/part1.js end) · 헬멧은 2부 첫머리 1호 에어록에서 공기를 확인하고 벗는다 (scenes/part2.js board)
@@ -35,7 +35,7 @@ const FLIGHT={W:.6,                // 1호 자전 (rad/s ≈ 34°/s · 10초에 
     const lamp=new THREE.SpotLight(0xe8f0ff,1.5,190,.3,.6,1.15); lamp.position.set(0,.2,1.6); lamp.target.position.set(0,0,40); rig.add(lamp,lamp.target);
     this.stick=this.pivot(R1.b.root,'steering'); this.throttle=this.pivot(R1.b.root,'throttle');
     rig.position.set(18,9,zf-640); rig.lookAt(0,0,zf);      // 물체의 lookAt 은 +z 를 목표로 — 이 모델도 +z 가 앞
-    this.v=new THREE.Vector3(); this.av=new THREE.Vector3(); this.head={y:0,p:-.04}; this.fails=0; this.docked=false; this.assist=false; this.sync=false; this.mode=null; this.want=new Set(); this.auto=false; this.stage=1; this.syncT=0; this.roll=0; this.al=0; this.lamp=lamp;
+    this.v=new THREE.Vector3(); this.av=new THREE.Vector3(); this.head={y:0,p:-.04}; this.fails=0; this.docked=false; this.assist=false; this.sync=false; this.mode=null; this.want=new Set(); this.auto=false; this.stage=1; this.syncT=0; this.settled=false; this.rT=0; this.roll=0; this.al=0; this.lamp=lamp;
     this.helm=true; this.aftcam=false; this.nose=0; document.body.classList.remove('aftcam');
     window.dragHook=null;
     TICK.push(this.fn=dt=>this.tick(dt)); MUSIC.play('space',{fade:4});
@@ -63,7 +63,8 @@ const FLIGHT={W:.6,                // 1호 자전 (rad/s ≈ 34°/s · 10초에 
     // ② 회전 맞추기 : 눈으로 보고 맞춘다 — 같아지면 1호가 멈춰 보인다
     await TALK.say([VG('후방 카메라 연결. 이제 뒤가 앞입니다.'),VG('축과 기수는 제가 잡겠습니다. 선장님은 회전만 맞추십시오.'),VG('롤 단추로 1호와 같은 방향, 같은 빠르기로 도십시오. 1호가 아주 빠릅니다 — 오래 눌러야 합니다.'),VG('뒤 카메라 원 바깥의 주황 점이 1호의 주황 막대입니다. 점이 멈추면 1호가 멈춰 보이는 것이고, 대신 바깥의 별이 돕니다.'),I('…돌아가는 문에 맞춰 들어간다.')]);
     goal(byDevice('② 회전 맞추기 — Q · E 로 돌아, 1호의 주황 막대가 멈춰 보이게 3초','② 회전 맞추기 — [롤] 단추로 돌아, 1호의 주황 막대가 멈춰 보이게 3초'));
-    this.mode='spin'; await new Promise(r=>this.onSync=r);
+    // 축 한가운데에 다 설 때까지 기다린 뒤에 시작한다
+    for(let i=0;i<120&&!this.settled;i++) await sleep(100); this.mode='spin'; await new Promise(r=>this.onSync=r);
     // ③ 도킹 : 원을 고리에 겹치고 끝까지
     await TALK.say([VG('회전 일치. 고정합니다.'),VG(byDevice('이제 화면을 끌어 원을 도킹 고리에 겹치고, 그대로 끝까지 붙이십시오.','이제 화면을 손가락으로 끌어 원을 도킹 고리에 겹치고, 그대로 끝까지 붙이십시오.'))]);
     goal(byDevice('③ 도킹 — 화면을 끌어 원을 고리에 겹치고, W 로 끝까지','③ 도킹 — 화면을 끌어 원을 고리에 겹치고, [전진]으로 끝까지'));
@@ -126,9 +127,9 @@ const FLIGHT={W:.6,                // 1호 자전 (rad/s ≈ 34°/s · 10초에 
 
   /* ---- 매 프레임 : 힘 · 회전 · 충돌 · 도킹 판정 · 카메라 ----
      STAND 대기 자리(고리 앞 m) · CAP 물리는 거리(고리가 화면에 가득 찰 때) · TOL 회전 빠르기 허용 차(rad/s) · TOL3 원의 허용 어긋남(m ≈ 고리 지름의 10 %)
-     ACC 롤 단추의 세기(rad/s²) · HY 외부 해치 한가운데 높이 · GAP 물린 뒤 해치와 고리 사이 */
-  STAND:16, CAP:3, TOL:.02, TOL3:.4, ACC:.16, HY:.85, GAP:.3, HOLD:3,
-  OFF:new THREE.Vector3(1.8,1.1,0),      // 대기 자리는 축에서 조금 비켜 있다 — ③에서 원을 고리에 겹치는 일이 남는다
+     ACC 롤 단추의 세기(rad/s² · 처음 누를 때 → 오래 누를 때 → 거의 맞았을 때) · CATCH 손을 뗐을 때 이만큼 가까우면 MAG 세기로 1호 빠르기에 살며시 맞춰진다 · HY 외부 해치 한가운데 높이 · GAP 물린 뒤 해치와 고리 사이 */
+  STAND:16, CAP:3, TOL:.06, TOL3:.4, ACC:[.06,.24,.06], MAG:.9, CATCH:.11, HY:.85, GAP:.3, HOLD:3,
+  OFF:new THREE.Vector3(1.3,.8,0),      // ③에서만 축에서 조금 비켜난다 (원을 고리에 겹치는 일) — 1호와 함께 도는 틀에서 잰다. ②는 축 위에 정확히 (4.15 : 비켜 선 채 롤을 하면 고리가 화면 둘레를 돌아 보였다 — 세차운동처럼)
   tick(dt){ const rig=this.rig, G=this.G, B=this.btn, K=keys;
     // 1호 자전 · 파편
     G.rotation.z+=this.W*dt; for(const m of this.deb){ m.rotation.x+=m.userData.w.x*dt; m.rotation.y+=m.userData.w.y*dt; m.position.addScaledVector(m.userData.v,dt); }
@@ -150,13 +151,18 @@ const FLIGHT={W:.6,                // 1호 자전 (rad/s ≈ 34°/s · 10초에 
         rig.rotateX(-this.av.x*dt); rig.rotateY(this.av.y*dt); rig.rotateZ(this.av.z*dt);
       } else {
         // ② · ③ : 축 · 기수는 VEGA 가 잡는다 — 남는 것은 롤 하나. ②에서만 손으로 돌리고, 맞으면(2초) 고정된다
-        if(m==='spin'){ if(ctl){ this.av.z=clamp(this.av.z+rIn*this.ACC*dt+(Math.sin(S.t*1.1)+.6*Math.sin(S.t*2.7))*.05*dt,-1,1); this.syncT=Math.abs(this.av.z-this.W)<this.TOL?this.syncT+dt:0; if(this.syncT>=this.HOLD) this.locked(); } }      // 흔들림 : 자세 제어가 조금씩 밀려 계속 손을 대야 한다
+        // ② 회전 : 변수는 회전 하나. 짧게 누르면 아주 조금 · 오래 누르면 점점 세게 · 1호와 거의 같아지면 다시 조금씩 (지나치지 않게) · 손을 떼면 그 빠르기를 지키고, 거의 같으면 1호 빠르기로 살며시 맞춰진다
+        if(m==='spin'){ if(ctl){ const [a0,a1,a2]=this.ACC; let e=this.av.z-this.W; this.rT=rIn&&rIn===this.rD?(this.rT||0)+dt:0; this.rD=rIn; const acc=Math.abs(e)<.12?a2:lerp(a0,a1,clamp((this.rT-.25)/1.2,0,1));
+            this.av.z=clamp(this.av.z+rIn*acc*dt,-1,1); e=this.av.z-this.W; if(!rIn&&Math.abs(e)<this.CATCH) this.av.z-=e*Math.min(1,dt*this.MAG);
+            this.syncT=Math.abs(this.av.z-this.W)<this.TOL?this.syncT+dt:0; if(this.syncT>=this.HOLD) this.locked(); } }
         else if(this.sync) this.av.z=this.W;
         else this.av.z*=1-Math.min(1,dt*1.5);
         // 기수는 1호의 긴 축(+z)으로 · 롤은 외부 해치의 축을 중심으로 (해치가 제자리에서 돈다)
         const d0=this.dockPt(); this.roll+=this.av.z*dt; const qd=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,0,1),this.roll);
         this.al=Math.min(1,this.al+dt/4); if(this.al<1) rig.quaternion.slerp(qd,Math.min(1,dt*1.6)); else rig.quaternion.copy(qd);
         rig.position.add(d0.sub(this.dockPt()));
+        // 고정된 뒤(③)에는 1호와 함께 도는 틀에서 움직인다 : 축에서 벗어난 만큼과 속도를 같이 돌린다 → 고리가 화면에서 제자리에 있다
+        if(this.sync){ const th=this.av.z*dt, c=Math.cos(th), sn=Math.sin(th), o=pr.rel; rig.position.x+=c*o.x-sn*o.y-o.x; rig.position.y+=sn*o.x+c*o.y-o.y; const v=this.v, vx=v.x; v.x=c*vx-sn*v.y; v.y=sn*vx+c*v.y; }
         if(m==='dock'){
           // ③ 도킹 : 이동 단추로 원을 고리에 · [전진]으로 다가간다. 손을 떼면 미끄러짐을 잡고, 고리에 가까울수록 느리게 (VEGA)
           this.v.addScaledVector(fw,thr*(thr>0?1.6:1.3)*dt).addScaledVector(rt,lat*1.1*dt).addScaledVector(up,ver*1.1*dt);
@@ -168,8 +174,9 @@ const FLIGHT={W:.6,                // 1호 자전 (rad/s ≈ 34°/s · 10초에 
           if(this.assist) this.v.addScaledVector(o,-dt*.5);
           if(pr.lat>10) this.v.addScaledVector(o,-dt*.3); if(pr.d>40) this.v.addScaledVector(fw,dt*1.5);
         } else {
-          // 대기 자리 : 고리 앞 STAND m · 축 위 (VEGA 가 세워 둔다)
-          const e=pr.pp.clone().addScaledVector(pr.out,this.STAND).add(this.OFF).sub(this.dockPt()); this.v.addScaledVector(e,dt*.45).multiplyScalar(1-Math.min(1,dt*1.3)); if(this.v.length()>4) this.v.setLength(4);
+          // 대기 자리 : 고리 앞 STAND m · 축 한가운데 (VEGA 가 붙잡아 둔다 — 회전 말고는 움직이지 않는다) · 고정되면 ③을 위해 조금 비켜난다 (함께 도는 틀)
+          this.v.multiplyScalar(1-Math.min(1,dt*(m==='spin'?8:1.4))); const at=pr.pp.clone().addScaledVector(pr.out,this.STAND); if(this.sync) at.add(this.OFF.clone().applyAxisAngle(new THREE.Vector3(0,0,1),this.roll));
+          const e=at.sub(this.dockPt()), L=e.length(); this.settled=L<.06; if(L<.004||(m==='spin'&&L<.06)) rig.position.add(e); else rig.position.addScaledVector(e,Math.min(1,dt*(this.sync?1.6:.8),5*dt/L));
         }
       }
       if(this.v.length()>32) this.v.setLength(32);
@@ -209,7 +216,7 @@ const FLIGHT={W:.6,                // 1호 자전 (rad/s ≈ 34°/s · 10초에 
       const e=this.av.z-this.W, a=Math.abs(e), how=a>.3?'빠르게 ':a>.1?'':'천천히 '; good=a<this.TOL; k=Math.min(1,this.syncT/this.HOLD); rpx=Math.min(innerWidth,innerHeight)*.2; if(!good) W.add(e<0?'rr':'rl');
       // 원 바깥 주황 점 = 1호 판의 주황 막대가 화면에서 있는 쪽 (돌아 보이면 점이 돈다 · 맞으면 멈춘다)
       const bp=this.bar0.getWorldPosition(new THREE.Vector3()).project(camera), ang=Math.atan2(bp.x*camera.aspect,bp.y)*180/Math.PI; el.querySelector('.ret .m').setAttribute('transform','rotate('+ang.toFixed(1)+')');
-      h=good?'주황 점이 멈췄다 — 그대로 '+this.HOLD+'초 (흔들리면 살짝 고친다)':e<0?'주황 점이 시계 방향(↻)으로 '+how+'돈다 — '+byDevice('E','[롤 ▶]')+' 를 눌러 같은 쪽으로':'주황 점이 거꾸로(↺) '+how+'돈다, 너무 빨리 돌았다 — '+byDevice('Q','[롤 ◀]')+' 로 늦춘다';
+      h=good?'1호가 멈춰 보인다 — 손을 떼고 그대로 '+this.HOLD+'초':e<0?'주황 점이 시계 방향(↻)으로 '+how+'돈다 — '+byDevice('E','[롤 ▶]')+' 를 '+(a<.14?'톡톡 짧게':'길게')+' 눌러 같은 쪽으로':'주황 점이 거꾸로(↺) '+how+'돈다, 너무 빨리 돌았다 — '+byDevice('Q','[롤 ◀]')+' 를 '+(a<.14?'톡톡 짧게':'길게')+' 눌러 늦춘다';
     } else if(m==='dock'){
       // ③ : 가운데 원 = 내 해치. 원의 크기는 지금 거리에서 보이는 고리의 크기 — 겹치면 초록
       const cd=Math.max(.6,d-.35), o=pp.clone().sub(this.dockPt()), tx=clamp(o.dot(rt)*.6,-1,1)-this.v.dot(rt), ty=clamp(o.dot(up)*.6,-1,1)-this.v.dot(up);
