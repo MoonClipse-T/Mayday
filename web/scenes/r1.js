@@ -19,6 +19,7 @@ const R1={g:null,b:null,seated:true,on:{},_wait:{},
         if(n==='Floor_vent'){ o.material.roughness=Math.max(.35,o.material.roughness); } }); }
     FLOORS.push(...b.floors); LEVEL.solidTris.push(b); SOLID.want=true;
     this.spots=b.spots; this.items=b.items; await DO.mount(); this.stations(); this.seated=true; this.hatchOpen=false; return g; },
+  dashLight(g){ if(!this._dash){ this._dash=new THREE.PointLight(0x7fd4ff,.7,2.4,2); this._dash.position.set(0,.85,-.55); } g.add(this._dash); },
   // 걷기 ↔ 앉기
   follow(on){ const q=new THREE.Quaternion(); window.camHook=on?()=>{ this.g.updateWorldMatrix(true,false); camera.position.applyMatrix4(this.g.matrixWorld); camera.quaternion.premultiply(this.g.getWorldQuaternion(q)); }:null; },
   // 부모(비행 몸 rig)의 자리까지 지금 값으로 — g 만 새로 하면 rig 의 지난 프레임 자리를 써서, 빠르게 날 때 눈이 조종석 뒤에 남는다

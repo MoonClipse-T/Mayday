@@ -1,7 +1,7 @@
 /* ============================================================
    SKY : 창밖 — 회의실은 밤 도시(Poly Haven rooftop_night), 우주선은 실제 별지도 + 웜홀 + 목성
    웜홀 렌즈 : 화면 점마다 시선 d 와 웜홀 방향 c 의 각 θ 를 구해
-     θ < R : 목 안 — 건너편 은하(gal.jpg)를 어안처럼 · θ ≥ R : 빛이 α = R²/θ 만큼 꺾여 들어온 쪽의 별(아인슈타인 고리)
+     θ < R : 목 안 — 건너편 하늘을 어안처럼 · θ ≥ R : 빛이 α = R²/θ 만큼 꺾여 들어온 쪽의 별(아인슈타인 고리)
    WH.target() : 같은 계산을 렌더 타깃에 그려 회의실 화면에 띄운다
    ============================================================ */
 'use strict';
@@ -18,44 +18,42 @@ vec3 lens(vec3 d){
     return g; }
   float ps=th-R*R/th; vec3 col=eq(sky,roty(normalize(C*cos(ps)+q*sin(ps)),srot))*1.25;
   col+=vec3(1.0,.92,.82)*exp(-pow((th-R)/(R*.035),2.0))*.6; return col*(1.0+.6*exp(-(th-R)/(R*.5))); }`;
-const SKY=(()=>{ let mesh=null, jup=null, sun=null, mat=null; const U={sky:{value:null},gal:{value:null},C:{value:new THREE.Vector3(0,0,-1)},R:{value:.12},t:{value:0},srot:{value:0},tun:{value:0}};
-  let texP=null; const T={}; const tex=()=>texP||(texP=Promise.all([loadTex('sky.jpg'),loadTex('gal.jpg')]).then(([a,b])=>{ [a,b].forEach(x=>{ x.minFilter=THREE.LinearFilter; x.generateMipmaps=false; }); T.home=a; T.gal=b; U.sky.value=a; U.gal.value=farTex(); }));      // 웜홀 목 안 = 건너편 하늘 (건너가면 그 하늘 안에 있다)
-  // 웜홀 건너편 하늘 (4.12) : 다른 은하 안 — 은하수는 있지만 우리 것과 다르다 (사용자 : 은하가 통째로 보일 수는 없다)
-  //   gal.jpg(우리 은하수 사진)를 좌우로 뒤집고 · 띠를 위아래로 1.6배 넓히고 · 중심 팽대부를 키우고 · 색을 바꾸고(푸른 별빛 · 붉은 성운) · 마젤란 구름은 지운다
-  //   목 안(렌즈 안쪽)은 거꾸로 우리 은하수(sky.jpg) — 건너온 곳이 비쳐 보인다
-  function farTex(){ if(T.far) return T.far; const im=T.gal.image, W=Math.min(LITE?2048:4096,im.width), H=W/2, c=document.createElement('canvas'); c.width=W; c.height=H; const x=c.getContext('2d');
-    x.translate(W,0); x.scale(-1,1); const k=1.6; x.drawImage(im,0,0,im.width,im.height,0,H/2-H*k/2,W,H*k); x.setTransform(1,0,0,1,0,0);
-    // 마젤란 구름 자리(뒤집고 넓힌 뒤) : 옆의 별밭으로 덮는다
-    [[.28,.77,.035],[.34,.9,.022]].forEach(([u,v,r])=>{ const R=r*W; x.save(); x.beginPath(); x.arc(u*W,v*H,R,0,7); x.clip(); x.drawImage(c,u*W-R+.12*W,v*H-R,2*R,2*R,u*W-R,v*H-R,2*R,2*R); x.restore(); });
-    // 색 : 밝은 곳은 푸르고 희게, 어두운 먼지 띠 둘레는 붉은 보라로 — 우리 은하수(누런 갈색)와 다르게
-    const d=x.getImageData(0,0,W,H), p=d.data; for(let i=0;i<p.length;i+=4){ const r=p[i],g=p[i+1],b=p[i+2], L=(r+g+b)/3, t=Math.min(1,L/150);
-      p[i]=Math.min(255,L*(1.05-.25*t)+(r-L)*.4+18*(1-t)*t*2); p[i+1]=Math.min(255,L*(.88+.08*t)); p[i+2]=Math.min(255,L*(1.0+.35*t)+(b-L)*.4+10*(1-t)*t*2); }
-    x.putImageData(d,0,0);
-    // 중심 팽대부를 조금 더 밝고 크게 (다른 은하의 중심)
-    x.globalCompositeOperation='lighter'; const cx=.5*W, cy=.5*H, g=x.createRadialGradient(cx,cy,0,cx,cy,W*.09); g.addColorStop(0,'rgba(255,230,210,.35)'); g.addColorStop(1,'rgba(255,200,190,0)');
-    x.setTransform(1.8,0,0,1,-cx*.8,0); x.fillStyle=g; x.fillRect(cx-W*.09,cy-W*.09,W*.18,W*.18); x.setTransform(1,0,0,1,0,0); x.globalCompositeOperation='source-over';
-    const t=new THREE.CanvasTexture(c); t.minFilter=THREE.LinearFilter; t.generateMipmaps=false; return T.far=t; }
-  function clear(){ [mesh,jup,sun].forEach(o=>o&&o.parent&&o.parent.remove(o)); mesh=jup=sun=null; scene.background=new THREE.Color(0x020304); }
+const SKY=(()=>{ let mesh=null, jup=null, sun=null, mat=null, pts=[]; const U={sky:{value:null},gal:{value:null},C:{value:new THREE.Vector3(0,0,-1)},R:{value:.12},t:{value:0},srot:{value:0},tun:{value:0}};
+  let texP=null; const T={}; const tex=()=>texP||(texP=loadTex('sky.jpg').then(a=>{ a.minFilter=THREE.LinearFilter; a.generateMipmaps=false; T.home=a; U.sky.value=a; U.gal.value=throatTex(); }));      // 웜홀 목 안 = 건너편 하늘 (건너가면 그 하늘 안에 있다)
+  // 웜홀 건너편 하늘 (4.16 사용자 : 은하수를 없애고 깜깜한 하늘에 별만 조금) — 은하 맨 가장자리, 별이 드문 곳
+  //   그림(starTex)은 희미한 잔별만 · 눈에 띄는 별은 점(dots)으로 또렷하게. 웜홀 목 안(렌즈 안쪽)은 같은 하늘이 한데 모여 보이므로 별이 더 촘촘하다
+  const TINT=[[255,255,255],[255,255,255],[214,226,255],[186,206,255],[255,244,214],[255,226,170],[255,190,130]];
+  function starTex(W,n,hi,haze){ const H=W/2, c=document.createElement('canvas'); c.width=W; c.height=H; const x=c.getContext('2d'); x.fillStyle=haze||'#000'; x.fillRect(0,0,W,H);
+    for(let i=0;i<n;i++){ const u=Math.random(), th=Math.acos(1-2*Math.random())/Math.PI, b=Math.pow(Math.random(),3.2)*hi+.1, t=TINT[Math.random()*TINT.length|0], r=.45+b*.55; x.fillStyle=`rgba(${t[0]},${t[1]},${t[2]},${Math.min(1,b)})`; x.beginPath(); x.ellipse(u*W,th*H,r/Math.max(.2,Math.sin(th*Math.PI)),r,0,0,7); x.fill(); }
+    const t=new THREE.CanvasTexture(c); t.encoding=THREE.sRGBEncoding; t.minFilter=THREE.LinearFilter; t.generateMipmaps=false; return t; }
+  function farTex(){ return T.far||(T.far=starTex(LITE?2048:4096,LITE?1500:2600,.42)); }
+  function throatTex(){ return T.throat||(T.throat=starTex(2048,LITE?2600:3600,1.1,'#02050b')); }
+  // 또렷한 별 : 크기 셋의 점 (카메라를 따라다닌다)
+  function dots(){ const px=renderer.getPixelRatio(), cv=document.createElement('canvas'); cv.width=cv.height=32; const g=cv.getContext('2d'), gr=g.createRadialGradient(16,16,0,16,16,16); gr.addColorStop(0,'#fff'); gr.addColorStop(.35,'rgba(255,255,255,.75)'); gr.addColorStop(1,'rgba(255,255,255,0)'); g.fillStyle=gr; g.fillRect(0,0,32,32); const map=new THREE.CanvasTexture(cv);
+    [[2.4,LITE?300:420,.62],[3.6,130,.9],[5.6,30,1.15]].forEach(([size,n,k])=>{ const pos=new Float32Array(n*3), col=new Float32Array(n*3); for(let i=0;i<n;i++){ const z=2*Math.random()-1, a=Math.random()*6.2832, r=Math.sqrt(1-z*z); pos.set([r*Math.cos(a)*850,z*850,r*Math.sin(a)*850],i*3); const t=TINT[Math.random()*TINT.length|0], b=k*(.4+.6*Math.random())/255; col.set(t.map(v=>v*b),i*3); }
+      const ge=new THREE.BufferGeometry(); ge.setAttribute('position',new THREE.BufferAttribute(pos,3)); ge.setAttribute('color',new THREE.BufferAttribute(col,3));
+      const m=new THREE.Points(ge,new THREE.PointsMaterial({size:size*px,sizeAttenuation:false,vertexColors:true,map,transparent:true,depthWrite:false,fog:false,toneMapped:false})); m.frustumCulled=false; m.renderOrder=-1; scene.add(m); pts.push(m); }); }
+  function clear(){ pts.forEach(o=>o.geometry.dispose()); [mesh,jup,sun,...pts].forEach(o=>o&&o.parent&&o.parent.remove(o)); mesh=jup=sun=null; pts=[]; scene.background=new THREE.Color(0x020304); }
   // 밤 도시 : 큰 구 안쪽에 사진을 붙인다 (구 UV = 등장방형). turn = 창밖으로 보일 방향(라디안)
   async function city(turn=0,bright=1){ clear(); const t=await loadTex('city_night.jpg'); t.wrapS=THREE.RepeatWrapping; t.repeat.x=-1;
     mesh=new THREE.Mesh(new THREE.SphereGeometry(400,48,24),new THREE.MeshBasicMaterial({map:t,side:THREE.BackSide,depthWrite:false,fog:false,color:new THREE.Color(bright,bright,bright)}));
     mesh.rotation.y=turn; mesh.renderOrder=-1; scene.add(mesh); }
   // 우주 : 별지도 + 웜홀(방향 dir, 각 반지름 R) + 목성(방향 jdir, 각 크기 jsize)
-  async function space({dir=[0,0,-1],R=.12,jdir=[.6,-.1,-1],jsize=.35,sunDir=[1,.3,.4],srot=0,jupiter=true,ptex='jupiter_map.jpg',far=false}={}){ clear(); await tex();
-    U.sky.value=far?farTex():T.home; U.gal.value=far?T.home:farTex();      // 건너편 : 다른 하늘 · 목 안에 우리 은하수
+  async function space({dir=[0,0,-1],R=.12,jdir=[.6,-.1,-1],jsize=.35,sunDir=[1,.3,.4],srot=0,jupiter=true,ptex='jupiter_map.jpg',far=false,sunI=.6}={}){ clear(); await tex();
+    U.sky.value=far?farTex():T.home; U.gal.value=far?T.home:throatTex(); if(far) dots();      // 건너편 : 다른 하늘 · 목 안에 우리 은하수
     U.C.value.set(...dir).normalize(); U.R.value=R; U.srot.value=srot; U.tun.value=0;
     mat=new THREE.ShaderMaterial({uniforms:U,depthWrite:false,side:THREE.BackSide,
       vertexShader:'varying vec3 vD; void main(){ vec4 w=modelMatrix*vec4(position,1.0); vD=w.xyz-cameraPosition; gl_Position=projectionMatrix*viewMatrix*w; }',
       fragmentShader:'varying vec3 vD;'+LENS+' void main(){ gl_FragColor=vec4(lens(normalize(vD)),1.0); }'});
     mesh=new THREE.Mesh(new THREE.SphereGeometry(900,48,24),mat); mesh.renderOrder=-2; mesh.frustumCulled=false; scene.add(mesh);
-    if(!jupiter){ sun=new THREE.DirectionalLight(0xfff4e6,.6); sun.position.set(...sunDir).multiplyScalar(1000); scene.add(sun); if(SKYMASK.on) SKYMASK.set(true); return; }
+    if(!jupiter){ sun=new THREE.DirectionalLight(0xfff4e6,sunI); sun.position.set(...sunDir).multiplyScalar(1000); scene.add(sun); if(SKYMASK.on) SKYMASK.set(true); return; }
     const PT=SKY._pt||(SKY._pt={}), jt=await (PT[ptex]||(PT[ptex]=loadTex(ptex))), d=new THREE.Vector3(...jdir).normalize(), dist=700, r=Math.tan(jsize/2)*dist;
     jup=new THREE.Mesh(new THREE.SphereGeometry(r,64,32),new THREE.MeshStandardMaterial({map:jt,roughness:1,metalness:0}));
     jup.userData.dir=d; jup.userData.dist=dist; jup.rotation.z=.05; scene.add(jup);
     sun=new THREE.DirectionalLight(0xfff4e6,2.2); sun.position.set(...sunDir).multiplyScalar(1000); sun.target=jup; scene.add(sun); if(SKYMASK.on) SKYMASK.set(true); }
-  function tick(dt){ U.t.value+=dt; if(mesh&&mat) mesh.position.copy(camera.position);
+  function tick(dt){ U.t.value+=dt; if(mesh&&mat) mesh.position.copy(camera.position); pts.forEach(o=>o.position.copy(camera.position));
     if(jup){ jup.position.copy(camera.position).addScaledVector(jup.userData.dir,jup.userData.dist); jup.rotation.y+=dt*.01; } }
-  return {city,space,clear,tick,tex,U,get jup(){ return jup; },mats:()=>[mesh&&mesh.material,jup&&jup.material].filter(Boolean)};
+  return {city,space,clear,tick,tex,U,get jup(){ return jup; },mats:()=>[mesh&&mesh.material,jup&&jup.material,...pts.map(o=>o.material)].filter(Boolean)};
 })();
 // 회의실 화면용 : 웜홀을 렌더 타깃에 그린다 (같은 렌즈 계산, 평면 화면이라 시선은 화면 좌표로)
 const WH={ rt:null, sc:null, cam:null, U:null,

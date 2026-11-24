@@ -1,25 +1,25 @@
 /* ============================================================
-   구조정 R-1 비행 · 도킹 (4.9) — 내가 몬다 · 도킹은 세 단계
-   우주는 그림이 아니게 : 1호는 진짜 3D 물체(둘레를 돌며 볼 수 있다 · 부딪히면 튕긴다) · 둘레의 먼지 · 떨어져 나온 파편 · 먼 별 하나(해) · 행성 없음
+   구조정 R-1 비행 · 도킹 (4.9 · 4.16 부터 2부 첫머리) — 내가 몬다 · 도킹은 세 단계
+   우주는 그림이 아니게 : 1호는 진짜 3D 물체(둘레를 돌며 볼 수 있다 · 부딪히면 튕긴다) · 둘레의 먼지 · 떨어져 나온 파편 · 노란 변광성 S-09(1부에서 찾은 별) · 행성 없음 · 웜홀은 100 pc 뒤 (주름길로 왔다)
    1호는 죽은 배 : 전력 0 — 불빛이 하나도 없다. 구조정 전조등이 비춰야 드러난다. 긴 축을 중심으로 10초에 한 바퀴 돈다
-   ① 접근 : 웜홀을 막 지난 자리(640 m)에서 직접 몰고 간다 — 고리 앞 70 m 안으로 들어오면 다음 단계
+   ① 접근 : 도약해 내린 자리(640 m)에서 직접 몰고 간다 — 고리 앞 70 m 안으로 들어오면 다음 단계
       (R-1 의 도킹 해치는 뒤쪽 → VEGA 가 고리 앞 16 m 에 배를 세우고 · 축과 기수를 잡고 · 배를 돌리는 동안 해치 방의 후방 도킹 조종대로 걸어간다)
    ② 회전 맞추기 : 뒤 카메라로 1호를 보며 [롤]로 같은 쪽 · 같은 빠르기로 돈다 — 같아지면 1호가 멈춰 보인다 (눈으로 판단 · 숫자 없음)
       돌 방향은 알려 준다(빛나는 단추) · 같은 빠르기를 3초 지키면 회전이 저절로 고정된다 · 고리는 화면 한가운데에 붙잡아 둔다 (변수는 회전 하나 — 4.15)
    ③ 도킹 : 화면 가운데의 원(= 내 해치)을 1호의 도킹 고리에 겹치고 [전진]으로 끝까지 — 고리가 화면에 가득 찰 때 어긋남이 고리 지름의 10 % 쯤(0.4 m) 안이면 '탁' 물린다
       축 · 기수 · 표시 맞추기는 없다 (VEGA 가 잡는다) · 빗나가면 밀려났다가 다시 · 두 번 빗나가면 도킹 보조
-   물린 뒤 : 1호 안에 공기가 있는지 모른다 → 해치 방 보관함에서 우주복을 입고 → 외부 해치 → 틈 없이 이어진 연결 통로 → 1호 쪽 문 → 1부 끝 (scenes/part1.js end) · 헬멧은 2부 첫머리 1호 에어록에서 공기를 확인하고 벗는다 (scenes/part2.js board)
+   물린 뒤 : 1호 안에 공기가 있는지 모른다 → 해치 방 보관함에서 우주복을 입고 → 외부 해치 → 틈 없이 이어진 연결 통로 → 1호 쪽 문 → scenes/part2.js 의 1호 에어록 · 헬멧은 거기서 공기를 확인하고 벗는다 (scenes/part2.js board)
    조작 (터치가 기본 · 키보드도) : 화면 끌기 = ① 기수 · ③ 원을 고리 쪽으로 (위아래 · 옆 이동 단추는 4.12 에 뺐다) · [전진][후진] = W/S · [롤 ◀][롤 ▶] = Q/E · [정지] = X
    ============================================================ */
 'use strict';
 const FLIGHT={W:.6,                // 1호 자전 (rad/s ≈ 34°/s · 10초에 한 바퀴 — 4.12 사용자 : 아주 빠르게 돈다)
-  async run({journey=false}={}){ const self=this; S.phase='cut'; P.free=false; LEVEL.clear(); goal('');
-    stamp('구조정 R-1 · 조종석','2091.07 · 웜홀 통과 +00:04');
+  // 장면 : 1호 · 별 · 파편 · R-1 (2부 시작 화면에서 먼저 만든다 → run)
+  async build(){ LEVEL.clear(); goal('');
     const hull=await loadGLB('ship_ext');
-    await SKY.space({dir:[.1,.08,-1],R:.1,srot:2.4,jupiter:false,sunDir:[-.55,.4,.75],far:true});      // 웜홀은 등 뒤 · 행성 없음
+    await SKY.space({dir:[.1,.08,-1],R:.0001,srot:2.4,jupiter:false,sunDir:[-.55,.4,.75],far:true,sunI:.3});      // 행성 · 웜홀 없음 (웜홀은 100 pc 뒤)
     scene.background=new THREE.Color(0x000000);
     WORLD.add(new THREE.HemisphereLight(0x6f7f99,0x050607,.045));
-    const sunDir=new THREE.Vector3(-.55,.4,.75).normalize(), sun=new THREE.DirectionalLight(0xfff0dc,1.15); sun.position.copy(sunDir).multiplyScalar(500); WORLD.add(sun);
+    const sunDir=new THREE.Vector3(-.55,.4,.75).normalize(), sun=new THREE.DirectionalLight(0xffdfae,1.15); sun.position.copy(sunDir).multiplyScalar(500); WORLD.add(sun);
     this.sunSprite(sunDir);
     /* ---- 1호 : 실제 크기(길이 약 140 m) · 긴 축(z)을 중심으로 돈다 · 뱃머리(−z)에 도킹 고리 ---- */
     const G=this.G=new THREE.Group(); WORLD.add(G); hull.scale.setScalar(3); G.add(hull);
@@ -30,23 +30,20 @@ const FLIGHT={W:.6,                // 1호 자전 (rad/s ≈ 34°/s · 10초에 
     /* ---- 나 : 구조정 R-1 (scenes/r1.js — 조종석 · 로비 · 해치 방, 앞 = +z) ----
        rig = 조종하는 몸(기수 = +z) · 그 안의 R-1 묶음 g. 도킹 때는 g 만 반 바퀴 돌려 뒤(외부 해치)를 앞으로 — 조종 계산은 그대로 */
     const rig=this.rig=new THREE.Group(); WORLD.add(rig); const g=await R1.mount(rig);
-    const dash=new THREE.PointLight(0x7fd4ff,.7,2.4,2); dash.position.set(0,.85,-.55); g.add(dash);
+    R1.dashLight(g);
     // 전조등 : 1호는 스스로 빛나지 않는다 — 내 빛이 닿는 데만 보인다 (앞 = +z)
     const lamp=new THREE.SpotLight(0xe8f0ff,1.5,190,.3,.6,1.15); lamp.position.set(0,.2,1.6); lamp.target.position.set(0,0,40); rig.add(lamp,lamp.target);
     this.stick=this.pivot(R1.b.root,'steering'); this.throttle=this.pivot(R1.b.root,'throttle');
     rig.position.set(18,9,zf-640); rig.lookAt(0,0,zf);      // 물체의 lookAt 은 +z 를 목표로 — 이 모델도 +z 가 앞
     this.v=new THREE.Vector3(); this.av=new THREE.Vector3(); this.head={y:0,p:-.04}; this.fails=0; this.docked=false; this.assist=false; this.sync=false; this.mode=null; this.want=new Set(); this.auto=false; this.stage=1; this.syncT=0; this.settled=false; this.rT=0; this.roll=0; this.al=0; this.lamp=lamp;
     this.helm=true; this.aftcam=false; this.nose=0; document.body.classList.remove('aftcam');
-    window.dragHook=null;
-    TICK.push(this.fn=dt=>this.tick(dt)); MUSIC.play('space',{fade:4});
+    this.built=true; },
+  async run(){ S.phase='cut'; P.free=false; if(!this.built) await this.build(); this.built=false; goal(''); R1.seated=true;
+    stamp('구조정 R-1 · 조종석','2091.08.07 · 변광성 S-09 곁'); window.dragHook=null;
+    TICK.push(this.fn=dt=>this.tick(dt)); MUSIC.play('derelict',{fade:4});
     this.ui(true);
     await fade(false,2200); $('#fade').style.background='';
-    await card('웜홀 건너편 · NGC 3500','MAYDAY','지구를 떠난 지 넉 달 · 1호가 끊긴 지 열한 달',3600);
     S.phase='play'; P.free=true; P.look=false;
-    // 여정에서 이어지면(목성 → 웜홀) 이미 깨어 있다 · 바로 가기(?s=cockpit)면 동면에서 깬다
-    await TALK.say(journey?[VG('웜홀 통과 완료. 선체 이상 없음. 크리스, 괜찮습니까?'),I('…괜찮아. 별은 그대로인데, 아는 별이 하나도 없다.'),VG('하위헌스 1호의 마지막 녹음을 다시 재생합니다.')]
-      :[VG('동면 해제 완료. 웜홀 통과 완료. 선체 이상 없음. 크리스, 들립니까?'),I('…들린다. 넉 달 잤는데 어제 회의실에 있던 것 같군.'),VG('하위헌스 1호의 마지막 녹음을 다시 재생합니다.')]);
-    AUDIO.radio(5); await TALK.say([RADIO('…여기는 하위헌스 1호… 대원 열두 명 중… 우리는 지금…'),RADIO('Mayday, Mayday, we are—')]);
     await TALK.say([VG('1호 확인. 앞쪽 640 m. 불빛 없음. 열 반응 없음. 생명 신호… 하나.'),I('하나. …엘레나가 말한 레아 문일까.'),
       VG('1호가 긴 축을 중심으로 빠르게 돌고 있습니다. 10초에 한 바퀴. 무언가에 부딪혀 자세 제어를 잃은 것 같습니다.'),I('…저렇게 도는 문에 어떻게 붙지.'),
       VG(byDevice('조종은 선장님께 넘깁니다. W 전진 · 화면을 끌어(또는 방향키) 기수 · X 정지. 1호 뱃머리의 도킹 고리로 가십시오.','조종은 선장님께 넘깁니다. [전진] · 화면을 끌어 기수 · [정지]. 1호 뱃머리의 도킹 고리로 가십시오.'),'조종은 선장님께 넘깁니다. W 전진 · 끌기로 기수 · X 감속. 1호 뱃머리의 도킹 고리로 가십시오.')]);
@@ -81,8 +78,8 @@ const FLIGHT={W:.6,                // 1호 자전 (rad/s ≈ 34°/s · 10초에 
 
   /* ---- 장면 만들기 ---- */
   sunSprite(d){ const cv=document.createElement('canvas'); cv.width=cv.height=256; const g=cv.getContext('2d'), gr=g.createRadialGradient(128,128,0,128,128,128);
-    gr.addColorStop(0,'#fff'); gr.addColorStop(.08,'rgba(255,244,220,.95)'); gr.addColorStop(.3,'rgba(255,200,140,.18)'); gr.addColorStop(1,'rgba(0,0,0,0)'); g.fillStyle=gr; g.fillRect(0,0,256,256);
-    const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(cv),depthWrite:false,blending:THREE.AdditiveBlending,fog:false,toneMapped:false})); sp.scale.setScalar(110); sp.renderOrder=-1; WORLD.add(sp);
+    gr.addColorStop(0,'#fff'); gr.addColorStop(.1,'rgba(255,226,150,.98)'); gr.addColorStop(.3,'rgba(255,186,90,.24)'); gr.addColorStop(1,'rgba(0,0,0,0)'); g.fillStyle=gr; g.fillRect(0,0,256,256);
+    const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(cv),color:0xffd08a,depthWrite:false,blending:THREE.AdditiveBlending,fog:false,toneMapped:false})); sp.scale.setScalar(300); sp.renderOrder=-1; WORLD.add(sp);
     TICK.push(()=>sp.position.copy(camera.position).addScaledVector(d,900)); },
   // 도킹 고리 : 고리 · 안쪽 해치 · 목(선체로 이어짐) · 주황 표시 셋(롤을 맞추는 기준 — 칠이라 전조등을 받아야 보인다)
   buildPort(port,zf){ const metal=new THREE.MeshStandardMaterial({color:0x6a7076,metalness:.5,roughness:.6}), dark=new THREE.MeshStandardMaterial({color:0x1d2126,metalness:.3,roughness:.8});
@@ -296,5 +293,7 @@ const FLIGHT={W:.6,                // 1호 자전 (rad/s ≈ 34°/s · 10초에 
     // 1호 해치 : 잠금을 풀고 양쪽으로 미끄러진다 → 캄캄한 1호 에어록으로
     SFX.play('airlock',{vol:.8}); let k=0; await new Promise(res=>{ const f=dt=>{ k=Math.min(1,k+dt/1.4); T.h1.position.x=-.375-k*.75; T.h2.position.x=.375+k*.75; dh.forEach((h,i)=>HANDS.put(h,V3((i?-1:1)*(.05+k*.5),1.16,DZ),V3(0,1,0))); T.red.intensity=.7*(1-k); if(k>=1){ TICK.splice(TICK.indexOf(f),1); res(); } }; TICK.push(f); });
     dh.forEach(h=>HANDS.exit(h,.4)); await camTo({x:0,z:-17.4},1.8); AUDIO.noise(1.5,.15,0,600);
-    await fade(true,1400); HANDS.suit=false; TICK.splice(TICK.indexOf(this.fn),1); this.boarding=false; this.auto=false; this.stage=0; window.dragHook=null; window.camHook=null; document.body.classList.remove('flying'); }
+    fade.next='1호로 들어가는 중'; await fade(true,1400); HANDS.suit=false; TICK.splice(TICK.indexOf(this.fn),1); this.boarding=false; this.auto=false; this.stage=0; window.dragHook=null; window.camHook=null; document.body.classList.remove('flying'); },
+  // 1호로 들어간 뒤 : R-1 과 1호 겉모습을 그래픽 메모리에서 내린다 (디벗 · 다시 쓰면 저절로 올라온다)
+  free(){ const seen=new Set(); [R1.g,this.G].forEach(r=>r&&r.traverse(o=>{ if(!o.isMesh) return; o.geometry.dispose(); (Array.isArray(o.material)?o.material:[o.material]).forEach(m=>['map','normalMap','roughnessMap','metalnessMap','emissiveMap','aoMap'].forEach(k=>{ const t=m[k]; if(t&&!seen.has(t)){ seen.add(t); t.dispose(); } })); })); }
 };

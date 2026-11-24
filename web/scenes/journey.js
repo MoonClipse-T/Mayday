@@ -3,7 +3,7 @@
    ① 발사 : 케네디 39B 새벽 · R-1 을 실은 로켓 (launch.glb — Space Center Realistic Launch Facility, CC BY) · 카운트다운 → 점화 → 이륙
    ② 지구 궤도 출발 : R-1 조종석 · 발아래 지구 (낮 · 밤 · 구름) · 상단 분리 → 이온 엔진 점화 → 지구가 멀어진다 → 동면
    ③ 넉 달 뒤 목성 : 동면에서 깨어나 · 창밖을 채운 목성(실제 공 · 위성 둘) → 직접 몰고 웜홀로 → 경계에서 자동 진입 → 터널 → 하얗게
-   → scenes/flight.js 웜홀 건너편 (1호를 찾아 직접 몰고 간다)
+   → scenes/seek.js 웜홀 건너편 (1호의 전파를 거슬러 1호를 찾는다 · 4.16) · 도킹은 2부
    문제 자리 : JOURNEY.slot('이름') — 지금은 그냥 지나간다. 사용자가 문제를 주면 여기에 끼운다 (발사 전 · 궤도 · 목성 · 웜홀 앞)
    조종석 안에서는 화면을 끌어 고개를 돌려 둘러볼 수 있다
    ============================================================ */
@@ -75,7 +75,7 @@ const JOURNEY={
   /* ---- 구조정 R-1 (②③ 공통) : 앞 = +z · 조종석 · 로비 · 해치 방 (scenes/r1.js) ----
      앉아 있으면 끌어서 고개 돌리기 · 일어나면 걸어 다닌다 (끌기 = 둘러보기) */
   async cockpit(){ LEVEL.clear(); const rig=new THREE.Group(); WORLD.add(rig); const g=await R1.mount(rig);
-    const dash=new THREE.PointLight(0x7fd4ff,.7,2.4,2); dash.position.set(0,.85,-.55); g.add(dash); WORLD.add(new THREE.HemisphereLight(0x6f7f99,0x050607,.12));
+    R1.dashLight(g); WORLD.add(new THREE.HemisphereLight(0x6f7f99,0x050607,.12));
     const head={y:0,p:-.04,sy:0,sp:0}; P.look=true;
     window.dragHook=(dx,dy,e)=>{ if(!R1.seated){ if(!P.free&&!P.look) return; const k=e&&e.pointerType==='touch'?.0048:.0032; P.yaw-=dx*k; P.pitch=clamp(P.pitch-dy*k,-1.3,1.3); return; }
       const k=IS_TOUCH?.004:.003; head.y=clamp(head.y-dx*k,-1.1,1.1); head.p=clamp(head.p-dy*k,-.6,.5); };

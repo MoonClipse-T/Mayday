@@ -103,12 +103,11 @@ const DO={g:null, D:{}, WC:V3(0,.6,-11.526), SUIT:[{o2:100,bat:9,date:'2091.03.1
     D.il.intensity=open?.9:.9; let rel=false; await over(open?1.7:1.1,e=>{ this.leaf(A0+(A1-A0)*e); if(open?this.la<1.15:true){ HANDS.put(R,hp(1),up); HANDS.put(L,hp(0),up); } else if(!rel){ rel=true; HANDS.exit(R,.5); HANDS.exit(L,.5); } });
     if(!open){ SFX.play('locker_close',{vol:.7}); D.il.intensity=0; await Promise.all([HANDS.exit(R,.4),HANDS.exit(L,.4)]); } },
   async locker({V,C}){ const D=this.D, MS=$('#mission'); S.phase='cut'; P.free=false; goal(''); this.rows=this.ROWS(); this.drawList(); this.drawLock(''); if(MS) MS.classList.remove('on');
-    // 전자 잠금 : 가까이 가서 검지로 누른다
+    // 전자 잠금 : 가까이 가서 누른다 (누르기만 하는 것에는 손을 내지 않는다 — 4.16 사용자)
     const lp=this.gp(D.leafR,V3(-.35,1.4,.05)); await camTo({x:-.2,z:lp.z+.02,yaw:Math.PI/2,pitch:-.46,eye:1.56},.9); await TALK.say([V('보관함은 전자 잠금입니다. 비밀번호를 입력하십시오.')]);
-    const f=HANDS.make('R','point'), home=lp.clone().add(V3(.13,-.07,-.07)); let chain=Promise.resolve(); await HANDS.enter(f,R1.g,home,V3(0,1,0),.5); S.phase='play';
-    const tap=s=>{ this.drawLock(s); const k=lp.clone().add(V3(.004,-.015-Math.random()*.06,.05-Math.random()*.1)); chain=chain.then(()=>HANDS.poke(f,k,V3(.06,0,0),.1)); };
+    S.phase='play'; const tap=s=>this.drawLock(s);
     await codePad({cls:'low',hd:'우주복 보관함 · 전자 잠금',html:'<p class="note">비밀번호 네 글자 (영어)</p><p class="ask">이 구조정 <b>AI 의 이름</b>은?</p>',answer:'VEGA',onKey:tap,onBad:()=>{ this.drawLock('----','bad'); setTimeout(()=>this.drawLock(''),700); }});
-    this.drawLock('VEGA','ok'); S.phase='cut'; await chain; await HANDS.exit(f,.35); AUDIO.noise(.3,.2,0,700); THUD(.15);
+    this.drawLock('VEGA','ok'); S.phase='cut'; AUDIO.noise(.3,.2,0,700); THUD(.15);
     await camTo({x:-.02,z:-10.6,yaw:Math.PI/2,pitch:-.12,eye:1.5},.6); await this.doors(true);
     await camTo({x:.12,z:-10.6,yaw:Math.PI/2,pitch:-.06,eye:1.5},.5); await TALK.say([V('우주복 두 벌. 문 안쪽이 점검표입니다. 실물과 다른 항목이 있으면 고쳐 주십시오.')]);
     // 보는 자리 : 우주복 A · B · 점검표 (화면을 끌어 둘러볼 수도 있다)
@@ -118,18 +117,15 @@ const DO={g:null, D:{}, WC:V3(0,.6,-11.526), SUIT:[{o2:100,bat:9,date:'2091.03.1
     const see=async v=>{ if(mov||fin) return; mov=true; cur=v; ui.querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.v===v)); await camTo({...VIEW[v]},.65); mov=false; };
     ui.querySelectorAll('button').forEach(b=>b.addEventListener('pointerdown',e=>{ e.stopPropagation(); AUDIO.click(); see(b.dataset.v); }));
     S.phase='play'; P.look=true; goal('우주복을 보고 점검표에 체크 — 맞으면 [맞음], 다르면 [다름] 을 누르고 값을 고친다');
-    const rc=new THREE.Raycaster(), el=$('#c'); let pd=null; const fg=HANDS.make('R','point'); let tapping=false;
-    await new Promise(res=>{ const down=e=>{ pd=TALK.on?null:[e.clientX,e.clientY]; }, upp=async e=>{ if(!pd||Math.hypot(e.clientX-pd[0],e.clientY-pd[1])>10||mov||fin) return; pd=null; rc.setFromCamera(new THREE.Vector2(e.clientX/innerWidth*2-1,-(e.clientY/innerHeight)*2+1),camera);
-          const hit=rc.intersectObject(D.list.m)[0]; if(!hit){ return; } if(cur!=='list') return see('list'); const q=this.hitList(hit.uv.x*D.list.w,(1-hit.uv.y)*D.list.h); if(!q||tapping) return;
-          // 검지로 누른다 → 그 순간 바뀐다
-          tapping=true; const gpnt=R1.g.worldToLocal(hit.point.clone()), back=n.clone().multiplyScalar(.05); if(!fg.g.parent){ R1.g.add(fg.g); HANDS.put(fg,lc.clone().add(n.clone().multiplyScalar(.12)).add(V3(0,-.52,0)),V3(0,1,0)); } await HANDS.poke(fg,gpnt,back,.16);
+    const rc=new THREE.Raycaster(), el=$('#c'); let pd=null;
+    await new Promise(res=>{ const down=e=>{ pd=TALK.on?null:[e.clientX,e.clientY]; }, upp=e=>{ if(!pd||Math.hypot(e.clientX-pd[0],e.clientY-pd[1])>10||mov||fin) return; pd=null; rc.setFromCamera(new THREE.Vector2(e.clientX/innerWidth*2-1,-(e.clientY/innerHeight)*2+1),camera);
+          const hit=rc.intersectObject(D.list.m)[0]; if(!hit){ return; } if(cur!=='list') return see('list'); const q=this.hitList(hit.uv.x*D.list.w,(1-hit.uv.y)*D.list.h); if(!q) return; AUDIO.tone(1250,.03,'square',.04);
           if(q.done){ const bad=this.rows.filter(r=>!(r.mk===1&&r.v===r.a||r.mk===-1&&r.o[r.i]===r.a)), blank=this.rows.filter(r=>!r.mk).length;
             if(!bad.length){ fin=true; this.drawList('',true); AUDIO.tone(880,.12,'sine',.08); AUDIO.tone(1320,.2,'sine',.07,.1); el.removeEventListener('pointerdown',down); el.removeEventListener('pointerup',upp); setTimeout(res,700); }
             else { AUDIO.tone(200,.2,'square',.05); this.drawList(blank?'아직 체크하지 않은 항목이 '+blank+'개':'실물과 다른 항목이 '+bad.length+'개 — 다시 확인'); } }
-          else { if(q.m){ q.r.mk=q.m; if(q.m<0) q.r.i=q.r.o.indexOf(q.r.v); } else q.r.i=(q.r.i+q.st+q.r.o.length)%q.r.o.length; this.drawList(); }
-          if(!fin) HANDS.to(fg,lc.clone().add(n.clone().multiplyScalar(.12)).add(V3(0,-.52,0)),V3(0,1,0),.32); setTimeout(()=>tapping=false,180); };
+          else { if(q.m){ q.r.mk=q.m; if(q.m<0) q.r.i=q.r.o.indexOf(q.r.v); } else q.r.i=(q.r.i+q.st+q.r.o.length)%q.r.o.length; this.drawList(); } };
       el.addEventListener('pointerdown',down); el.addEventListener('pointerup',upp); });
-    P.look=false; ui.remove(); goal(''); S.phase='cut'; HANDS.exit(fg,.4);
+    P.look=false; ui.remove(); goal(''); S.phase='cut';
     await camTo({x:-.02,z:-10.6,yaw:Math.PI/2,pitch:-.1,eye:1.5},.7); await TALK.say([C('우주복 두 벌, 헬멧 둘. …B 산소가 71 퍼센트. 적힌 값이 틀렸다.'),V('기록을 71 퍼센트로 고쳤습니다. 닿기 전까지 채워 두겠습니다. 점검 완료.')]);
     await this.doors(false); this.drawLock(''); await camTo({x:.35,z:-10.6,eye:1.66,pitch:0},.6); if(MS&&MISSION.open) MS.classList.add('on'); S.phase='play'; },
 
@@ -139,8 +135,8 @@ const DO={g:null, D:{}, WC:V3(0,.6,-11.526), SUIT:[{o2:100,bat:9,date:'2091.03.1
   fill(k){ const pg=this.D.pg; pg.visible=k>.01; pg.position.y=.009+.034*k; pg.scale.setScalar(.034+.02*Math.sqrt(k)); },
   async eat(){ const D=this.D, M=D.M, MS=$('#mission'); S.phase='cut'; P.free=false; goal(''); if(MS) MS.classList.remove('on');
     await camTo({x:-.38,z:-6.1,yaw:Math.PI/2,pitch:-.36,eye:1.5},.9);
-    // 단추를 검지로
-    const f=HANDS.make('R','point'), bp=this.gp(M,V3(.11,.395,.293)); await HANDS.enter(f,R1.g,bp.clone().add(V3(.1,-.04,-.02)),V3(0,1,0),.5); await HANDS.poke(f,bp,V3(.06,0,0),.22); HANDS.exit(f,.4);
+    // 단추 (누르기만 — 손은 그릇을 들 때부터)
+    await sleep(250); AUDIO.tone(1250,.03,'square',.05);
     // 그릇이 내려오고 → 죽이 쏟아진다 → 김
     this.drawDisp('단백질 죽','데우는 중…'); AUDIO.tone(880,.08,'sine',.05); AUDIO.hum&&0; await sleep(700); AUDIO.noise(.5,.08,0,500); const b=D.bowl; M.add(b); b.rotation.set(0,0,0); b.scale.setScalar(1); this.fill(0); b.visible=true;
     await over(.45,e=>b.position.set(0,.2-.157*e,.15)); AUDIO.tone(1500,.05,'triangle',.06); await sleep(250); this.drawDisp('단백질 죽','내리는 중…');

@@ -1,10 +1,10 @@
 /* ============================================================
    2부 「Mayday_The Atrox」 (4.13 · atrox.html) — 1호를 찾고 나서 돌아가기까지
-   시작 화면 뒤에서 1호를 미리 불러온다 → [1호로 들어간다] → 지난 이야기 → 제목 → 에어록 (우주복을 입은 채)
+   시작 화면 = 노란 변광성 곁에서 도는 죽은 1호 → [1호로 간다] → 지난 이야기 → 제목 → ① 1호 앞 640 m 에서 직접 몰아 도킹 · 우주복 · 1호의 문 (scenes/flight.js · 4.16 에 1부에서 옮김) → 1호를 불러온다 → 에어록
    ② 1호 : 암흑 · 손전등 · 찢긴 시신 · 피 → ③ 동면 구역 C 의 생존자 레아 → 가슴에서 애벌레 → 첫 사격
    ④ 애벌레 사냥 (시신마다 하나) → ⑤ 기관실 원자로 재가동 · 시신을 먹던 성체 → 숨고 · 도망쳐 ⑥ 함교 → 1호를 몰고 웜홀로 (다음 이야기 : 사용자 지시 대기)
-   1부(회의 → 발사 → 웜홀 → 도킹)는 scenes/part1.js (index.html)
-   저장 지점 : 죽으면 그 자리부터 (GAME.cp) · 제작용 바로 가기 atrox.html?s=board · survivor · hunt · engine · bridge · stalk
+   1부(회의 → 발사 → 웜홀 → 1호를 찾기까지)는 scenes/part1.js (index.html)
+   저장 지점 : 죽으면 그 자리부터 (GAME.cp) · 제작용 바로 가기 atrox.html?s=cockpit(도킹) · board · survivor · hunt · engine · bridge · stalk
    ============================================================ */
 'use strict';
 // 시신 (애벌레가 든 몸) : 자리 · 모델(a 벽에 기대 앉은 방호복 — 등이 모델의 −z · b · c 대원복 차림으로 쓰러진 몸) · 방향
@@ -24,15 +24,16 @@ const LEAH_WEAR={grime:[.5,.46,.42],desat:.45,matte:true,blobs:[[.5,.66,.82,.075
   [.03,.56,.5,.06,'b'],[.97,.56,.5,.06,'b'],[.1,.56,.5,.06,'o'],[.9,.56,.5,.06,'o'],[.5,.92,.85,.05,'o'],[.56,.9,.9,.035,'b'],[.5,.8,.5,.09,'o'],[.5,.5,.2,.1,'o']]};
 
 const GAME={part:2, cp:null,
-  stages:['board','survivor','hunt','engine','bridge','stalk'],
-  // 시작 화면 : 뒤에서 1호를 불러온다 (다 되면 [1호로 들어간다]) — 손전등 하나로 본 중앙 복도
-  async title(){ await this.ship({music:false}); GUN.held.visible=false; warp(34.5,10.5,Math.PI/2+.24); P.pitch=-.06; let t=0;
-    TICK.push(dt=>{ if(S.phase!=='title') return; t+=dt; P.yaw=Math.PI/2+.24+Math.sin(t*.22)*.14; P.pitch=-.06+Math.sin(t*.31)*.05; }); },
-  // [1호로 들어간다] : 지난 이야기 → 2부 제목 → 에어록
-  async begin(){ S.phase='cut'; document.body.classList.add('overfade'); await fade(true,1200); MUSIC.play('derelict',{fade:4});
-    await this.recap([['2091년, 목성 곁','웜홀이 열렸다'],['너머로 떠난 하위헌스 1호','대원 열두 명 · 312일째, “Mayday, Mayday, we are—”'],['1인 구조정 R-1','편도분의 연료 · 넉 달의 잠 · 다른 은하'],['도킹 완료','돌아가는 길은 하나 — 1호를 깨워, 1호를 몰고']]);
+  stages:['cockpit','board','survivor','hunt','engine','bridge','stalk'],
+  // 시작 화면 : 변광성 곁에서 도는 죽은 1호를 밖에서 본다 (도킹 장면을 그대로 쓴다)
+  async title(){ await FLIGHT.build(); const c=new THREE.Vector3(), G=FLIGHT.G; FLIGHT.rig.visible=false; const zf=FLIGHT.hb.min.z; let t=0; const lamp=new THREE.SpotLight(0xe8f0ff,1.1,260,.3,.7,1); WORLD.add(lamp,lamp.target);
+    TICK.push(dt=>{ if(S.phase!=='title'){ lamp.intensity=0; return; } t+=dt; G.rotation.z+=dt*FLIGHT.W; c.set(62+Math.sin(t*.05)*8,14,zf-34); camera.position.copy(c); camera.lookAt(12,0,zf+58); lamp.position.copy(c); lamp.target.position.set(0,0,zf+30+Math.sin(t*.3)*24); }); },
+  // [1호로 간다] : 지난 이야기 → 2부 제목 → 도킹 → 1호 에어록
+  async begin(){ S.phase='cut'; document.body.classList.add('overfade'); await fade(true,1200); MUSIC.play('derelict',{fade:4}); prefetch(SHIP.list().map(l=>l[0]).concat('corpse_a','larva','beast'));      // 도킹하는 동안 1호 안을 받아 둔다 (푸는 것은 들어갈 때)
+    await this.recap([['2091년, 목성 곁','웜홀이 열렸다'],['너머로 떠난 하위헌스 1호','대원 열두 명 · 312일째, “Mayday, Mayday, we are—”'],['외부 은하 NGC 3500','전파를 거슬러, 별빛으로 거리를 재어 — 1호를 찾았다'],['1인 구조정 R-1','돌아가는 길은 하나 — 1호를 깨워, 1호를 몰고']]);
     await card('2부','Mayday_The Atrox','',4200);
-    document.body.classList.remove('overfade'); GUN.held.visible=true; HELMET.on(true); return this.board(); },
+    document.body.classList.remove('overfade'); FLIGHT.rig.visible=true; return this.dock(); },
+  async dock(){ await FLIGHT.run(); await this.ship(); FLIGHT.free(); GUN.held.visible=true; HELMET.on(true); return this.board(); },
   // 지난 이야기 : 검은 화면에 한 장면씩 (화면을 누르거나 Space 로 건너뛴다)
   recap(list){ const e=document.createElement('div'); e.id='recap'; e.innerHTML='<p class="k">지난 이야기</p><h2></h2><p class="s"></p><button>건너뛰기</button>'; document.body.appendChild(e); requestAnimationFrame(()=>e.classList.add('on'));
     return new Promise(res=>{ let i=-1, tm=0, over=false; const end=()=>{ if(over) return; over=true; clearTimeout(tm); removeEventListener('keydown',kb); e.classList.remove('on'); setTimeout(()=>{ e.remove(); res(); },700); };
@@ -40,6 +41,7 @@ const GAME={part:2, cp:null,
       const kb=ev=>{ if(ev.code==='Space'||ev.code==='Enter') step(); }; addEventListener('keydown',kb); e.addEventListener('pointerdown',step); e.querySelector('button').addEventListener('pointerdown',ev=>{ ev.stopPropagation(); end(); }); step(); }); },
   // 바로 가기
   async jump(key){ const f=S.flags; S.phase='cut'; P.free=false;
+    if(key==='cockpit') return this.dock();
     await this.ship();
     if(key==='board') return this.board();
     fade(false,1200);

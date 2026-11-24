@@ -31,12 +31,13 @@ web/
   scenes/rooms.js     방마다 보이는 것 (꺼진 화면 · 비상등 · 캡슐 · 원자로 재가동)
   scenes/stalk.js     성체 추격 감독 : 울음소리 · 덕트 울림 → 숨으면 지나간다 · 약점 다섯 발 · 환풍구로 오면 숨어야 (STALK.start/stop)
   scenes/hide.js      숨을 곳 : 보관함 · 침대 밑 · 화물 상자(blender/06_숨는곳_화물상자.blend) · 동면 캡슐 · 벽 환기 덕트(blender/07_숨는곳_환기덕트.blend) — 방마다 그 방에 있을 법한 것
-  scenes/flight.js    구조정 비행 · 도킹 세 단계(접근 → 회전 맞추기 → 원을 고리에 겹쳐 붙이기) · 우주복 · 연결 통로
+  scenes/flight.js    (2부 첫머리) 구조정 비행 · 도킹 세 단계(접근 → 회전 맞추기 → 원을 고리에 겹쳐 붙이기) · 우주복 · 연결 통로
   scenes/r1.js        구조정 R-1 안 : 조종석 · 로비 · 해치 방을 걷는다 · 앉으면 비행 화면 · 자리마다 문제 끼울 곳 (R1.on · R1.task)
   scenes/hands.js     크리스의 손 (뼈대 · 자세 여섯 · hands.glb) — 잡기 · 누르기 · 들기 (1부 · 2부)
   scenes/doing.js     R-1 에서 손으로 하는 일 : 해치 핸들 · 우주복 보관함 점검표 · 배급기 · 영어 자판 (r1_props.glb)
   scenes/mission.js   R-1 출발 점검표 · 시차 그리기 · 동면 캡슐 암호
-  scenes/part1.js     1부 : 회의 → 여정 → 도킹 → 1부 끝 (2부로 가는 단추)
+  scenes/seek.js      웜홀 건너편 — 홀로그램 · 전파 방향 · 별 지우기 · 변광성으로 거리 · 도약 (1부)
+  scenes/part1.js     1부 : 회의 → 여정 → 1호를 찾기 → 1부 끝 (2부로 가는 단추)
   scenes/part2.js     2부 : 지난 이야기 → 1호 → 생존자 → 애벌레 사냥 → 기관실 성체 → 함교 출발 (저장 지점)
   main.js             시작
   style.css           화면 디자인
