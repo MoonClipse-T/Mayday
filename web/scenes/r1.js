@@ -18,7 +18,7 @@ const R1={g:null,b:null,seated:true,on:{},_wait:{},
         if(/glass/i.test(n)){ o.material.transparent=true; o.material.opacity=n==='Glass'?.06:.12; o.material.depthWrite=false; }
         if(n==='Floor_vent'){ o.material.roughness=Math.max(.35,o.material.roughness); } }); }
     FLOORS.push(...b.floors); LEVEL.solidTris.push(b); SOLID.want=true;
-    this.spots=b.spots; this.items=b.items; this.stations(); this.seated=true; this.hatchOpen=false; return g; },
+    this.spots=b.spots; this.items=b.items; await DO.mount(); this.stations(); this.seated=true; this.hatchOpen=false; return g; },
   // 걷기 ↔ 앉기
   follow(on){ const q=new THREE.Quaternion(); window.camHook=on?()=>{ this.g.updateWorldMatrix(true,false); camera.position.applyMatrix4(this.g.matrixWorld); camera.quaternion.premultiply(this.g.getWorldQuaternion(q)); }:null; },
   // 부모(비행 몸 rig)의 자리까지 지금 값으로 — g 만 새로 하면 rig 의 지난 프레임 자리를 써서, 빠르게 날 때 눈이 조종석 뒤에 남는다
@@ -32,8 +32,8 @@ const R1={g:null,b:null,seated:true,on:{},_wait:{},
     await camTo({x:0,z:-2.55,yaw:Math.PI*.98,pitch:-.3,eye:2.02},.9); await camTo({x:0,z:-3.15,yaw:0,pitch:0,eye:1.66},1.0); S.phase='play'; P.free=true; },
   // 자리 : 보이지 않는 판정 상자 + 이름표 · 기본 동작 (문제를 끼우면 R1.on[id] 가 먼저)
   LABEL:{seat:'조종석 — 앉는다',galley:'식량 배급기',ledge:'창가 — 밖을 본다',shelf:'책장',capsule:'동면 캡슐',locker:'우주복 보관함',aft:'후방 도킹 조종대',hatch:'외부 해치'},
-  BOX:{seat:[[0,.9,-2.78],[1.1,1.6,.25]],galley:[[-1.08,1.12,-6.15],[.5,1.0,.75]],ledge:[[1.2,1.25,-6.65],[.5,.7,1.4]],shelf:[[1.25,1.7,-4.68],[.4,.9,1.4]],
-    capsule:[[-.86,1.1,-8.75],[1,2.1,1]],locker:[[-1.12,1.1,-10.6],[.6,2,1.2]],aft:[[1.2,1.3,-10.62],[.45,1.2,1.1]],hatch:[[0,.85,-11.68],[1.4,1.6,.2]]},
+  BOX:{seat:[[0,.9,-2.78],[1.1,1.6,.25]],galley:[[-1.16,1.17,-6.1],[.36,.76,.5]],ledge:[[1.2,1.25,-6.65],[.5,.7,1.4]],shelf:[[1.25,1.7,-4.68],[.4,.9,1.4]],
+    capsule:[[-.86,1.1,-8.75],[1,2.1,1]],locker:[[-1.1,1.1,-10.6],[.6,2,1.2]],aft:[[1.2,1.3,-10.62],[.45,1.2,1.1]],hatch:[[0,.85,-11.68],[1.4,1.6,.2]]},
   RANGE:{galley:1.7,ledge:2.0,shelf:2.0},      // 벽에 붙은 작은 것은 가까이 가서 봐야 잡힌다 (배급기가 로비 어디서나 잡히던 것을 고침)
   stations(){ (this._picks||[]).forEach(m=>m.parent&&m.parent.remove(m)); this._picks=[]; this._wait={};      // 묶음은 장면마다 다시 쓰므로 지난 판정 상자는 치운다
     for(const id in this.BOX){ const [c,s]=this.BOX[id], m=new THREE.Mesh(new THREE.BoxGeometry(...s),PICK); m.position.set(...c); this.g.add(m); this._picks.push(m);
@@ -57,7 +57,7 @@ const R1={g:null,b:null,seated:true,on:{},_wait:{},
     hatch(){ AUDIO.tone(520,.1,'square',.04); return TALK.say([VG('외부 해치 잠금 정상. 바깥은 진공입니다, 크리스.')]); } },
   // 외부 해치 : 옆으로 미끄러져 열린다
   openHatch(){ const d=this.items.hatchdoor; if(!d||this.hatchOpen) return Promise.resolve(); this.hatchOpen=true; SFX.play('airlock'); AUDIO.noise(1.4,.15,0,900);
-    const x0=d.position.x; let k=0; return new Promise(res=>{ const f=dt=>{ k=Math.min(1,k+dt/1.6); d.position.x=x0+k*k*(3-2*k)*1.45; if(k>=1){ TICK.splice(TICK.indexOf(f),1); res(); } }; TICK.push(f); }); },
+    const x0=d.position.x; let k=0; return new Promise(res=>{ const f=dt=>{ k=Math.min(1,k+dt/1.6); d.position.x=x0+k*k*(3-2*k)*1.45; DO.D.W.position.x=k*k*(3-2*k)*1.45; if(k>=1){ TICK.splice(TICK.indexOf(f),1); res(); } }; TICK.push(f); }); },
   // 동면 캡슐에서 깨어난다 : 캡슐 안 → 밖으로 한 걸음
   async wake(){ const c=this.spots.capsule||{x:-.25,z:-8.75}; this.seated=false; this.follow(true); warp(-0.86,-8.75,-Math.PI/2); P.eye=1.62; P.pitch=-.1; S.phase='cut'; P.free=false; return c; },
   async outOfCapsule(){ const c=this.spots.capsule||{x:-.25,z:-8.75}; await camTo({x:c.x+.15,z:c.z,yaw:-Math.PI/2,pitch:0,eye:1.66},1.6); S.phase='play'; P.free=true; },

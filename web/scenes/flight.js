@@ -265,9 +265,10 @@ const FLIGHT={W:.6,                // 1호 자전 (rad/s ≈ 34°/s · 10초에 
     const room=new THREE.Mesh(new THREE.BoxGeometry(2.8,2.6,3.2),new THREE.MeshStandardMaterial({color:0x08090a,metalness:.3,roughness:.95,side:THREE.BackSide})); room.position.set(0,.3,L+1.6); T.add(room);
     return Object.assign(T,{h1,h2,red}); },
   // 우주복 : 보관함 앞에 서서 → 꺼내 입고(화면이 잠깐 어두워진다) → 헬멧을 잠근다 (헬멧 테 · 숨소리)
-  async suitUp(){ S.phase='cut'; P.free=false; goal(''); await camTo({x:.15,z:-10.6,yaw:Math.PI/2,pitch:-.05,eye:1.62},.8);
-    SFX.play('locker_open',{vol:.7}); await sleep(600); SFX.play('cloth'); await fade(true,700); await sleep(500); SFX.play('cloth'); await sleep(800); SFX.play('locker_close',{vol:.6}); await sleep(500);
-    SFX.play('airlock',{vol:.35}); HELMET.on(true); await fade(false,1000); $('#fade').style.background='';
+  async suitUp(){ S.phase='cut'; P.free=false; goal(''); await camTo({x:0,z:-10.6,yaw:Math.PI/2,pitch:-.1,eye:1.5},.8);
+    await DO.doors(true); SFX.play('cloth'); const hs=[HANDS.make('R'),HANDS.make('L')], sp=DO.D.suits&&DO.D.suits[0]; if(sp){ const c=DO.gp(sp,V3(0,.15,.1)); await Promise.all(hs.map((h,i)=>HANDS.enter(h,R1.g,c.clone().add(V3(0,0,i?.16:-.16)),V3(0,1,0),.6))); }
+    await fade(true,700); hs.forEach(h=>HANDS.remove(h)); if(sp) sp.visible=false; SFX.play('cloth'); await sleep(900); SFX.play('cloth'); await sleep(700); SFX.play('locker_close',{vol:.6}); DO.leaf(0); DO.D.il.intensity=0; await sleep(500);
+    SFX.play('airlock',{vol:.35}); HANDS.suit=true; HELMET.on(true); await fade(false,1000); $('#fade').style.background='';
     await TALK.say([I('…공기가 있을지 없을지는, 열어 봐야 안다.'),VG('우주복 기밀 정상. 산소 여섯 시간분. 외부 해치를 여십시오.')]); S.phase='play'; P.free=true; },
   // 해치를 지나 1호로 : 우주복을 입고 → 외부 해치를 직접 연다 → 연결 통로 → 1호 쪽 문을 손으로 연다
   async board(){ this.boarding=true; const T=this.tunnel(R1.g);
@@ -278,13 +279,15 @@ const FLIGHT={W:.6,                // 1호 자전 (rad/s ≈ 34°/s · 10초에 
     await R1.task('locker','우주복 보관함 — 우주복을 입는다'); delete R1.on.hatch;
     await this.suitUp();
     await R1.task('hatch','외부 해치를 연다 — 연결 통로 너머가 1호');
-    S.phase='cut'; P.free=false; goal(''); await camTo({x:0,z:-11.0,yaw:0,pitch:0,eye:1.5},.9);
+    // 핸들을 잡고 OPEN 쪽으로 끝까지 돌린다 → 해치가 옆으로 열린다
+    await DO.wheel(-1,1.25); S.phase='cut'; P.free=false; goal(''); await camTo({x:0,z:-11.0,yaw:0,pitch:0,eye:1.5},.6);
     toast('외부 해치 개방',1200); await R1.openHatch();
     // 연결 통로를 걷는다 (1호 쪽 문 = −z 로 5 m)
     await camTo({x:0,z:-12.9,eye:1.5},1.5); await camTo({x:0,z:-15.3},1.7);
     await TALK.say([I('…1호 쪽 문. 손으로 연다.')]);
+    await camTo({z:-16.02,pitch:-.1},.7); const dh=[HANDS.make('R'),HANDS.make('L')], DZ=-16.66; await Promise.all(dh.map((h,i)=>HANDS.enter(h,R1.g,V3(i?-.05:.05,1.16,DZ),V3(0,1,0),.6))); dh.forEach(h=>HANDS.pose(h,'grip',.2)); await sleep(350);
     // 1호 해치 : 잠금을 풀고 양쪽으로 미끄러진다 → 캄캄한 1호 에어록으로
-    SFX.play('airlock',{vol:.8}); let k=0; await new Promise(res=>{ const f=dt=>{ k=Math.min(1,k+dt/1.4); T.h1.position.x=-.375-k*.75; T.h2.position.x=.375+k*.75; T.red.intensity=.7*(1-k); if(k>=1){ TICK.splice(TICK.indexOf(f),1); res(); } }; TICK.push(f); });
-    await camTo({x:0,z:-17.4},1.8); AUDIO.noise(1.5,.15,0,600);
-    await fade(true,1400); TICK.splice(TICK.indexOf(this.fn),1); this.boarding=false; this.auto=false; this.stage=0; window.dragHook=null; window.camHook=null; document.body.classList.remove('flying'); }
+    SFX.play('airlock',{vol:.8}); let k=0; await new Promise(res=>{ const f=dt=>{ k=Math.min(1,k+dt/1.4); T.h1.position.x=-.375-k*.75; T.h2.position.x=.375+k*.75; dh.forEach((h,i)=>HANDS.put(h,V3((i?-1:1)*(.05+k*.5),1.16,DZ),V3(0,1,0))); T.red.intensity=.7*(1-k); if(k>=1){ TICK.splice(TICK.indexOf(f),1); res(); } }; TICK.push(f); });
+    dh.forEach(h=>HANDS.exit(h,.4)); await camTo({x:0,z:-17.4},1.8); AUDIO.noise(1.5,.15,0,600);
+    await fade(true,1400); HANDS.suit=false; TICK.splice(TICK.indexOf(this.fn),1); this.boarding=false; this.auto=false; this.stage=0; window.dragHook=null; window.camHook=null; document.body.classList.remove('flying'); }
 };

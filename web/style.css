@@ -27,7 +27,7 @@ body.at-title #visor{opacity:0}
 /* ---------- HUD ---------- */
 #hud{position:fixed;inset:0;pointer-events:none;z-index:10;transition:opacity .5s}
 body.at-title #hud,body.cine #hud{opacity:0}
-#goal{position:absolute;right:calc(var(--pad) + 40px);top:calc(var(--pad) + 2px);max-width:min(420px,46vw);text-align:right;opacity:0;transition:opacity .6s}
+#goal{position:absolute;right:calc(var(--pad) + 40px);top:calc(var(--pad) + 2px);max-width:min(440px,46vw);text-align:right;opacity:0;transition:opacity .6s;padding:8px 14px 10px;background:rgba(6,8,10,.6);border-right:3px solid var(--alert)}
 #goal.on{opacity:1}
 #goal .k{display:block;font-family:var(--mono);font-size:11px;letter-spacing:.24em;color:var(--alert);margin-bottom:6px}
 #goal #goaltext{font-size:clamp(15px,1.5vw,18px);line-height:1.5;color:var(--ink)}
@@ -403,3 +403,13 @@ body.cine #mission,body.at-title #mission{opacity:0}
 #recap button{position:absolute;right:calc(var(--pad) + 10px);bottom:calc(var(--pad) + 10px);min-height:52px;padding:0 24px;color:var(--mute);border:1px solid var(--hair);font-size:15px}
 /* 어두운 화면(#fade) 위로 자막 · 카드를 올린다 (1부 끝 · 2부 제목) · 시작 화면에서는 불러오기 막대를 단추로 대신한다 */
 body.overfade #card,body.overfade #talk{z-index:46} body.overfade #fademsg{display:none} body.at-title #loading{opacity:0}
+/* 4.14 손으로 하는 점검 : 핸들 단추 · 보는 자리 단추 · 시차 할 일(왼쪽 가운데 크게) · 다니엘의 쪽지 · 낮은 자판 */
+#wheelui button{position:fixed;bottom:calc(var(--pad) + 26px);z-index:12;width:92px;height:92px;border-radius:50%;border:2px solid rgba(233,231,226,.5);background:rgba(6,8,10,.5);font-size:42px;color:var(--ink);touch-action:none;user-select:none;-webkit-user-select:none} #wheelui button:first-child{left:calc(var(--pad) + 30px)} #wheelui button:last-child{right:calc(var(--pad) + 30px)} #wheelui button:active{background:rgba(255,255,255,.2)}
+#viewui{position:fixed;left:50%;bottom:calc(var(--pad) + 18px);transform:translateX(-50%);z-index:12;display:flex;gap:10px} #viewui button{min-height:56px;padding:0 22px;border:1px solid rgba(159,216,255,.5);background:rgba(6,8,10,.62);color:var(--vega);font-size:16px} #viewui button.on{background:rgba(159,216,255,.25);color:#fff;border-color:#fff}
+#taskbig{position:fixed;left:calc(var(--pad) + 18px);top:50%;transform:translate(-16px,-50%);z-index:12;width:min(26vw,330px);padding:22px 24px;background:rgba(6,8,10,.82);border-left:4px solid var(--alert);opacity:0;transition:opacity .5s,transform .5s var(--e);pointer-events:none}
+#taskbig.on{opacity:1;transform:translate(0,-50%)} #taskbig .k{margin:0 0 10px;font-family:var(--mono);font-size:12px;letter-spacing:.2em;color:var(--alert)} #taskbig h3{margin:0 0 16px;font-weight:600;font-size:clamp(20px,2.1vw,30px);line-height:1.35;color:#fff}
+#taskbig ul{list-style:none;margin:0;padding:0} #taskbig li{display:flex;align-items:center;gap:12px;padding:7px 0;font-size:clamp(16px,1.5vw,20px);color:var(--mute)} #taskbig li::before{content:'';flex:0 0 24px;height:24px;border:2px solid var(--mute);border-radius:4px;display:grid;place-items:center} #taskbig li.ok{color:#7fe0a0} #taskbig li.ok::before{content:'✓';border-color:#7fe0a0;background:rgba(127,224,160,.2);text-align:center;line-height:22px}
+#taskbig .h{min-height:2.8em;margin:14px 0 0;font-size:clamp(14px,1.2vw,16px);line-height:1.45;color:#ffd27a}
+@media (max-aspect-ratio:115/100){ #taskbig{left:50%;top:calc(var(--pad) + 46px);width:min(92vw,520px);transform:translate(-50%,0)} #taskbig.on{transform:translate(-50%,0)} #taskbig h3 br{display:none} #taskbig ul{display:flex;gap:26px} }
+#podlock .ask{margin:0 0 12px;font-size:20px;color:#fff} #podlock .ask b{color:var(--vega)} #podlock.low{top:auto;bottom:calc(var(--pad) + 10px);width:min(560px,calc(100vw - 24px))}
+#podlock .memo{margin:0 auto 14px;padding:12px 18px 14px;max-width:360px;background:#f1e9c9;color:#2a2f3a;transform:rotate(-1deg);font-family:'Nanum Pen Script',var(--sans);box-shadow:0 8px 20px rgba(0,0,0,.4)} #podlock .memo p{margin:0 0 8px;font-size:22px} #podlock .memo table{margin:0 auto;border-collapse:collapse;font-size:30px;line-height:1.2} #podlock .memo td{padding:1px 10px} #podlock .memo td:first-child{text-align:right} #podlock .memo td:last-child{text-align:left;font-family:var(--mono);font-size:24px;letter-spacing:.12em} #podlock .memo .q{color:#c8382a;font-weight:600}

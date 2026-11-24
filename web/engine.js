@@ -412,7 +412,8 @@ function frame(now){ requestAnimationFrame(frame); const dt=Math.min(.1,(now-las
     const vx=(-s*fz+c*fx)*sp, vz=(-c*fz-s*fx)*sp; P.vx=lerp(P.vx,vx,1-Math.pow(.001,dt)); P.vz=lerp(P.vz,vz,1-Math.pow(.001,dt)); move(P.vx*dt,P.vz*dt);
     const sp2=Math.hypot(P.vx,P.vz), air=P.y>P.gy+.03; P.bob=(P.bob||0)+(air?0:sp2*dt*6.5); P.bobA=lerp(P.bobA||0,sp2>.3&&!air?.022:0,.1); }
   // 위아래 : 걷는 동안은 중력 · 점프 · 턱 오르기, 연출 중에는 바닥 높이만 따라간다
-  if(P.free&&S.phase==='play'&&!camAnim){ const g=P.gy=ground(P.x,P.z,P.y);
+  // 가구에 낀 자리에 서면 한 턱씩(의자 발판 → 앉는 면 → 탁자) 타고 올라 천장까지 솟던 것 : 몸이 막힌 칸 속에 있으면 올라서지 않는다 (4.14)
+  if(P.free&&S.phase==='play'&&!camAnim){ let g=ground(P.x,P.z,P.y); if(g>P.y+.02&&SOLID.hit(P.x,P.z,P.y+STEP+.05,P.y+1.2,P.r*.5)) g=P.y; P.gy=g;
     if(P.jump&&!S.busy&&P.y<=g+.03){ P.vy=JUMP; AUDIO.tone(180,.12,'sine',.04,0,-60); } P.jump=false;
     if(P.vy>0||P.y>g+.03){ P.vy-=GRAV*dt; let ny=P.y+P.vy*dt;
       if(P.vy>0&&SOLID.hit(P.x,P.z,ny+BODY,ny+BODY+.05,P.r*.7)) P.vy=0;       // 머리가 천장에

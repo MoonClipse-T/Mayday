@@ -128,7 +128,7 @@ const JOURNEY={
     S.phase='cut'; P.free=false; goal(''); await camTo({x:-.35,z:-8.75,yaw:Math.PI/2,pitch:-.12,eye:1.62},.9);
     AUDIO.tone(220,.18,'square',.05); AUDIO.tone(180,.25,'square',.05,.2); S.phase='play';
     await TALK.say([V('캡슐 잠금 해제 실패. 암호가 설정되어 있습니다.'),C('…암호? 이런 걸 건 적이 없는데.'),C('…다니엘이다.')]);
-    goal('캡슐 암호 — 영어 네 글자 (VEGA 에게 힌트를 물을 수 있다)'); await PODLOCK.run(this); goal('');
+    goal('캡슐 암호 — 다니엘의 쪽지를 풀자 (영어 네 글자)'); await PODLOCK.run(); goal('');
     await TALK.say([V('잠금 해제. …다니엘 기관사에게 전할 말이 있으십니까?'),C('돌아가서 직접 할게.')]);
     await R1.intoCapsule(); AUDIO.noise(2,.08,0,400); AUDIO.tone(140,3,'sine',.05,0,-60);
     await TALK.say([C('…다녀오겠습니다.')]);
@@ -195,7 +195,7 @@ const JOURNEY={
     await TALK.say([V('동면 해제. 크리스, 들립니까? 목성 궤도입니다.')]);
     await R1.outOfCapsule();
     R1.view='…목성. 창 하나를 가득 채운다. 줄무늬가 천천히 흐른다. 저 옆 어딘가에 웜홀.'; R1.viewDir=null;
-    await TALK.say([C('…몸이 무겁다. 넉 달을 잤다.'),V('목성이 마침 웜홀 곁을 지나고 있습니다. 출발 전에 잰 거리 그대로입니다.'),C('…다니엘 말대로군. 1호 때는 목성이 멀리 있었는데.'),V('창밖을 보십시오. 그리고 조종석으로 와 주십시오. 웜홀까지 41만 km 입니다.')]);
+    await TALK.say([C('…몸이 무겁다. 넉 달을 잤다.'),V('목성이 마침 웜홀 곁을 지나고 있습니다. 출발 전에 잰 거리 그대로입니다.'),C('…계산대로군. 1호 때는 목성이 멀리 있었는데.'),V('창밖을 보십시오. 그리고 조종석으로 와 주십시오. 웜홀까지 41만 km 입니다.')]);
     await this.slot('목성');
     await R1.task('seat','조종석으로 — 웜홀까지 41만 km (창가에서 목성을 볼 수 있다)');
     await R1.sit(); S.phase='play'; head.y=0; head.p=-.04;

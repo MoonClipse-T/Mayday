@@ -33,6 +33,9 @@ web/
   scenes/hide.js      숨을 곳 : 보관함 · 침대 밑 · 화물 상자(blender/06_숨는곳_화물상자.blend) · 동면 캡슐 · 벽 환기 덕트(blender/07_숨는곳_환기덕트.blend) — 방마다 그 방에 있을 법한 것
   scenes/flight.js    구조정 비행 · 도킹 세 단계(접근 → 회전 맞추기 → 원을 고리에 겹쳐 붙이기) · 우주복 · 연결 통로
   scenes/r1.js        구조정 R-1 안 : 조종석 · 로비 · 해치 방을 걷는다 · 앉으면 비행 화면 · 자리마다 문제 끼울 곳 (R1.on · R1.task)
+  scenes/hands.js     크리스의 손 (뼈대 · 자세 여섯 · hands.glb) — 잡기 · 누르기 · 들기 (1부 · 2부)
+  scenes/doing.js     R-1 에서 손으로 하는 일 : 해치 핸들 · 우주복 보관함 점검표 · 배급기 · 영어 자판 (r1_props.glb)
+  scenes/mission.js   R-1 출발 점검표 · 시차 그리기 · 동면 캡슐 암호
   scenes/part1.js     1부 : 회의 → 여정 → 도킹 → 1부 끝 (2부로 가는 단추)
   scenes/part2.js     2부 : 지난 이야기 → 1호 → 생존자 → 애벌레 사냥 → 기관실 성체 → 함교 출발 (저장 지점)
   main.js             시작
@@ -101,6 +104,7 @@ Blender 의 `fog_volume`(안개 부피 상자)은 웹에서 회색 벽이 되므
 - 연구실: [Sci-fi lab](https://sketchfab.com/3d-models/sci-fi-lab-a676e149e343403bb5e57686f3d31da5) by Agata Wilczek · [Sci-Fi Microscope](https://sketchfab.com/3d-models/sci-fi-microscope-ab7e120d948a468da31f9a410d205000) by Tomek Suchodolski · [Sci-fi Lab Cell](https://sketchfab.com/3d-models/sci-fi-lab-cell-0bd8e745f008419ca7097395ad697d16) by LxNazarov — CC BY 4.0 · [An optical spectrometer](https://sketchfab.com/3d-models/an-optical-spectrometer-1cb673f9f1044907a6261e4bb8a63464) by Virtual Museums of Małopolska — CC0
 - **구조정 R-1 안**: [Space Ship Hallway](https://sketchfab.com/3d-models/space-ship-hallway-e97dce00ae5549a8a3795e06bc2cfc96) by yeeyeeman · [Kitchen](https://sketchfab.com/3d-models/e820d4b2a525498097da96026d89a8da) by bloodtea · [Large Wall-Mounted Computer Console](https://sketchfab.com/3d-models/large-wall-mounted-computer-console-298b7d9b68064618a3819d1a8fae4baf) by Inditrion Dradnon · 조종석 [Spacefighter Cockpit (Wasp Interdictor)](https://sketchfab.com/3d-models/db4aa67fe1164ec088083d7dac2d273f) by Comrade1280 — 모두 CC BY 4.0 · 책 · 의자 · 화분: Poly Haven (CC0) → `blender/05_구조정R1.blend` · `web/assets/r1.glb`
 - **숨는 곳(4.10)**: [Spacesuit (Confederation of Planets)](https://sketchfab.com/3d-models/da7b5c14bc634f8283e2d21343afa7cc) by tnnv (CC BY 4.0) → `suits.glb` · 배관 틈은 [Sci-Fi Machinery: Pipes Modular Asset Pack](https://sketchfab.com/3d-models/sci-fi-machinery-pipes-modular-asset-pack-0b8188107ef040149f2f71eb08e9ce16) by somni (CC BY 4.0) → `pipes.glb` · 실험대 · 제염 샤워는 Blender 로 직접 (`blender/08_숨는곳_방마다.blend`)
+- **손 · 손전등 · 해치 핸들 · 보관함 · 배급기(4.14)** : 손은 아래 heavy pistol animated(bumstrum)의 팔에 뼈대를 다시 심은 것, 나머지는 Blender 로 직접 (`blender/11_손과장치.blend` → `hands.glb` · `r1_props.glb`)
 - **권총을 쥔 손(4.12)**: [heavy pistol animated](https://sketchfab.com/3d-models/b7c78c533ced40cd986c44594b778ed6) by bumstrum (CC BY 4.0) → `gunhand.glb` (첫 자세를 굳힘 · `blender/09_권총손.blend`)
 - 기관실: [Large Fission/Fusion Hybrid Reactor](https://sketchfab.com/3d-models/large-fissionfusion-hybrid-reactor-c331666c133042c1a73c438857ce0149) by Lynxon — CC BY 4.0
 - 라운지: Poly Haven 모델 · 재질 (소파 · 바 의자 · 붐박스 · 화분 · 나무 바닥 · 가죽 · 천, CC0)

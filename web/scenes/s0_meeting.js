@@ -7,7 +7,7 @@
    ============================================================ */
 'use strict';
 SCENES.meeting={title:'프롤로그 · 브리핑룸', async enter(){
-  prefetch(['launch','r1','ship_ext']);      // 회의 동안 발사대 · 구조정 · 1호 겉모습을 받아 둔다 (1호 안은 2부에서)
+  prefetch(['launch','r1','r1_props','hands','suits','ship_ext']);      // 회의 동안 발사대 · 구조정 · 1호 겉모습을 받아 둔다 (1호 안은 2부에서)
   await LEVEL.load('meeting'); await SKY.city(-1.1,.9); renderer.toneMappingExposure=1;
   // 방은 조명이 구워져 있고, 사람만 빛을 받는다
   WORLD.add(new THREE.HemisphereLight(0xfff6ea,0x2a2a30,1.05));
