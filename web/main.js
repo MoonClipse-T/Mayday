@@ -7,7 +7,7 @@
   $('#title .how').innerHTML=ONE?(IS_TOUCH?'왼쪽 끌기 이동 · 오른쪽 끌기 둘러보기 · 물건을 눌러 조사':'W A S D 이동 · 마우스 끌기 둘러보기 · Shift 달리기 · E 조사')
     :(IS_TOUCH?'왼쪽 끌기 이동 · 오른쪽 끌기 둘러보기 · [사격] · [웅크림] · 물건을 눌러 조사 · 숨기':'W A S D 이동 · 마우스 끌기 둘러보기 · F 사격 · C 웅크리기 · Shift 달리기 · E 조사 · 숨기');
   requestAnimationFrame(frame);
-  const jump=(location.search.match(/[?&]s=(\w+)/)||[])[1], OTHER=ONE?['cockpit','board','survivor','hunt','engine','bridge','stalk']:['meeting','launch','depart','jupiter','seek','holo','warp','end'];
+  const jump=(location.search.match(/[?&]s=(\w+)/)||[])[1], OTHER=ONE?['cockpit','board','survivor','hunt','engine','bridge','stalk']:['meeting','launch','depart','jupiter','seek','holo','warp','belt','crash','eva','site','found','end'];
   if(OTHER.includes(jump)) return location.replace((ONE?'atrox.html':'index.html')+location.search);
   const btn=$('#start'), go1=btn.dataset.go||'시작';
   try{

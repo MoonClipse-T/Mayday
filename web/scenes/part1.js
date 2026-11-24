@@ -3,18 +3,18 @@
    ⓪ NASA 브리핑룸 (scenes/s0_meeting.js · 구조 계획) → ① 발사 · 지구 궤도(점검표 · 시차 · 캡슐 암호) · 목성 · 웜홀 (scenes/journey.js · mission.js)
    → ② 웜홀 건너편 : 여기는 외부 은하 · 1호의 마지막 전파를 거슬러 1호가 있는 곳을 알아낸다 (scenes/seek.js · 4.16) → 1부 끝 (2부로 가는 단추)
    2부(도킹 → 1호 안 → 돌아가기)는 scenes/part2.js (atrox.html) — 1호 안 맵은 1부에서 받지 않는다 (디벗 메모리 · 시작이 빨라진다)
-   제작용 바로 가기 ?s=meeting · launch · depart · jupiter · seek(웜홀 건너편) · holo(로비 홀로그램) · warp(도약) · end
+   제작용 바로 가기 ?s=meeting · launch · depart · jupiter · seek(웜홀 건너편) · holo(로비 홀로그램) · warp(도약) · belt(소행성 지대) · crash(망가진 뒤) · eva(나갈 채비) · site(고칠 자리) · found(1호) · end
    ============================================================ */
 'use strict';
 const GAME={part:1, NEXT:'atrox.html',
-  stages:['meeting','launch','depart','jupiter','seek','holo','warp','end'],
+  stages:['meeting','launch','depart','jupiter','seek','holo','warp','belt','crash','eva','site','found','end'],
   // 시작 화면 : 어두운 회의실을 천천히 둘러본다
   async title(){ await LEVEL.load('meeting'); await SKY.city(-1.1,.9); const sp=LEVEL.spawn; warp(sp.x,sp.z,sp.yaw); P.pitch=-.05; TICK.push(dt=>{ if(S.phase==='title') P.yaw+=dt*.02; }); },
   begin(){ return go('meeting'); },
   async jump(key){ S.phase='cut'; P.free=false;
     if(key==='meeting') return SCENES.meeting.enter();
     if(key==='end') return this.end();
-    if(key==='seek') return this.seek('arrive'); if(key==='holo'||key==='warp') return this.seek(key);
+    if(key==='seek') return this.seek('arrive'); if(['holo','warp','belt','crash','eva','site','found'].includes(key)) return this.seek(key);
     return this.journey(key); },
   async seek(from){ await SEEK.run(from); return this.end(); },
   // 회의 다음 : 발사 → 지구 궤도 출발 → 동면 → 넉 달 뒤 목성 · 웜홀 (scenes/journey.js) → 건너편에서 1호를 찾는다 (scenes/seek.js)

@@ -7,7 +7,7 @@
    ⑤ 절대 등급 : 남은 별의 밝기가 되풀이되는 주기를 재고 → 같은 종류의 별 다섯에서 규칙(주기가 두 배 → 0.7 작아진다)을 찾아 절대 등급을 알아낸다 (지식이 아니라 규칙 찾기)
    ⑥ 겉보기 등급 : 광도계 — 별빛과 기준 광원의 밝기를 맞춘다 → 1.3
    ⑦ 거리 : 5등급 차 = 밝기 100배 → 10 pc 의 10배 = 100 pc (시험 신호로 확인)
-   ⑧ 도약 : 주름길(웜홀이 열리며 시공간에 잡힌 주름 — 1호도 전파도 이 길로 왔다)을 100 pc → 노란 변광성 곁에 1호의 그림자 → 1부 끝 (도킹은 2부)
+   ⑧ 도약 : 주름길(웜홀이 열리며 시공간에 잡힌 주름 — 1호도 전파도 이 길로 왔다)을 100 pc → 소행성 지대(scenes/belt.js) → 노란 변광성 곁에 1호의 그림자 → 1부 끝 (도킹은 2부)
    홀로그램은 모두 3D (additive · 벽에 가리지 않음) · 재는 장치는 그 옆 판(#seek)
    ============================================================ */
 'use strict';
@@ -33,6 +33,7 @@ const SEEK={
     await SKY.space({dir:[.14,.06,-1],R:.09,jupiter:false,sunDir:[-.4,.5,.6],far:true,sunI:.1}); scene.background=new THREE.Color(0x000000); renderer.toneMappingExposure=1; this.lamps(); this.board=null; this.day=0;
     if(from==='arrive'){ await this.arrive(); await this.direction(); await this.shoot(); await this.rest(); }
     else { await this.dim(.3,0); this.ui(); this.frags(); if(from==='holo'){ await R1.wake(); fade(false,900); await R1.outOfCapsule(); } }
+    if(['belt','crash','eva','site','found'].includes(from)){ loadGLB('ship_ext').then(h=>this.hull=h); if(from!=='found') await BELT.run({belt:'fly',eva:'prep'}[from]||from); return this.found(); }
     if(from!=='warp'){ await this.hologram(); await this.erase(); await this.absolute(); await this.apparent(); await this.distance(); await this.closeHolo(); }
     else { fade(false,800); await R1.stand(J.head); }
     await this.warp(); },
@@ -254,22 +255,23 @@ const SEEK={
         this.no(); miss++; msg.textContent=(r>1?`빈 공간이다. ${n*10} pc 라면 별이 지금보다 ${R(r)}배 밝게 보여야 한다`:`빈 공간이다. ${n*10} pc 라면 별이 지금보다 ${R(1/r)}배 어둡게 보여야 한다`)+(miss>=2?' · 5등급 차이는 밝기 100배':''); }; });
     this.off('.side'); goal(''); await TALK.say([C('등급 차이 5. 밝기로는 100배. 빛은 거리의 제곱으로 퍼지니까, 10배 멀다. 10 pc 의 10배 — 100 pc.'),V('시험 신호가 되돌아왔습니다. 100 pc. 1호의 전파와 같은 자리입니다.'),C('…찾았다.'),
       C('그런데 100 pc 면 빛으로도 326년이야. 1호가 거기까지 어떻게 갔지?'),V('제 힘으로 간 것이 아닙니다. 웜홀이 열릴 때 이 은하의 시공간에도 주름이 잡혔습니다. 1호는 그 주름에 휩쓸려 갔습니다.'),V('1호의 전파도 주름을 타고 왔습니다. 그래서 우리가 들을 수 있었습니다.'),C('그럼 우리도 그 길을 탈 수 있겠군.'),V('방향은 전파에서, 거리는 별빛에서 얻었습니다. 둘이 맞아야 1호 곁에서 내립니다. 조종석으로 오십시오.')]); },
-  async closeHolo(){ this.live=false; this.hum(); S.phase='cut'; this.E.classList.remove('on'); await this.show(this.board,false,.8); R1.g.remove(this.board); R1.g.remove(this.base); this.dim(1,1.4); await camTo({z:-7.2,eye:1.66,pitch:0},.8); window.dragHook=(dx,dy,e)=>{ if(R1.seated){ const h=this.J.head,k=IS_TOUCH?.004:.003; h.y=clamp(h.y-dx*k,-1.1,1.1); h.p=clamp(h.p-dy*k,-.6,.5); return; } const k=e&&e.pointerType==='touch'?.0048:.0032; P.yaw-=dx*k; P.pitch=clamp(P.pitch-dy*k,-1.3,1.3); }; S.phase='play'; P.free=true; },
+  async closeHolo(){ this.live=false; prefetch(['r1_ext','rocks']); this.hum(); S.phase='cut'; this.E.classList.remove('on'); await this.show(this.board,false,.8); R1.g.remove(this.board); R1.g.remove(this.base); this.dim(1,1.4); await camTo({z:-7.2,eye:1.66,pitch:0},.8); window.dragHook=(dx,dy,e)=>{ if(R1.seated){ const h=this.J.head,k=IS_TOUCH?.004:.003; h.y=clamp(h.y-dx*k,-1.1,1.1); h.p=clamp(h.p-dy*k,-.6,.5); return; } const k=e&&e.pointerType==='touch'?.0048:.0032; P.yaw-=dx*k; P.pitch=clamp(P.pitch-dy*k,-1.3,1.3); }; S.phase='play'; P.free=true; },
 
   /* ============ ⑧ 도약 → 1호 ============ */
+  // 추력 손잡이 : 위로 끝까지 민다 — 놓으면 조금 되돌아온다 (도약 · 엔진 켜기)
+  async throttle(text,g){ const head=this.J.head, e=this.ui(), b=e.querySelector('.bot'); e.querySelector('.rec').classList.remove('on'); b.className='bot mid right on'; b.innerHTML='<div class="thr"><p>'+text+'</p><div class="slot"><i></i><b></b></div></div>'; goal(g);
+    const th=this._th||(this._th=FLIGHT.pivot(R1.b.root,'throttle')); if(th&&th.userData.z0===undefined) th.userData.z0=th.position.z; const z0=th?th.userData.z0:0, slot=b.querySelector('.slot'), knob=b.querySelector('.slot b'), fill=b.querySelector('.slot i'); let k=0, on=false, last=0; const setK=v=>{ k=clamp(v,0,1); knob.style.bottom=k*100+'%'; fill.style.height=k*100+'%'; if(th) th.position.z=z0+k*.05; head.sx=(Math.random()-.5)*.006*k; head.sy=(Math.random()-.5)*.006*k; };
+    this.grab(slot,{down:ev=>{ on=true; last=ev.clientY; },move:ev=>{ const d=(last-ev.clientY)/Math.max(60,slot.clientHeight-40); last=ev.clientY; setK(k+d); },up:()=>on=false});
+    let nt=0; await until(dt=>{ if(keys.KeyW||keys.ArrowUp) setK(k+dt*.7); else if(!on&&k>0) setK(k-dt*.25); nt-=dt; if(k>.05&&nt<=0){ nt=.14; AUDIO.noise(.3,.05+.12*k,0,200+500*k); } return k>=.995; });
+    goal(''); this.off('.bot'); return th; },
   async warp(){ const {V,C}=this, {rig,head}=this.J; loadGLB('ship_ext').then(h=>this.hull=h); await R1.task('seat','조종석으로 — 주름길 도약 100 pc'); await R1.sit(); head.y=0; head.p=-.02; S.phase='play'; P.free=false; window.dragHook=()=>{}; this.dim(.35,1);
     stamp('구조정 R-1 · 조종석','2091.08.07 · 도약 100 pc');
     await TALK.say([V('방향, 1호의 전파. 거리, 100 pc. 주름길 입구를 열었습니다.'),{who:'크리스',ch:'무전',kind:'me',t:'…기다려, 1호. 지금 간다.'}]);
-    const e=this.ui(), b=e.querySelector('.bot'); e.querySelector('.rec').classList.remove('on'); b.className='bot mid right on'; b.innerHTML='<div class="thr"><p>추력 손잡이를 끝까지 민다</p><div class="slot"><i></i><b></b></div></div>'; goal(byDevice('추력 손잡이를 위로 끝까지 민다 (또는 W)','추력 손잡이를 위로 끝까지 민다'));
-    // 추력 손잡이 : 위로 끝까지 민다 — 놓으면 조금 되돌아온다
-    const th=FLIGHT.pivot(R1.b.root,'throttle'), z0=th?th.position.z:0, slot=b.querySelector('.slot'), knob=b.querySelector('.slot b'), fill=b.querySelector('.slot i'); let k=0, on=false, last=0; const setK=v=>{ k=clamp(v,0,1); knob.style.bottom=k*100+'%'; fill.style.height=k*100+'%'; if(th) th.position.z=z0+k*.05; head.sx=(Math.random()-.5)*.006*k; head.sy=(Math.random()-.5)*.006*k; };
-    this.grab(slot,{down:ev=>{ on=true; last=ev.clientY; },move:ev=>{ const d=(last-ev.clientY)/Math.max(60,slot.clientHeight-40); last=ev.clientY; setK(k+d); },up:()=>on=false});
-    let nt=0; await until(dt=>{ if(keys.KeyW||keys.ArrowUp) setK(k+dt*.7); else if(!on&&k>0) setK(k-dt*.25); nt-=dt; if(k>.05&&nt<=0){ nt=.14; AUDIO.noise(.3,.05+.12*k,0,200+500*k); } return k>=.995; });
-    goal(''); this.off('.bot'); S.phase='cut'; AUDIO.tone(50,7,'sawtooth',.07,0,60); AUDIO.noise(6,.22,0,500); SFX.play('thruster',{vol:1});
+    const th=await this.throttle('추력 손잡이를 끝까지 민다',byDevice('추력 손잡이를 위로 끝까지 민다 (또는 W)','추력 손잡이를 위로 끝까지 민다')), z0=th?th.userData.z0:0; S.phase='cut'; AUDIO.tone(50,7,'sawtooth',.07,0,60); AUDIO.noise(6,.22,0,500); SFX.play('thruster',{vol:1});
     // 별이 늘어나 줄이 된다 → 하얗게
     const N=LITE?360:620, pos=new Float32Array(N*6), st=[...Array(N)].map(()=>({a:Math.random()*6.283,r:3+Math.pow(Math.random(),.6)*26,z:Math.random()*160})), ge=new THREE.BufferGeometry(); ge.setAttribute('position',new THREE.BufferAttribute(pos,3)); const ln=new THREE.LineSegments(ge,new THREE.LineBasicMaterial({color:0xcfe6ff,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false,fog:false})); ln.frustumCulled=false; rig.add(ln);
     let t=0; await until(dt=>{ t+=dt; const s=Math.min(1,t/4.2), v=4+s*s*260, len=.05+s*s*34; st.forEach((o,i)=>{ o.z-=v*dt; if(o.z<-4){ o.z=160; o.a=Math.random()*6.283; } const x=Math.cos(o.a)*o.r, y=Math.sin(o.a)*o.r; pos.set([x,y,o.z,x,y,o.z+len],i*6); }); ge.attributes.position.needsUpdate=true; ln.material.opacity=Math.min(.9,t*.8); camera.fov=70+s*s*26; camera.updateProjectionMatrix(); head.sx=(Math.random()-.5)*.016*s; head.sy=(Math.random()-.5)*.016*s; SKY.U.tun.value=0; return t>5.4; });
-    const fe=$('#fade'); fe.style.background='#fff'; fade.next='주름길 · 100 pc'; await fade(true,350); rig.remove(ln); camera.fov=70; camera.updateProjectionMatrix(); head.sx=head.sy=0; if(th) th.position.z=z0; AUDIO.hum(.25,30); await this.found(); },
+    const fe=$('#fade'); fe.style.background='#fff'; AUDIO.noise(1,.5,0,700); fade.next='주름길에서 튕겨 나가는 중'; await fade(true,350); rig.remove(ln); camera.fov=70; camera.updateProjectionMatrix(); head.sx=head.sy=0; if(th) th.position.z=z0; AUDIO.hum(.25,30); await BELT.run('fly'); await this.found(); },
   // 도착 : 노란 변광성 · 그 앞을 지나는 1호의 그림자
   async found(){ const {V,C}=this, {rig,head}=this.J; await SKY.space({dir:[0,0,-1],R:.0001,jupiter:false,sunDir:[0,0,1],far:true,sunI:.05}); scene.background=new THREE.Color(0x000000);
     rig.position.set(0,0,0); rig.quaternion.set(0,0,0,1); head.y=0; head.p=-.02;
@@ -283,10 +285,10 @@ const SEEK={
     const hull=this.hull||await loadGLB('ship_ext'), G=new THREE.Group(); hull.scale.setScalar(3); hull.traverse(o=>{ if(o.isMesh){ o.material=o.material.clone(); if(o.material.color) o.material.color.multiplyScalar(.12); if(o.material.emissive) o.material.emissive.setRGB(0,0,0); } }); G.add(hull); G.position.set(-86,44,620); G.rotation.set(.1,1.15,0,'YXZ'); WORLD.add(G); const spin=new THREE.Group(); G.add(spin); spin.add(hull);
     const lamp=new THREE.SpotLight(0xe8f0ff,0,900,.16,.7,.6); lamp.position.set(0,.2,1.6); lamp.target.position.set(-86,44,620); rig.add(lamp,lamp.target);
     let t=0, sp=0; JOURNEY.tick(dt=>{ t+=dt; star.material.uniforms.t.value=t; star.material.uniforms.k.value=1+.12*Math.sin(t*.5); halo.material.opacity=.82+.14*Math.sin(t*.5); spin.rotation.z+=dt*.6; rig.position.z+=sp*dt; this.J.cam(); });
-    const c0=camera.far; camera.far=2400; camera.updateProjectionMatrix(); stamp('구조정 R-1 · 변광성 S-09 곁','2091.08.07 · 도약 완료');
+    const c0=camera.far; camera.far=2400; camera.updateProjectionMatrix(); stamp('구조정 R-1 · 변광성 S-09 곁','2091.08.07 · 소행성 지대 너머');
     await sleep(700); await fade(false,2400); $('#fade').style.background=''; AUDIO.tone(110,5,'sine',.05); MUSIC.play('derelict',{fade:5}); await over(1,e=>sp=14*e);
     S.phase='play'; P.look=true; window.dragHook=(dx,dy)=>{ const k=IS_TOUCH?.004:.003; head.y=clamp(head.y-dx*k,-1.1,1.1); head.p=clamp(head.p-dy*k,-.6,.5); };
-    await TALK.say([V('도약 완료. 앞쪽에 변광성 S-09.'),C('…노란 별. 정말로 숨을 쉬는 것 같다.'),V('전파원 확인. 바로 앞입니다.'),C('별 앞에 뭔가 있다. …검은 그림자.')]);
+    await TALK.say([V('소행성 지대를 벗어났습니다. 앞쪽에 변광성 S-09.'),C('…노란 별. 정말로 숨을 쉬는 것 같다.'),V('전파원 확인. 바로 앞입니다.'),C('별 앞에 뭔가 있다. …검은 그림자.')]);
     await over(1.2,e=>lamp.intensity=9*e); AUDIO.tone(60,2.5,'sine',.07);
     await TALK.say([V('길이 140 m. 선체 번호… HUY-1.'),C('…하위헌스 1호.'),V('불빛 없음. 열 반응 없음. 긴 축을 중심으로 돌고 있습니다. 생명 신호… 하나.'),C('찾았다.')]);
     sp=22; AUDIO.radio(3); await sleep(2600); P.look=false; S.phase='cut'; await fade(true,2400); camera.far=c0; camera.updateProjectionMatrix(); this.E&&this.E.classList.remove('on'); JOURNEY.clean(); }
