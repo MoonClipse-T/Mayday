@@ -21,7 +21,6 @@ const JOURNEY={
 
   /* ---- ① 발사 ---- */
   async launch(){ const {R,C}=this; S.phase='cut'; P.free=false; goal('');
-    SHIP.preload();
     await LEVEL.load('launch',{solid:false}); SKY.clear();
     // 새벽 하늘 : 지평선은 주황, 위로 갈수록 남색
     const sky=new THREE.Mesh(new THREE.SphereGeometry(1600,32,16),new THREE.ShaderMaterial({side:THREE.BackSide,depthWrite:false,fog:false,

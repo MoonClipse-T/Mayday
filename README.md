@@ -3,10 +3,12 @@
 1인칭 3D 공포 방탈출 (three.js r128 · 디벗 터치 / 키보드). 과학2 Ⅷ. 별과 우주.
 NASA 긴급 브리핑(프롤로그)에서 시작해, 크리스는 혼자 1인 구조정을 타고 웜홀 너머 하위헌스 1호를 찾아간다. 1호는 이미 전멸했고, 시신마다 애벌레가 들어 있다. 총으로 애벌레를 없애고, 성체를 피해 숨고 도망치며, 1호를 몰고 웜홀로 돌아와야 한다. (4판 · 2026-11-03 — 동료 · 장 구분 · 문제는 뺐다. 문제는 나중에 하나씩 끼운다)
 
-- 게임: https://moonclipse-t.github.io/Mayday/ (고치는 중엔 `&dev` 를 붙이면 캐시 없이 받는다)
+- **1부** (1호를 찾기까지): https://moonclipse-t.github.io/Mayday/
+- **2부 「열세 번째 대원」** (1호를 찾고 돌아가기까지): https://moonclipse-t.github.io/Mayday/thirteenth.html
+- 고치는 중엔 `&dev` 를 붙이면 캐시 없이 받는다 · 올릴 때는 index.html 과 thirteenth.html 의 `window.V` 를 **둘 다** 같은 번호로 올린다
 - 제작용 바로 가기 `?s=` : `meeting`(처음 · 브리핑) · `launch`(발사) · `depart`(지구 궤도) · `jupiter`(목성 · 웜홀) · `cockpit`(웜홀 건너편 비행) · `board`(1호 에어록) · `survivor`(생존자) · `hunt`(애벌레 사냥) · `engine`(기관실 · 성체) · `bridge`(함교 · 출발)
 - 이야기 · 흐름: [STORY.md](STORY.md)
-- 아직 별과 우주 아카이브에는 넣지 않았다 (다 만든 뒤에 넣는다).
+- 별과 우주 아카이브 : 1부는 열려 있고 2부는 '준비 중' (2부부터 하는 일이 없게 — 2026-11-24). 열 때는 아카이브 소스 EXTRAS 의 2부 `url` 만 채운다.
 
 ## 조작
 - 디벗: 왼쪽 끌기 이동 · 오른쪽 끌기 둘러보기 · [사격] · [웅크림] · [달리기] · 물건을 눌러 조사
@@ -15,7 +17,8 @@ NASA 긴급 브리핑(프롤로그)에서 시작해, 크리스는 혼자 1인 �
 
 ## 폴더 (이 폴더 = GitHub 저장소 Mayday, OneDrive 에도 그대로)
 ```
-index.html            게임 화면 틀 (바이저 HUD · 교신 자막 · 장 카드 · 시작 화면)
+index.html            1부 화면 틀 (바이저 HUD · 교신 자막 · 장 카드 · 시작 화면)
+thirteenth.html       2부 「열세 번째 대원」 화면 틀 (같은 틀 · 불러오는 파일만 다르다)
 web/
   engine.js           엔진 : 이동 · 충돌 · 조사 · 교신 자막 TALK · 장 카드 · LEVEL(맵) · SOLID(몸 충돌 칸)
   people.js           실사 인물 (생존자 레아) : 뼈로 자세 · 숨쉬기 · 턱
@@ -30,7 +33,8 @@ web/
   scenes/hide.js      숨을 곳 : 보관함 · 침대 밑 · 화물 상자(blender/06_숨는곳_화물상자.blend) · 동면 캡슐 · 벽 환기 덕트(blender/07_숨는곳_환기덕트.blend) — 방마다 그 방에 있을 법한 것
   scenes/flight.js    구조정 비행 · 도킹 세 단계(접근 → 회전 맞추기 → 원을 고리에 겹쳐 붙이기) · 우주복 · 연결 통로
   scenes/r1.js        구조정 R-1 안 : 조종석 · 로비 · 해치 방을 걷는다 · 앉으면 비행 화면 · 자리마다 문제 끼울 곳 (R1.on · R1.task)
-  scenes/game.js      한 흐름 : 구조정 → 1호 → 생존자 → 애벌레 사냥 → 기관실 성체 → 함교 출발 (저장 지점)
+  scenes/part1.js     1부 : 회의 → 여정 → 도킹 → 1부 끝 (2부로 가는 단추)
+  scenes/part2.js     2부 : 지난 이야기 → 1호 → 생존자 → 애벌레 사냥 → 기관실 성체 → 함교 출발 (저장 지점)
   main.js             시작
   style.css           화면 디자인
   vendor/             three.js r128 · GLTFLoader · SkeletonUtils

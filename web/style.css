@@ -2,7 +2,7 @@
 :root{
   --ink:#e9e7e2; --mute:rgba(233,231,226,.62); --dim:rgba(233,231,226,.34); --hair:rgba(233,231,226,.22);
   --alert:#ff5a36; --vega:#9fd8ff; --glass:rgba(6,8,10,.62);
-  --sans:"IBM Plex Sans KR","Malgun Gothic",sans-serif; --mono:"IBM Plex Mono",Consolas,monospace;
+  --sans:"IBM Plex Sans KR","Malgun Gothic",sans-serif; --mono:"IBM Plex Mono","IBM Plex Sans KR","Malgun Gothic",Consolas,monospace;
   --e:cubic-bezier(.2,.7,.2,1); --pad:max(18px,env(safe-area-inset-left),2.4vw);
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -99,6 +99,7 @@ body.talking #stick,body.talking .ring,body.talking #label,body.talking #reticle
 #title.off{opacity:0;pointer-events:none}
 #title .org{font-family:var(--mono);font-size:12px;letter-spacing:.3em;color:var(--mute);margin:0 0 26px}
 #title h1{font-weight:300;font-size:clamp(64px,13vw,190px);letter-spacing:.14em;line-height:.9;margin:0;color:#f2f0eb}
+#title .part{margin:22px 0 0;font-weight:300;font-size:clamp(22px,3vw,40px);letter-spacing:.08em;color:#f2f0eb} #title h1.two{font-size:clamp(44px,8vw,116px)} #title h1.two+.part{font-size:clamp(34px,5.6vw,80px);font-weight:600;letter-spacing:.02em}
 #title .log{font-family:var(--mono);font-size:clamp(12px,1.3vw,15px);color:var(--mute);margin:28px 0 0;letter-spacing:.04em}
 #title .log span{color:var(--alert)}
 #start{align-self:flex-start;margin-top:48px;min-height:58px;padding:0 36px;border:1px solid var(--alert);color:#fff;font-family:var(--mono);letter-spacing:.26em;font-size:14px;transition:background .2s,opacity .3s}
@@ -385,3 +386,20 @@ body.cine #mission,body.at-title #mission{opacity:0}
 @keyframes fmdots{0%{content:''}25%{content:' ·'}50%{content:' · ·'}75%{content:' · · ·'}}
 #fademsg.err{color:var(--alert);letter-spacing:.08em;font-size:15px} #fademsg.err::after{content:none;animation:none}
 #flight .ret .m path{stroke:#ff7a2a;stroke-width:3;stroke-linecap:round;vector-effect:non-scaling-stroke} #flight .ret .m circle{fill:#ff7a2a;stroke:none} #flight .ret.ok .m path{stroke:#6dffb0} #flight .ret.ok .m circle{fill:#6dffb0}
+/* 4.13 1부 끝(#ending) · 2부 지난 이야기(#recap) — 검은 화면에 글만 */
+#ending{position:fixed;inset:0;z-index:45;background:#000;display:flex;flex-direction:column;justify-content:center;padding:0 calc(var(--pad) + 6vw);opacity:0;pointer-events:none;transition:opacity 2s}
+#ending.on{opacity:1;pointer-events:auto}
+#ending .k,#recap .k{font-family:var(--mono);font-size:13px;letter-spacing:.36em;color:var(--alert);margin:0 0 20px}
+#ending h2{font-weight:300;font-size:clamp(38px,6.4vw,88px);letter-spacing:.02em;line-height:1.1;margin:0;color:#f2f0eb}
+#ending .s{font-size:clamp(17px,1.9vw,22px);line-height:1.8;color:var(--mute);margin:22px 0 0}
+#ending .next{margin:44px 0 0;padding:20px 0 0;border-top:1px solid var(--hair);display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:22px;max-width:820px}
+#ending .next p{margin:0;font-family:var(--mono);font-size:15px;letter-spacing:.2em;color:var(--alert)} #ending .next h3{margin:0;font-weight:600;font-size:clamp(24px,3vw,38px)}
+#ending .go{display:inline-flex;align-items:center;min-height:58px;padding:0 34px;border:1px solid var(--alert);color:#fff;text-decoration:none;font-size:17px;letter-spacing:.06em} #ending .go:active{background:rgba(255,90,54,.2)}
+#ending .again{align-self:flex-start;display:inline-flex;align-items:center;min-height:48px;margin-top:18px;color:var(--dim);font-size:14px;text-underline-offset:4px}
+@media (max-width:760px){ #ending .next{grid-template-columns:1fr;gap:12px} }
+#recap{position:fixed;inset:0;z-index:44;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:0 8vw;background:#000;opacity:0;transition:opacity .7s;cursor:pointer}
+#recap.on{opacity:1} #recap h2{font-weight:300;font-size:clamp(30px,4.6vw,60px);margin:0;color:#f2f0eb} #recap .s{font-size:clamp(16px,1.8vw,22px);line-height:1.7;color:var(--mute);margin:18px 0 0}
+#recap h2,#recap .s{opacity:0;transform:translateY(6px);transition:opacity .9s,transform .9s var(--e)} #recap.show h2,#recap.show .s{opacity:1;transform:none} #recap .k{position:absolute;top:calc(var(--pad) + 8px);left:0;right:0;color:var(--dim)}
+#recap button{position:absolute;right:calc(var(--pad) + 10px);bottom:calc(var(--pad) + 10px);min-height:52px;padding:0 24px;color:var(--mute);border:1px solid var(--hair);font-size:15px}
+/* 어두운 화면(#fade) 위로 자막 · 카드를 올린다 (1부 끝 · 2부 제목) · 시작 화면에서는 불러오기 막대를 단추로 대신한다 */
+body.overfade #card,body.overfade #talk{z-index:46} body.overfade #fademsg{display:none} body.at-title #loading{opacity:0}

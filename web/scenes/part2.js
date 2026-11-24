@@ -1,13 +1,12 @@
 /* ============================================================
-   MAYDAY 4판 — 한 흐름 (장 · 화면 전환 없음 · STORY.md)
-   ⓪ NASA 브리핑룸 (scenes/s0_meeting.js · 구조 계획) → 넉 달 뒤
-   ① 구조정 조종석 : 웜홀 건너편 · Mayday 녹음 · 불 꺼진 1호 · 연료는 편도분 → 도킹 (화면 전환은 여기 한 번 — 해치를 지나 1호로)
+   MAYDAY 2부 「열세 번째 대원」 (4.13 · thirteenth.html) — 1호를 찾고 나서 돌아가기까지
+   시작 화면 뒤에서 1호를 미리 불러온다 → [1호로 들어간다] → 지난 이야기 → 제목 → 에어록 (우주복을 입은 채)
    ② 1호 : 암흑 · 손전등 · 찢긴 시신 · 피 → ③ 동면 구역 C 의 생존자 레아 → 가슴에서 애벌레 → 첫 사격
    ④ 애벌레 사냥 (시신마다 하나) → ⑤ 기관실 원자로 재가동 · 시신을 먹던 성체 → 숨고 · 도망쳐 ⑥ 함교 → 1호를 몰고 웜홀로 (다음 이야기 : 사용자 지시 대기)
-   저장 지점 : 죽으면 그 자리부터 (GAME.cp) · 제작용 바로 가기 ?s=cockpit · board · survivor · hunt · engine · bridge
+   1부(회의 → 발사 → 웜홀 → 도킹)는 scenes/part1.js (index.html)
+   저장 지점 : 죽으면 그 자리부터 (GAME.cp) · 제작용 바로 가기 thirteenth.html?s=board · survivor · hunt · engine · bridge · stalk
    ============================================================ */
 'use strict';
-const VG=(t,v)=>({who:'VEGA',ch:'무전 · 구조정',kind:'vega',t,v}), I=t=>({kind:'me',t}), RADIO=t=>({who:'HUY-1',ch:'녹음 · 312일째',kind:'radio',t});
 // 시신 (애벌레가 든 몸) : 자리 · 모델(a 벽에 기대 앉은 방호복 — 등이 모델의 −z · b · c 대원복 차림으로 쓰러진 몸) · 방향
 //   4.7 사용자 : 천에 덮여 있으면 안 된다 (덮어 줄 여유가 없었다) → 대원복(Tripo 비행복 모델)을 칠해 쓰러진 그대로 보이게 · 얼굴은 어둡게 · 돌려서
 const BODIES=[[22,10.6,'b',1.57],[45,10.5,'c',.3],[35.5,9.4,'a',0],[16.6,-3.2,'b',1],[29.4,5.2,'c',0],[41,3.6,'b',.5],[9,9.3,'a',0],[2,-1.2,'b',.8],[24,21,'c',2]];
@@ -24,13 +23,23 @@ const RAGS={a:[[.3,.27,.1],[.16,.17,.24],[.3,.3,.28]],b:[[.42,.4,.37],[.2,.22,.2
 const LEAH_WEAR={grime:[.5,.46,.42],desat:.45,matte:true,blobs:[[.5,.66,.82,.075,'b'],[.45,.56,.85,.06,'o'],[.58,.62,.85,.07,'t'],[.4,.7,.8,.06,'t'],[.5,.5,.85,.09,'o'],[.62,.45,.7,.06,'t'],[.4,.3,.8,.07,'t'],[.6,.2,.8,.06,'o'],[.42,.13,.85,.05,'t'],
   [.03,.56,.5,.06,'b'],[.97,.56,.5,.06,'b'],[.1,.56,.5,.06,'o'],[.9,.56,.5,.06,'o'],[.5,.92,.85,.05,'o'],[.56,.9,.9,.035,'b'],[.5,.8,.5,.09,'o'],[.5,.5,.2,.1,'o']]};
 
-const GAME={cp:null,
-  stages:['meeting','launch','depart','jupiter','cockpit','board','survivor','hunt','engine','bridge','stalk'],
-  // 바로 가기 · 처음부터
+const GAME={part:2, cp:null,
+  stages:['board','survivor','hunt','engine','bridge','stalk'],
+  // 시작 화면 : 뒤에서 1호를 불러온다 (다 되면 [1호로 들어간다]) — 손전등 하나로 본 중앙 복도
+  async title(){ await this.ship({music:false}); GUN.held.visible=false; warp(34.5,10.5,Math.PI/2+.24); P.pitch=-.06; let t=0;
+    TICK.push(dt=>{ if(S.phase!=='title') return; t+=dt; P.yaw=Math.PI/2+.24+Math.sin(t*.22)*.14; P.pitch=-.06+Math.sin(t*.31)*.05; }); },
+  // [1호로 들어간다] : 지난 이야기 → 2부 제목 → 에어록
+  async begin(){ S.phase='cut'; document.body.classList.add('overfade'); await fade(true,1200); MUSIC.play('derelict',{fade:4});
+    await this.recap([['2091년, 목성 곁','웜홀이 열렸다'],['너머로 떠난 하위헌스 1호','대원 열두 명 · 312일째, “Mayday, Mayday, we are—”'],['1인 구조정 R-1','편도분의 연료 · 넉 달의 잠 · 다른 은하'],['도킹 완료','돌아가는 길은 하나 — 1호를 깨워, 1호를 몰고']]);
+    await card('MAYDAY 2부','열세 번째 대원','1호의 대원은 열두 명. 발소리는 열셋.',4600);
+    document.body.classList.remove('overfade'); GUN.held.visible=true; HELMET.on(true); return this.board(); },
+  // 지난 이야기 : 검은 화면에 한 장면씩 (화면을 누르거나 Space 로 건너뛴다)
+  recap(list){ const e=document.createElement('div'); e.id='recap'; e.innerHTML='<p class="k">지난 이야기</p><h2></h2><p class="s"></p><button>건너뛰기</button>'; document.body.appendChild(e); requestAnimationFrame(()=>e.classList.add('on'));
+    return new Promise(res=>{ let i=-1, tm=0, over=false; const end=()=>{ if(over) return; over=true; clearTimeout(tm); removeEventListener('keydown',kb); e.classList.remove('on'); setTimeout(()=>{ e.remove(); res(); },700); };
+      const step=()=>{ clearTimeout(tm); if(over) return; if(++i>=list.length) return end(); e.classList.remove('show'); setTimeout(()=>{ if(over) return; e.querySelector('h2').textContent=list[i][0]; e.querySelector('.s').textContent=list[i][1]; e.classList.add('show'); },350); tm=setTimeout(step,4200); };
+      const kb=ev=>{ if(ev.code==='Space'||ev.code==='Enter') step(); }; addEventListener('keydown',kb); e.addEventListener('pointerdown',step); e.querySelector('button').addEventListener('pointerdown',ev=>{ ev.stopPropagation(); end(); }); step(); }); },
+  // 바로 가기
   async jump(key){ const f=S.flags; S.phase='cut'; P.free=false;
-    if(key==='meeting') return SCENES.meeting.enter();
-    if(['launch','depart','jupiter'].includes(key)) return this.journey(key);
-    if(key==='cockpit') return this.cockpit();
     await this.ship();
     if(key==='board') return this.board();
     fade(false,1200);
@@ -41,18 +50,13 @@ const GAME={cp:null,
     if(key==='engine'){ warp(46,10.5,-Math.PI/2); return this.engine(); }
     f.power=true; this.lightsOn(); warp(54,10.5,Math.PI/2); return this.escape(); },
 
-  /* ---- ① 구조정 : 직접 몰고 가 도킹한다 (scenes/flight.js) → 연결 통로를 지나 1호 에어록 ---- */
   // 전력 복구 : 방 불빛 · 빛 띠 · 화면이 돌아온다 (손전등은 그대로 · 조금 약하게)
   lightsOn(){ ROOMS.power(); STORY.dark(false); $('#torch').classList.add('on'); STORY.torch(.5); SHIP.dim=.75; if(SHIP.hemi) SHIP.hemi.intensity=.38; },
   // 추격 시험 (?s=stalk · &vent 를 붙이면 처음부터 환풍구로) — 미션을 넣기 전의 빈 배에서 성체만 (scenes/stalk.js)
   async sandbox(){ S.phase='play'; P.free=true; goal('자유 탐색 — 성체가 찾아온다 (숨을 곳 : 옷장 · 침대 밑 · 화물 상자 · 동면 캡슐)'); this.save(27,7,Math.PI,async()=>STALK.reset(15));
     if(/[?&]vent/.test(location.search)) STALK.force='vent'; await STALK.start({first:12,onCatch:()=>this.died()}); },
-  async cockpit(){ await FLIGHT.run(); await this.ship(); return this.board(); },
-  // 회의 다음 : 발사 → 지구 궤도 출발 → 동면 → 넉 달 뒤 목성 · 웜홀 (scenes/journey.js) → 건너편에서 직접 몰고 도킹
-  async journey(from='launch'){ await JOURNEY.run(from); await FLIGHT.run({journey:true}); await this.ship(); return this.board(); },
-
   /* ---- 1호 불러오기 (어둠 · 시신 · 피) ---- */
-  async ship(){ const f=S.flags; await SCENES.ship.enter(); MUSIC.play('derelict',{fade:3}); STORY.show('h1',true); STORY.dark(true); SHIP.dim=.8; if(SHIP.hemi) SHIP.hemi.intensity=.035;      // 붉은 빛 없이 캄캄하게 — 손전등이 비춘 곳만 밝다
+  async ship({music=true}={}){ const f=S.flags; await SCENES.ship.enter(); if(music) MUSIC.play('derelict',{fade:3}); STORY.show('h1',true); STORY.dark(true); SHIP.dim=.8; if(SHIP.hemi) SHIP.hemi.intensity=.035;      // 붉은 빛 없이 캄캄하게 — 손전등이 비춘 곳만 밝다
     Object.values(SHIP.doors).forEach(d=>d.open());      // 전력이 없어 문은 모두 열린 채
     STALK.stop(); STALK.b=null; await this.bodies(); BEAST.vents(); STALK.vents(); await HIDE.setup(); TICK.push(dt=>HIDE.tick(dt)); await GUN.hold(); ME.heal(); ME.onDeath=()=>this.died(); DREAD.on();
     // 어둠 속 소리 : 몇 초마다 어딘가에서 (가끔 머리 위 쿵)

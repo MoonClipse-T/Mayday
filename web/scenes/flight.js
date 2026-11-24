@@ -8,14 +8,13 @@
       돌 방향은 알려 준다(빛나는 단추) · 같은 빠르기를 2초 지키면 회전이 저절로 고정된다
    ③ 도킹 : 화면 가운데의 원(= 내 해치)을 1호의 도킹 고리에 겹치고 [전진]으로 끝까지 — 고리가 화면에 가득 찰 때 어긋남이 고리 지름의 10 % 쯤(0.4 m) 안이면 '탁' 물린다
       축 · 기수 · 표시 맞추기는 없다 (VEGA 가 잡는다) · 빗나가면 밀려났다가 다시 · 두 번 빗나가면 도킹 보조
-   물린 뒤 : 1호 안에 공기가 있는지 모른다 → 해치 방 보관함에서 우주복을 입고 → 외부 해치 → 틈 없이 이어진 연결 통로 → 1호 쪽 문 (헬멧은 1호 에어록에서 공기를 확인하고 벗는다 — scenes/game.js board)
+   물린 뒤 : 1호 안에 공기가 있는지 모른다 → 해치 방 보관함에서 우주복을 입고 → 외부 해치 → 틈 없이 이어진 연결 통로 → 1호 쪽 문 → 1부 끝 (scenes/part1.js end) · 헬멧은 2부 첫머리 1호 에어록에서 공기를 확인하고 벗는다 (scenes/part2.js board)
    조작 (터치가 기본 · 키보드도) : 화면 끌기 = ① 기수 · ③ 원을 고리 쪽으로 (위아래 · 옆 이동 단추는 4.12 에 뺐다) · [전진][후진] = W/S · [롤 ◀][롤 ▶] = Q/E · [정지] = X
    ============================================================ */
 'use strict';
 const FLIGHT={W:.6,                // 1호 자전 (rad/s ≈ 34°/s · 10초에 한 바퀴 — 4.12 사용자 : 아주 빠르게 돈다)
   async run({journey=false}={}){ const self=this; S.phase='cut'; P.free=false; LEVEL.clear(); goal('');
     stamp('구조정 R-1 · 조종석','2091.07 · 웜홀 통과 +00:04');
-    SHIP.preload();                                            // 1호 안은 나는 동안 화면 뒤에서 풀어 둔다
     const hull=await loadGLB('ship_ext');
     await SKY.space({dir:[.1,.08,-1],R:.1,srot:2.4,jupiter:false,sunDir:[-.55,.4,.75],far:true});      // 웜홀은 등 뒤 · 행성 없음
     scene.background=new THREE.Color(0x000000);
@@ -287,10 +286,5 @@ const FLIGHT={W:.6,                // 1호 자전 (rad/s ≈ 34°/s · 10초에 
     // 1호 해치 : 잠금을 풀고 양쪽으로 미끄러진다 → 캄캄한 1호 에어록으로
     SFX.play('airlock',{vol:.8}); let k=0; await new Promise(res=>{ const f=dt=>{ k=Math.min(1,k+dt/1.4); T.h1.position.x=-.375-k*.75; T.h2.position.x=.375+k*.75; T.red.intensity=.7*(1-k); if(k>=1){ TICK.splice(TICK.indexOf(f),1); res(); } }; TICK.push(f); });
     await camTo({x:0,z:-17.4},1.8); AUDIO.noise(1.5,.15,0,600);
-    fade.next='1호로 들어가는 중'; await fade(true,900); TICK.splice(TICK.indexOf(this.fn),1); this.boarding=false; this.auto=false; this.stage=0; window.dragHook=null; window.camHook=null; document.body.classList.remove('flying'); }
+    await fade(true,1400); TICK.splice(TICK.indexOf(this.fn),1); this.boarding=false; this.auto=false; this.stage=0; window.dragHook=null; window.camHook=null; document.body.classList.remove('flying'); }
 };
-// 우주복 헬멧 : 화면 가장자리의 헬멧 테 · 유리 반사 · 산소 표시(style.css #helmet) + 헬멧 안 숨소리 — 1호 에어록에서 공기를 확인하고 벗는다 (scenes/game.js board)
-const HELMET={is:false,t:0,
-  tick(dt){ if(!this.is) return; this.t-=dt; if(this.t<=0){ this.t=3.4; SFX.play('breath',{vol:.5}); } },
-  on(k){ const e=FXEL('helmet'); if(k&&!e.firstChild) e.innerHTML='<div class="rim"></div><div class="glare"></div><div class="hud">EVA 우주복 · 산소 100 %<div class="o2"><i style="width:100%"></i></div></div>';
-    e.classList.toggle('on',!!k); this.is=!!k; this.t=1; this._f=this._f||(dt=>this.tick(dt)); if(k&&!TICK.includes(this._f)) TICK.push(this._f); } };

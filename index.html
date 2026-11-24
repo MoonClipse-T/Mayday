@@ -3,14 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<title>MAYDAY</title>
+<title>MAYDAY 1부</title>
 <meta name="theme-color" content="#040506">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Nanum+Pen+Script&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+KR:wght@300;400;600&display=swap" rel="stylesheet">
 <script>
 // 고칠 때마다 V 를 올린다 → 디벗 브라우저가 옛 파일을 쓰지 않는다 (화면 디자인 · 맵 .glb 도 같은 번호로 받는다)
-window.V=/[?&]dev/.test(location.search)?String(Date.now()):'42';
+window.V=/[?&]dev/.test(location.search)?String(Date.now()):'43';
 document.write('<link rel="stylesheet" href="web/style.css?v='+V+'">');
 </script>
 </head>
@@ -61,15 +61,16 @@ document.write('<link rel="stylesheet" href="web/style.css?v='+V+'">');
 <div id="title">
   <p class="org">NASA · 하위헌스 계획 · 기밀 2급</p>
   <h1>MAYDAY</h1>
+  <p class="part">1부</p>
   <p class="log">수신 기록 HUY-1 / 312일째 — <span>“Mayday, Mayday, we are—”</span></p>
-  <button id="start" disabled>불러오는 중</button>
+  <button id="start" data-go="임무 시작" disabled>불러오는 중</button>
   <p class="how"></p>
   <p class="credit">공간 · 생물 · 소품 : Sketchfab CC BY (README 참고) · 별지도 NASA/Goddard SVS · 행성 지도 Solar System Scope CC BY 4.0 · 재질 · 밤 풍경 Poly Haven CC0</p>
 </div>
 
 <script>
 ['vendor/three.r128.min.js','vendor/GLTFLoader.js','vendor/meshopt_decoder.js','vendor/SkeletonUtils.js','engine.js','audio.js','people.js','sky.js','screens.js',
- 'scenes/tools.js','creatures.js','scenes/ship.js','scenes/rooms.js','scenes/game.js','scenes/r1.js','calc.js','scenes/mission.js','scenes/flight.js','scenes/journey.js','scenes/hide.js','scenes/stalk.js','scenes/s0_meeting.js','main.js']
+ 'scenes/tools.js','scenes/r1.js','calc.js','scenes/mission.js','scenes/flight.js','scenes/journey.js','scenes/s0_meeting.js','scenes/part1.js','main.js']
  .reduce((p,f)=>p.then(()=>new Promise((res,rej)=>{ const s=document.createElement('script'); s.src='web/'+f+'?v='+V; s.onload=res; s.onerror=()=>rej(new Error(f)); document.body.appendChild(s); })),Promise.resolve())
  .catch(e=>{ document.getElementById('start').textContent='불러오기 실패 — '+e.message; });
 </script>

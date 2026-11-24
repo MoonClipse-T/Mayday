@@ -2,12 +2,12 @@
    프롤로그 · NASA 존슨 우주 센터 브리핑룸 B (2091. 03. 14)
    다 같이 테이블에 앉아 있고, 그레이 국장이 화면 앞에서 발표한다. 크리스(나)도 앉아서 듣는다 — 둘러보기만 된다
    국장 발표 → 아마라 박사(웜홀 · 분광) → 엘레나(1호 마지막 교신 · 파형 아래의 낮은 소리) → 구조 계획 : 2호는 열넉 달 뒤에나 뜬다 → 지금 뜰 수 있는 건 1인 구조정 R-1 (연료 편도분)
-     → 돌아오는 길 = 1호를 깨워 몰고 오기 → 1호를 설계한 크리스가 혼자 간다 → 넉 달 뒤 웜홀 건너편 조종석 (scenes/game.js) — 4판
+     → 돌아오는 길 = 1호를 깨워 몰고 오기 → 1호를 설계한 크리스가 혼자 간다 → 넉 달 뒤 웜홀 건너편 조종석 (scenes/part1.js) — 4판
    맵 : web/assets/meeting.glb (blender/00_회의실.blend) — SPAWN · IT_screen
    ============================================================ */
 'use strict';
 SCENES.meeting={title:'프롤로그 · 브리핑룸', async enter(){
-  prefetch(['launch','cockpit','ship_ext',...SHIP.list().map(l=>l[0])]);      // 회의 동안 구조정 · 1호 파일을 받아 둔다
+  prefetch(['launch','r1','ship_ext']);      // 회의 동안 발사대 · 구조정 · 1호 겉모습을 받아 둔다 (1호 안은 2부에서)
   await LEVEL.load('meeting'); await SKY.city(-1.1,.9); renderer.toneMappingExposure=1;
   // 방은 조명이 구워져 있고, 사람만 빛을 받는다
   WORLD.add(new THREE.HemisphereLight(0xfff6ea,0x2a2a30,1.05));
