@@ -6,6 +6,7 @@ NASA 긴급 브리핑(프롤로그)에서 시작해, 크리스는 혼자 1인 �
 - **1부** (1호를 찾기까지): https://moonclipse-t.github.io/Mayday/
 - **2부 「Mayday_The Atrox」** (1호를 찾고 돌아가기까지): https://moonclipse-t.github.io/Mayday/atrox.html
 - 고치는 중엔 `&dev` 를 붙이면 캐시 없이 받는다 · 올릴 때는 index.html 과 atrox.html 의 `window.V` 를 **둘 다** 같은 번호로 올린다
+- 단축키 **Shift + 숫자** : `1` 지구 궤도 · `2` 목성 앞 · `3` 웜홀 이후 · `4` 로비 홀로그램 · `5` 소행성 지대 · `6` 선체 밖 · `7` 1호 도킹 · `8` 에어록 → 동면 구역 · `9` 기관실 · `0` 기관실 → 함교 (끄기 : `web/main.js` `DEBUG_KEYS=false`)
 - 제작용 바로 가기 `?s=` : `meeting`(처음 · 브리핑) · `launch`(발사) · `depart`(지구 궤도) · `jupiter`(목성 · 웜홀) · `cockpit`(웜홀 건너편 비행) · `board`(1호 에어록) · `survivor`(생존자) · `hunt`(애벌레 사냥) · `engine`(기관실 · 성체) · `bridge`(함교 · 출발)
 - 이야기 · 흐름: [STORY.md](STORY.md)
 - 별과 우주 아카이브 : 1부 · 2부 모두 '준비 중' (2026-11-24). 열 때는 아카이브 소스 EXTRAS 의 `url` 을 1부부터 채운다 (2부부터 하는 일이 없게).
