@@ -92,7 +92,7 @@ Blender 의 `fog_volume`(안개 부피 상자)은 웹에서 회색 벽이 되므
 
 ## 출처
 - 우주선: [Sci-fi corridor](https://sketchfab.com/3d-models/sci-fi-corridor-5e6240c9b30145b0bf81fd02287985e3) by 3dhdscan · [Stasis / Clone Chamber](https://sketchfab.com/3d-models/stasis-clone-chamber-with-animations-8738f78ae4ec4630ac35a4783303ea95) by TampaJoey — CC BY 4.0
-- **애벌레**: [Lurker - Rigged and Animated](https://sketchfab.com/3d-models/28b3e1a216904de7ad212368fb9d8f59) by HighPolyDensity → `web/assets/larva.glb` · **성체**: [Nightmare Creature 1#](https://sketchfab.com/3d-models/9fb509d207d744babeb5d87a486f7de1) by Mr.Prizz → `beast.glb` — CC BY 4.0
+- **애벌레(4.24~)**: [Worm Monster](https://sketchfab.com/3d-models/5563066315694125b741901681d387c5) by CR1STALLL (CC BY 4.0) → `web/assets/larva.glb` (`blender/13_애벌레_웜.blend` · 4.23 까지는 Lurker by HighPolyDensity) · **성체**: [Nightmare Creature 1#](https://sketchfab.com/3d-models/9fb509d207d744babeb5d87a486f7de1) by Mr.Prizz → `beast.glb` — CC BY 4.0
 - **발사대**: [Space Center Realistic Launch Facility](https://sketchfab.com/3d-models/space-center-realistic-launch-facility-4c87468c552243ec815251b7cb24bc04) by Nikoleta.Zhecheva (CC BY) — `web/assets/launch.glb`
 - **시신**: [Dead Hazmat Female](https://sketchfab.com/3d-models/2e879c914d6b4e15a05f8496977854fd) by OHR3D · [Low Poly Dead Body Covered](https://sketchfab.com/3d-models/1e6ae13f6c2e46429eaca4d22d8bdbaa) by -Arthur- · [Corpse](https://sketchfab.com/3d-models/be9b034525c246cebab3620acb5a8027) by Tamal De Quezo → `corpse_a/b/c.glb` · **구조정 조종석**: [Spacefighter Cockpit (Wasp Interdictor)](https://sketchfab.com/3d-models/db4aa67fe1164ec088083d7dac2d273f) by Comrade1280 → `cockpit.glb` — CC BY 4.0
 - **소리**: 목소리 · 배경 음악 · 효과음 — ElevenLabs 로 생성 (`web/audio/` · 원본 `assets/elevenlabs/`)

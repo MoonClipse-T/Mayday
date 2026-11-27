@@ -1,7 +1,7 @@
 /* ============================================================
    2부 「Mayday_The Atrox」 (4.13 · atrox.html) — 1호를 찾고 나서 돌아가기까지
    시작 화면 = 노란 변광성 곁에서 도는 죽은 1호 → [1호로 간다] → 지난 이야기 → 제목 → ① 1호 앞 640 m 에서 직접 몰아 도킹 · 우주복 · 1호의 문 (scenes/flight.js · 4.16 에 1부에서 옮김) → 1호를 불러온다 → 에어록
-   ② 1호 : 암흑 · 손전등 · 찢긴 시신 · 피 → ③ 동면 구역 C 의 생명 신호 = 넉 달 전에 숨진 레아의 몸 안 (생존자는 없다 — 4.23) → 가슴에서 애벌레 → 첫 사격
+   ② 1호 : 암흑 · 손전등 · 찢긴 시신 · 피 · 첫 목표 = 1호 선장 레아 문 찾기 (4.24 — 에어록 바닥의 선장 신분증 → 칩의 출입 기록) → ③ 동면 구역 C 의 생명 신호 = 넉 달 전에 숨진 레아의 몸 안 (생존자는 없다 — 4.23) → 가슴에서 애벌레 → 첫 사격
    ⑥ 함교 : 통신 기록 — MAYDAY 의 마지막 송신은 사흘 전. 그 신호를 보낸 것은 사람이 아니었다
    ④ 애벌레 사냥 (시신마다 하나) → ⑤ 기관실 원자로 재가동 · 시신을 먹던 성체 → 숨고 · 도망쳐 ⑥ 함교 → 1호를 몰고 웜홀로 (다음 이야기 : 사용자 지시 대기)
    1부(회의 → 발사 → 웜홀 → 1호를 찾기까지)는 scenes/part1.js (index.html)
@@ -20,7 +20,7 @@ const CREW_WEAR={grime:[.4,.38,.35],desat:.5,matte:true,blobs:[[.5,.64,.85,.11,'
   [.03,.56,.5,.06,'o'],[.97,.56,.5,.06,'b'],[.5,.93,.8,.07,'o'],[.5,.93,.2,.07,'o'],[.5,.8,.5,.08,'o']]};
 const CREW=[['seojun','lie'],['daniel','prone'],['maya','prone'],['daniel','lie'],['seojun','prone'],['maya','prone'],['seojun','lie']];
 const RAGS={a:[[.3,.27,.1],[.16,.17,.24],[.3,.3,.28]],b:[[.42,.4,.37],[.2,.22,.26]],c:[[.44,.4,.36],[.24,.24,.25]]};
-// 레아 : 열한 달을 버틴 생물학자 — 1호 대원복이 찢어지고 · 말라붙은 피 · 젖은 피 · 손에 피 · 얼굴에 때 (몸 상자 안 비율)
+// 레아 : 1호 선장 (4.24 · 예전엔 생물학자) — 1호 대원복이 찢어지고 · 말라붙은 피 · 젖은 피 · 손에 피 · 얼굴에 때 (몸 상자 안 비율)
 const LEAH_WEAR={grime:[.5,.46,.42],desat:.45,matte:true,blobs:[[.5,.66,.82,.075,'b'],[.45,.56,.85,.06,'o'],[.58,.62,.85,.07,'t'],[.4,.7,.8,.06,'t'],[.5,.5,.85,.09,'o'],[.62,.45,.7,.06,'t'],[.4,.3,.8,.07,'t'],[.6,.2,.8,.06,'o'],[.42,.13,.85,.05,'t'],
   [.03,.56,.5,.06,'b'],[.97,.56,.5,.06,'b'],[.1,.56,.5,.06,'o'],[.9,.56,.5,.06,'o'],[.5,.92,.85,.05,'o'],[.56,.9,.9,.035,'b'],[.5,.8,.5,.09,'o'],[.5,.5,.2,.1,'o']]};
 
@@ -97,25 +97,53 @@ const GAME={part:2, cp:null,
   async board(){ const f=S.flags; warp(50.43,6.6,Math.PI); P.eye=1.66; P.look=false; P.pinY=false; this.save(50.43,6.6,Math.PI); await fade(false,1800); S.phase='play'; P.free=true;
     // 우주복을 입고 건너왔다 (scenes/flight.js) : VEGA 가 1호 안의 공기를 재고 → 헬멧을 벗는다 (그제야 입김이 보인다)
     if(HELMET.is){ await TALK.say([VG('기압 정상. 산소 19 퍼센트. 독성 기체 없음. 숨 쉴 수 있습니다, 크리스.'),I('…믿는다, VEGA.')]); SFX.play('airlock',{vol:.5}); SFX.play('cloth'); HELMET.on(false); await sleep(1100); }
-    await TALK.say([I('…춥다. 입김이 나.'),VG('1호 비상 전력 0. 모든 문이 열린 채입니다. 생명 신호는 배 앞쪽, 동면 구역 C 입니다.'),I('손전등뿐이군.')]);
-    goal('생명 신호를 찾는다 — 동면 구역 C (복도 서쪽)');
+    await TALK.say([I('…춥다. 입김이 나.'),VG('1호 비상 전력 0. 모든 문이 열린 채입니다.'),I('손전등뿐이군. …선장부터 찾는다. 레아 문 — 이 배의 선장.')]);
+    await this.idCard();
     STORY.once(45,9.7,3.2,()=>TALK.say([I('…사람이다. 아니, 사람이었던 것.'),I('…1호 대원복. 여기까지 끌려왔다. 그리고… 뭔가에 뜯긴 자국.'),VG('맥박 없음. 사망한 지 수 주로 추정됩니다.')]));
     STORY.once(36,10.5,2.4,()=>{ THUD(.3); AUDIO.noise(1.5,.08,0,400); TALK.say([I('…위에서 뭔가 지나갔다.'),VG('환기 덕트 안입니다. 크기는… 측정되지 않습니다.')]); });
     STORY.once(30,10.5,2.4,()=>TALK.say([I('끌고 간 자국. 손톱으로 바닥을 긁은 자국.'),I('다들… 어디로 끌려간 거지.')]));
     return this.survivor(); },
 
+  /* ---- ② 첫 목표 : 선장 레아 문을 찾는다 (4.24 사용자) — 에어록 바닥에 떨어진 선장의 신분증 → 줍고 보고 → VEGA 가 칩의 출입 기록을 읽는다 → 동면 구역 C ---- */
+  idCard(){ const f=S.flags, x=50.25, z=7.75;
+    // 카드 그림 (바닥의 카드 · 문서 창에 같은 그림)
+    const cv=document.createElement('canvas'); cv.width=512; cv.height=322; const g=cv.getContext('2d');
+    g.fillStyle='#e9ecef'; g.fillRect(0,0,512,322); g.fillStyle='#1c2a44'; g.fillRect(0,0,512,74); g.fillStyle='#ff6a2a'; g.fillRect(0,74,512,6);
+    g.fillStyle='#fff'; g.font='700 30px sans-serif'; g.fillText('HUYGENS-1',24,47); g.font='500 17px sans-serif'; g.fillText('NASA · 승무원 신분증',300,47);
+    g.fillStyle='#b9c0c8'; g.fillRect(24,100,136,170); g.fillStyle='#7d8691'; g.beginPath(); g.arc(92,160,34,0,7); g.fill(); g.fillRect(48,206,88,64);
+    g.fillStyle='#1c2a44'; g.font='700 40px sans-serif'; g.fillText('레아 문',184,140); g.font='500 20px sans-serif'; g.fillStyle='#55606c'; g.fillText('LEAH MOON',186,170);
+    g.fillStyle='#c8382a'; g.font='700 26px sans-serif'; g.fillText('선장 · CAPTAIN',184,214); g.fillStyle='#1c2a44'; g.font='500 18px sans-serif'; g.fillText('출입 등급 A · 위치 칩 내장',184,250);
+    g.fillStyle='#c9a227'; g.fillRect(420,240,58,44);
+    for(let i=0;i<14;i++){ g.fillStyle='rgba('+(80+Math.random()*40|0)+',8,6,'+(.25+Math.random()*.4)+')'; g.beginPath(); g.ellipse(330+Math.random()*170,180+Math.random()*130,6+Math.random()*24,4+Math.random()*12,Math.random()*3,0,7); g.fill(); }      // 말라붙은 피
+    const tex=new THREE.CanvasTexture(cv); tex.encoding=THREE.sRGBEncoding;
+    const card=new THREE.Mesh(new THREE.BoxGeometry(.086,.003,.054),[0,0,new THREE.MeshStandardMaterial({map:tex,roughness:.45,emissive:new THREE.Color(.05,.05,.05)}),0,0,0].map(m=>m||new THREE.MeshStandardMaterial({color:0xdfe3e7,roughness:.5})));
+    card.position.set(x,floorAt(x,z)+.003,z); card.rotation.y=.6; WORLD.add(card);
+    const pick=new THREE.Mesh(new THREE.BoxGeometry(.5,.3,.5),PICK); pick.position.set(x,floorAt(x,z)+.15,z); WORLD.add(pick);
+    const glint=new THREE.PointLight(0xffffff,.0,1.2,2); glint.position.set(x,floorAt(x,z)+.25,z); WORLD.add(glint);      // 손전등이 닿으면 반짝
+    const tw=dt=>{ if(!card.parent) return TICK.splice(TICK.indexOf(tw),1); const d=Math.hypot(P.x-x,P.z-z); glint.intensity=d<5?.25+.2*Math.max(0,Math.sin(S.t*4)):0; }; TICK.push(tw);
+    goal('1호의 선장 레아 문을 찾는다 — 에어록부터 살펴본다');
+    STORY.once(x,z,3.4,()=>TALK.say([I('…바닥에 뭔가 반짝인다. 카드?')]));
+    return new Promise(res=>interact(pick,'줍는다 · 신분증 카드',async()=>{ if(f.idCard) return; f.idCard=true; S.phase='cut'; P.free=false; goal('');
+      await camTo({x:x,z:z-.75,yaw:yawTo(x,z),pitch:-.95,eye:1.2},.8); SFX.play('cloth',{vol:.4}); WORLD.remove(card,pick,glint); await camTo({eye:1.66,pitch:-.1},.6);
+      await doc('승무원 신분증','<img src="'+cv.toDataURL()+'" style="width:100%;max-width:420px;border-radius:10px;display:block;margin:0 auto 10px;box-shadow:0 8px 24px #000"><p class="dim">모서리에 말라붙은 피. 뒷면에 손글씨 — “문을 닫아.”</p>','하위헌스 1호 · 에어록 바닥');
+      await TALK.say([I('…레아 문. 1호 선장. 선장 카드가 왜 에어록 바닥에.'),VG('카드 칩을 읽겠습니다.')]);
+      AUDIO.tone(880,.06,'square',.03); AUDIO.tone(1320,.06,'square',.03,.08);
+      await doc('선장 카드 · 출입 기록','<p>2091.03.14 &nbsp;02:12 — 함교</p><p>2091.03.14 &nbsp;02:40 — 연구실</p><p>2091.03.15 &nbsp;23:46 — 에어록</p><p><b>2091.03.15 &nbsp;23:51 — 동면 구역 C</b> &nbsp;<span style="color:#ff5a36">(나간 기록 없음)</span></p><p class="dim">그 뒤로 기록 없음 · 지금 2091.07.21</p>','VEGA · 칩 판독');
+      await TALK.say([VG('선장의 마지막 출입은 넉 달 전, 동면 구역 C 입니다. 나간 기록은 없습니다.'),I('넉 달…'),VG('그리고 크리스. 같은 곳에서 생명 신호가 하나 잡힙니다.'),I('…선장이 살아 있다는 거야?')]);
+      S.phase='play'; P.free=true; res(); },{range:2.4})); },
+
   /* ---- ③ 동면 구역 C 의 생존자 ---- */
   // 4.23 사용자 : 1호에 생존자는 없다 — 생명 신호는 넉 달 전에 숨진 레아의 몸 안에서 나온다
   async survivor(){ const f=S.flags; S.phase='play'; P.free=true;
-    goal('생명 신호를 찾는다 — 동면 구역 C');
+    goal('선장 레아 문을 찾는다 — 동면 구역 C (복도 서쪽)');
     const lx=24.5, lz=-5.0, le=this.leah=await this.leahBody(lx,lz);
     BLOOD.pool(lx,lz-1,1.8); le.wear.add([[.5,.6,.85,.1,'o']]);
     // 가까이 갈수록 생명 신호 탐지음이 빨라진다
     { let cd=0; const fn=dt=>{ if(f.leahFound||!PEOPLE.list.includes(le)) return TICK.splice(TICK.indexOf(fn),1); cd-=dt; if(cd>0) return; const d=Math.hypot(P.x-lx,P.z-lz); if(d<14&&S.phase==='play'){ cd=.25+d*.12; AUDIO.tone(1320,.05,'sine',.03); } }; TICK.push(fn); }
-    await new Promise(res=>interact(le.pick,'살펴본다 · 레아 문 (1호 생물학자)',()=>{ if(f.leahFound) return; f.leahFound=true; res(); },{range:3.2}));
+    await new Promise(res=>interact(le.pick,'살펴본다 · 레아 문 (1호 선장)',()=>{ if(f.leahFound) return; f.leahFound=true; res(); },{range:3.2}));
     this.save(28.5,10.5,.69);      // 문 앞 복도 — 방 안이면 되살아나자마자 옆(3 m) 시신에서 깨어났다 (4.18)
     S.phase='cut'; P.free=false; ME.setCrouch(false); await camTo({x:lx+.9,z:lz-.6,yaw:yawTo(lx,lz-1.3),pitch:-.75,eye:1.55},1); P.look=true;
-    await TALK.say([I('…레아 문. 1호 생물학자.'),VG('맥박 없음. 체온은 주변 온도와 같습니다. 숨진 지… 넉 달이 넘었습니다.'),I('넉 달? 그럼 지금까지 온 MAYDAY 는… 누가 보낸 거야.'),
+    await TALK.say([I('…레아 문. 1호 선장.'),VG('맥박 없음. 체온은 주변 온도와 같습니다. 숨진 지… 넉 달이 넘었습니다.'),I('넉 달? 그럼 지금까지 온 MAYDAY 는… 누가 보낸 거야.'),
       VG('크리스. 생명 신호는… 이 몸 안에서 나옵니다.'),I('…뭐?')]);
     const larva=await this.birth(le); P.look=false;
     // 첫 사격 : 덮쳐 오는 애벌레
@@ -126,7 +154,7 @@ const GAME={part:2, cp:null,
       I('시신마다… 안에 하나씩. 전부 깨어나고 있다.'),VG('원자로가 있는 기관실까지 가려면 복도를 지나야 합니다. 그것들을 그냥 두면 따라옵니다.')]);
     return this.hunt(); },
   // 레아의 몸 : 대원복(Tripo) 을 칠해 찢고 더럽힌다 · 바닥에 누워 (발이 남 · 머리가 북쪽 벽)
-  async leahBody(lx,lz){ const le=await PEOPLE.spawn({kind:'maya',name:'레아 문',role:'1호 생물학자',pose:'lie',at:{x:lx,z:lz,yaw:0}}); le.watch=false; le.solid=false; le.sleep=true;
+  async leahBody(lx,lz){ const le=await PEOPLE.spawn({kind:'maya',name:'레아 문',role:'1호 선장',pose:'lie',at:{x:lx,z:lz,yaw:0}}); le.watch=false; le.solid=false; le.sleep=true;
     le.wrap.rotation.set(-Math.PI/2,0,0); le.wrap.position.y=.1; le.wrap.updateMatrixWorld(true); le.wear=WEAR.paint(le.g,LEAH_WEAR); BLOOD.scraps(lx,lz-.9,7,[[.2,.21,.23],[.12,.13,.15]],1); return le; },
   // 가슴에서 애벌레 : 경련 · 피 · 붉은 섬광 → 내 쪽으로 뛰어든다
   async birth(le){ const w=le.wrap.position, chest=new THREE.Vector3(w.x,.3,w.z-1.25);

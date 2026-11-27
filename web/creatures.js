@@ -1,6 +1,6 @@
 /* ============================================================
    생물 (4판) : 애벌레 · 성체 — Sketchfab CC BY (README 출처)
-   LARVA : web/assets/larva.glb ("Lurker" · 동작 Idle · Swim_Forward · Attack_Heavy · Dash_Back · Die)
+   LARVA : web/assets/larva.glb (4.24 "Worm Monster" · 동작 이름은 Blender 에서 맞춤 : Idle_1 · Swim_Forward · Attack_Heavy · Dash_Back · Die · 입 갈고리 뼈 Beak_*)
      LARVA.host({x,z,kind}) 시신 하나 = 애벌레 하나 · 가까이 가면 찢고 나와 기어 와 덮친다 · 총 한 발이면 죽는다
    BEAST : web/assets/beast.glb ("Nightmare Creature" · 동작 22개) — 총에 맞으면 멈칫할 뿐 죽지 않는다
      BEAST.spawn({at,face}) → b · BEAST.play(b,'roar',{once}) · BEAST.hunt(b,{onCatch}) 보고 · 듣고 · 쫓고 · 찾는다
