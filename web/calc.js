@@ -6,10 +6,12 @@
 'use strict';
 const numStr=r=>!isFinite(r)?'오류':String(+r.toPrecision(10));
 function calcQuiz({work,order,check}){ return new Promise(res=>{ const q=document.createElement('div'); q.id='quiz'; q.className='calc';
-  q.innerHTML=`<div class="work">${work}<p class="note">칸을 누르고, 계산기 값을 <b>칸에 넣기</b></p><p class="msg"></p></div>
+  q.innerHTML=`<button class="fold" aria-label="접기">접기 ▾</button><div class="work">${work}<p class="note">칸을 누르고, 계산기 값을 <b>칸에 넣기</b></p><p class="msg"></p></div>
     <div class="pad"><p class="ex"></p><p class="dsp">0</p><div class="keys">${['C','⌫','÷','×','7','8','9','−','4','5','6','+','1','2','3','=','0','.'].map(k=>`<button data-k="${k}"${k==='0'?' class="w2"':k==='='?' class="h2"':''}>${k}</button>`).join('')}</div>
       <button class="put">칸에 넣기 ↵</button></div>`;
   document.body.appendChild(q); requestAnimationFrame(()=>q.classList.add('on'));
+  // 접기 (4.23) : 문제창을 접어 뒤의 종이 · 화면을 다시 본다 → 다시 누르면 펼친다
+  q.querySelector('.fold').onclick=()=>{ AUDIO.click(); const m=q.classList.toggle('min'); q.querySelector('.fold').textContent=m?'계산 문제 펼치기 ▴':'접기 ▾'; };
   const dsp=q.querySelector('.dsp'), ex=q.querySelector('.ex'), msg=q.querySelector('.msg'), bx={};
   order.forEach((k,i)=>{ const b=q.querySelector(`.bx[data-k="${k}"]`); b.readOnly=true; b.disabled=i>0; bx[k]=b; });
   let cur='0', acc=null, op=null, fresh=false, sel=order[0], tries=0;

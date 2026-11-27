@@ -460,3 +460,20 @@ body.eva #belt{bottom:calc(var(--pad) + 5vh)}
 body.eva #stamp{opacity:0}
 /* 4.19 선외 활동 : 빛나는 고리가 화면 밖일 때 가장자리 화살표 */
 #ringarrow{position:fixed;z-index:14;width:54px;height:54px;pointer-events:none;opacity:0;transition:opacity .25s} #ringarrow.on{opacity:1} #ringarrow::before{content:'';position:absolute;left:14px;top:50%;margin-top:-17px;border-left:30px solid #ffc24a;border-top:17px solid transparent;border-bottom:17px solid transparent;filter:drop-shadow(0 0 6px rgba(0,0,0,.8));animation:nose 1s ease-in-out infinite}
+/* 4.23 문제창 닫기 · 접기 / 선체 밖 3인칭 단추 / 누르고 있는 단추 */
+#podlock .x{position:absolute;right:12px;top:10px;min-height:44px;padding:0 14px;border:1px solid var(--hair);background:rgba(0,0,0,.35);color:var(--ink);font-size:14px}
+#quiz .fold,#seek .side .fold{position:absolute;right:10px;top:8px;min-height:40px;padding:0 12px;border:1px solid var(--hair);background:rgba(0,0,0,.4);color:var(--ink);font-size:13px;letter-spacing:0;z-index:2}
+#quiz.min{padding-top:54px} #quiz.min .work,#quiz.min .pad{display:none} #quiz.min .fold{left:10px;right:10px}
+#seek .side.min>*:not(.fold):not(.hd){display:none} #seek .side.min{min-height:0}
+#evaui{position:fixed;inset:0;z-index:15;pointer-events:none;opacity:0;transition:opacity .3s} #evaui.on{opacity:1}
+#evaui button{position:absolute;pointer-events:auto;width:92px;height:92px;border-radius:50%;border:2px solid rgba(255,255,255,.55);background:rgba(10,16,22,.55);color:#fff;font-size:17px;touch-action:none;user-select:none;-webkit-user-select:none}
+#evaui .grab{right:calc(var(--pad) + 24px);bottom:calc(var(--pad) + 40px)} #evaui .grab.want{border-color:#ffc24a;background:rgba(255,194,74,.3);box-shadow:0 0 18px rgba(255,194,74,.5)}
+#evaui .jump{right:calc(var(--pad) + 134px);bottom:calc(var(--pad) + 24px);width:78px;height:78px}
+#evaui .ud{position:absolute;right:calc(var(--pad) + 40px);bottom:calc(var(--pad) + 150px);display:flex;flex-direction:column;gap:10px} #evaui .ud button{position:static;width:60px;height:60px;font-size:20px}
+#evaui .d{position:absolute;left:50%;top:calc(var(--pad) + 64px);transform:translateX(-50%);margin:0;font-family:var(--mono);font-size:20px;color:#ffc24a;text-shadow:0 0 6px #000}
+#evaui .stk{position:fixed;width:120px;height:120px;border-radius:50%;border:2px solid rgba(255,255,255,.35);background:rgba(10,16,22,.25);opacity:0;pointer-events:none} #evaui .stk.on{opacity:1} #evaui .stk i{position:absolute;left:35px;top:35px;width:50px;height:50px;border-radius:50%;background:rgba(255,255,255,.55)}
+body.tp #helmet{opacity:0!important}
+#holdbtn{position:fixed;right:calc(var(--pad) + 26px);bottom:calc(var(--pad) + 40px);z-index:16;width:132px;height:132px;border-radius:50%;border:2px solid #ffc24a;background:rgba(255,194,74,.18);color:#fff;font-size:20px;opacity:0;transition:opacity .25s;touch-action:none;user-select:none;-webkit-user-select:none} #holdbtn.show{opacity:1} #holdbtn.on{background:rgba(255,194,74,.5)}
+/* 4.23 기록 단말 : 기록 표 · 밝기 표 */
+#seek .side.arcv .want{margin:2px 0 10px;font-size:16px;color:#ffd27a} #seek .side.arcv table.arc{width:100%;border-collapse:collapse;font-size:15px} #seek .side.arcv th{text-align:left;font-weight:400;color:var(--mute);padding:4px 8px;font-size:13px}
+#seek .side.arcv td{padding:10px 8px;border-top:1px solid rgba(159,216,255,.15);cursor:pointer} #seek .side.arcv tr.sel td{background:rgba(159,216,255,.16)} #seek .side.arcv canvas.hm{width:100%;height:auto;margin-top:10px;display:block}

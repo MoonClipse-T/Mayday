@@ -25,6 +25,6 @@ const GAME={part:1, NEXT:'atrox.html',
     const e=document.createElement('div'); e.id='ending';
     e.innerHTML=`<p class="k">Mayday 1부 · 끝</p><h2>1호를 찾았다</h2><p class="s">대원 열두 명. 생명 신호 하나.</p>
       <div class="next"><p>2부</p><h3>Mayday_The Atrox</h3><a class="go" href="${this.NEXT}">2부로 간다</a></div><a class="again" href="./">1부 처음으로</a>`;
-    document.body.appendChild(e); await sleep(1200); AUDIO.radio(3); await TALK.say([{...RADIO('Mayday, Mayday, we are—'),auto:2600}]);
+    document.body.appendChild(e); await sleep(1200); const mt=MORSE.play('MAYDAY'); await TALK.say([{...RADIO(MORSE.text('MAYDAY')),auto:Math.round(mt*1000)+900}]);
     SFX.play('beast_call',{vol:.5}); await sleep(2600); e.classList.add('on'); AUDIO.tone(55,3,'sine',.08); try{ localStorage.setItem('mayday.part1','done'); }catch(_){} },
 };

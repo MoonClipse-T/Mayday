@@ -25,8 +25,9 @@ const MISSION={
 
   // ①~④ : 자리마다 기다렸다가 그 자리의 점검 → 표에 체크 (한 번에 하나씩 — 하는 동안 다른 자리는 잠근다)
   async run(J){ this.show(); this.goal();
-    await Promise.all(this.ITEMS.slice(0,4).map(([id])=>R1.task(id).then(async()=>{ R1.lock=true; P.free=false; goal('');
-      try{ await this.ACT[id](J); } finally{ R1.lock=false; P.free=true; } this.check(id); this.goal(); }))); },
+    // 문제창을 닫으면(false) 그 자리를 다시 기다린다 (4.23)
+    await Promise.all(this.ITEMS.slice(0,4).map(async([id])=>{ for(;;){ await R1.task(id); R1.lock=true; P.free=false; goal(''); let r;
+      try{ r=await this.ACT[id](J); } finally{ R1.lock=false; P.free=true; } if(r!==false) break; this.goal(); } this.check(id); this.goal(); })); },
   ACT:{
     async hatch(J){ await DO.wheel(1,1.5); await TALK.say([J.V('외부 해치 보조 잠금 100 퍼센트. 기압 정상. 바깥은 진공입니다.')]); },
     locker(J){ return DO.locker(J); },
@@ -61,7 +62,8 @@ const PARALLAX={P_DEG:11, P_SEC:39600,
       g.setLineDash([10,12]); g.strokeStyle='rgba(60,70,90,.35)'; g.lineWidth=2; g.beginPath(); g.ellipse(Sun.x,Sun.y,E2.x-Sun.x,52,0,0,7); g.stroke(); g.setLineDash([]);
       dot(Sun,26,'#e0a030'); label('태양',Sun.x,Sun.y+66,46);
       dot(E1,15,'#3a78c8'); label('1월 지구',E1.x,E1.y+62,44); dot(E2,15,'#3a78c8'); label('7월 지구',E2.x,E2.y+62,44);
-      g.fillStyle='#c8382a'; g.font='600 84px sans-serif'; g.textAlign='center'; g.textBaseline='middle'; g.fillText('★',Star.x,Star.y); label('가까운 천체',Star.x+60,Star.y-48,44,'#2a2f3a','left');
+      // 웜홀 (4.23 : 가까운 천체 대신) — 검은 원 · 빛 고리
+      g.fillStyle='#1d2230'; g.beginPath(); g.arc(Star.x,Star.y,20,0,7); g.fill(); g.strokeStyle='#c8382a'; g.lineWidth=5; g.beginPath(); g.arc(Star.x,Star.y,27,0,7); g.stroke(); g.lineWidth=2; g.beginPath(); g.arc(Star.x,Star.y,35,0,7); g.stroke(); label('웜홀',Star.x+56,Star.y-46,48,'#2a2f3a','left');
       done.forEach(f=>f()); tex.needsUpdate=true; }
     base(); if(document.fonts) document.fonts.load(hand(60)).then(base,()=>{});      // 손글씨 글꼴이 늦게 오면 다시 그린다
     // 그리기 : 종이 위 좌표 ← 화면 좌표 (레이캐스트 → UV)
@@ -89,7 +91,7 @@ const PARALLAX={P_DEG:11, P_SEC:39600,
     await camTo(fitCam(),1.4); S.phase='play'; const refit=()=>setTimeout(()=>{ if(want) camTo(fitCam(),.4); },120); addEventListener('resize',refit);      // 화면을 돌리면 종이를 다시 화면에 맞춘다 (4.19)
     cvs.addEventListener('pointerdown',down); addEventListener('pointermove',move); addEventListener('pointerup',up);
     // 할 일 : 화면 왼쪽 가운데에 크게 (표시할 때마다 체크)
-    const td=document.createElement('div'); td.id='taskbig'; td.innerHTML='<p class="k">창가 탁상</p><h3>시차와 연주 시차를<br>표시해 보자</h3><ul><li data-k="par">시차</li><li data-k="p">연주 시차</li></ul><p class="h"></p>'; document.body.appendChild(td); requestAnimationFrame(()=>td.classList.add('on'));
+    const td=document.createElement('div'); td.id='taskbig'; td.innerHTML='<p class="k">창가 탁상</p><h3>웜홀의 시차와 연주 시차를<br>표시해 보자</h3><ul><li data-k="par">시차</li><li data-k="p">연주 시차</li></ul><p class="h"></p>'; document.body.appendChild(td); requestAnimationFrame(()=>td.classList.add('on'));
     const tk={hint:t=>td.querySelector('.h').textContent=t,set:()=>td.querySelectorAll('li').forEach(li=>li.classList.toggle('ok',!!got[li.dataset.k]))};
     // 무엇을 어떤 순서로 그릴지는 학생이 정한다. 두 번 틀리면 그때 빠진 것을 짧게 알려 준다
     const got={E1:false,E2:false,par:false,S:false,p:false};
@@ -101,21 +103,22 @@ const PARALLAX={P_DEG:11, P_SEC:39600,
       par:up=>()=>{ arcAt(up,up?150:205,-HW,HW,'#c8382a'); label('시차',up?Star.x:Star.x+150,up?Star.y-182:Star.y+190,50,'#c8382a',up?'center':'left'); },
       S:()=>{ line(Sun,Star,6,'#2a2f3a'); label('1 AU',(E1.x+Sun.x)/2,Sun.y-34,40,'#3a78c8'); label('d',Sun.x+20,(Sun.y+Star.y)/2+90,52,'#c8382a','left'); },
       p:(up,side)=>()=>{ arcAt(up,up?95:110,0,side*HW,'#1f8f5a'); const lx=(up?side:-side)*1; label('p · 연주 시차',Star.x+lx*(up?110:95),up?Star.y-95:Star.y+120,44,'#1f8f5a',lx<0?'right':'left'); } };
-    const hintNow=()=>!(got.E1&&got.E2)?'지구에서 ★ 를 지나 배경까지 선을 그어 보자':!got.par?'두 선 사이의 각을 둥글게 표시해 보자 → 시차':!got.S?'태양과 ★ 을 이어 각을 반으로 나눠 보자':'나눈 절반의 각을 둥글게 표시해 보자 → 연주 시차';
+    const hintNow=()=>!(got.E1&&got.E2)?'지구에서 웜홀을 지나 배경까지 선을 그어 보자':!got.par?'두 선 사이의 각을 호(둥근 선)로 그려 보자 → 시차':!got.S?'태양과 웜홀을 잇는 선을 그어 보자':'태양–웜홀 선과 한 시선 사이를 호로 그려 보자 → 연주 시차';
     // 각 표시 : ★ 둘레에 그린 획이 어느 쪽(아래 · 위) 각 안에서 얼마나 벌어졌나
     const sweep=s=>{ const q=s.filter(o=>{ const r=Math.hypot(o.x-Star.x,o.y-Star.y); return r>22&&r<360; }); if(q.length<Math.max(1,s.length*.7)) return null; const my=q.reduce((t,o)=>t+o.y,0)/q.length, upper=my<Star.y, d=q.map(o=>{ const a=Math.atan2(o.x-Star.x,(o.y-Star.y)*(upper?-1:1)); return upper?a:-a; }), lo=Math.min(...d), hi=Math.max(...d);
-      let len=0; for(let i=1;i<s.length;i++) len+=Math.hypot(s[i].x-s[i-1].x,s[i].y-s[i-1].y); if(lo<-HW-.3||hi>HW+.3) return null; const rr=q.map(o=>Math.hypot(o.x-Star.x,o.y-Star.y)), radial=Math.max(...rr)-Math.min(...rr); return {upper,lo,hi,span:hi-lo,len,radial}; };
+      let len=0; for(let i=1;i<s.length;i++) len+=Math.hypot(s[i].x-s[i-1].x,s[i].y-s[i-1].y); if(lo<-HW-.3||hi>HW+.3) return null; const rr=q.map(o=>Math.hypot(o.x-Star.x,o.y-Star.y)), radial=Math.max(...rr)-Math.min(...rr), rm=rr.reduce((a,b)=>a+b,0)/rr.length; return {upper,lo,hi,span:hi-lo,len,radial,rm}; };
     await new Promise(res=>{ tk.set(); goal(''); want={res,hint:'',more:()=>!(got.E1&&got.E2&&got.par&&got.S&&got.p),check:s=>{ const a=s[0], b=s[s.length-1]; want.hint=hintNow();
         // 지구 → ★ → 배경
         for(const k of ['E1','E2']){ const e=k==='E1'?E1:E2; if(got[k]) continue; const st=near(a,e,90)?a:near(b,e,90)?b:null; if(!st) continue; const en=st===a?b:a;
           if(passes(s,Star,75)&&en.y<WALL+120){ got[k]=true; return mark.E(k); } }
-        // 절반각을 나누는 곧은 선 (태양 — ★ : 태양에서 ★ 까지든 · 배경까지 늘였든 · ★ 에서 아래로 그었든 다 맞다)
-        const xs=s.map(q=>q.x), ys=s.map(q=>q.y), vy=Math.max(...ys)-Math.min(...ys);
-        if(!got.S&&vy>150&&xs.every(x=>Math.abs(x-Star.x)<60)&&Math.min(...ys)<Star.y+70&&Math.max(...ys)>Star.y+120){ got.S=true; return mark.S; }
-        const w=sweep(s); if(w){ const tapd=w.len<26, arc=w.span>.3&&w.radial<Math.max(90,w.len*.6);
+        // 절반각을 나누는 곧은 선 : 태양과 웜홀을 꼭 잇는다 (웜홀 너머 배경까지 늘여도 된다 — 4.23)
+        const xs=s.map(q=>q.x);
+        if(!got.S&&xs.every(x=>Math.abs(x-Star.x)<60)&&passes(s,Sun,60)&&passes(s,Star,55)){ got.S=true; return mark.S; }
+        // 각 표시는 호로만 : 누르기만 한 것 · 곧게 그은 것은 안 된다 (4.23 — 누르기로도 연주 시차가 맞던 것)
+        const w=sweep(s); if(w){ const arc=w.span>.32&&w.len>55&&w.radial<Math.max(26,w.rm*.3);
           // 시차 : 두 시선 사이 전체 각 / 연주 시차 : 태양 — ★ 선으로 나눈 절반
-          if(!got.par&&got.E1&&got.E2&&((arc&&w.span>HW*1.15)||(tapd&&!got.S))){ got.par=true; return mark.par(w.upper); }
-          if(!got.p&&got.S&&(got.E1||got.E2)&&((arc&&w.span<=HW*1.45)||tapd)){ const m=(w.lo+w.hi)/2, side=m>0?1:-1; if(Math.abs(m)>.06&&(side>0?w.lo>-.28:w.hi<.28)){ got.p=true; return mark.p(w.upper,side); } } }
+          if(!got.par&&got.E1&&got.E2&&arc&&w.span>HW*1.15){ got.par=true; return mark.par(w.upper); }
+          if(!got.p&&got.S&&(got.E1||got.E2)&&arc&&w.span<=HW*1.45){ const m=(w.lo+w.hi)/2, side=m>0?1:-1; if(Math.abs(m)>.06&&(side>0?w.lo>-.28:w.hi<.28)){ got.p=true; return mark.p(w.upper,side); } } }
         return false; }}; });
     td.classList.remove('on'); setTimeout(()=>td.remove(),500);
     done.push(()=>{ label('p = 1″ 이면 d = 1 pc',CW-50,420,36,'#c8382a','right'); label('거리(pc) = 1 ÷ p(″)',CW-50,495,46,'#2a2f3a','right'); }); base();

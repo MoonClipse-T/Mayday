@@ -54,7 +54,7 @@ const BELT={
     this.buildDoor(); let e=$('#belt'); if(!e){ e=document.createElement('div'); e.id='belt'; e.innerHTML='<p class="k"></p><b class="d"></b><div class="bar"><i></i></div><p class="h"></p>'; document.body.appendChild(e); } this.E=e;
     ext.visible=true; LEVEL.warm(); ext.visible=false; },
   reset(){ const N=this.N, P0=this._p0||(this._p0={}); ['shard','valve','torn','sleeve','bolt0','bolt1','cover','tool','hook'].forEach(n=>{ const o=N(n); if(!P0[n]) P0[n]=[o.position.clone(),o.quaternion.clone()]; this.ext.attach(o); this.ext.add(o); o.position.copy(P0[n][0]); o.quaternion.copy(P0[n][1]); o.visible=true; }); ['sleeve','bolt0','bolt1','tool','hook'].forEach(n=>N(n).visible=false); },
-  clean(){ this.alarm=false; this.fns.slice().forEach(f=>this.off(f)); this.objs.forEach(o=>o.parent&&o.parent.remove(o)); this.objs=[]; this._rf=this._lk=this.hf=this._of=this._os=this.H=null; this._sd=false; this.gm=null; this.atK=8; HANDS.list.slice().forEach(h=>HANDS.remove(h)); R1.follow(false); P.pinY=false; document.body.classList.remove('eva'); { const ar=$('#ringarrow'); if(ar) ar.classList.remove('on'); } this.E.classList.remove('on'); if(this._listen) this._listen(); },
+  clean(){ this.alarm=false; this.fns.slice().forEach(f=>this.off(f)); this.objs.forEach(o=>o.parent&&o.parent.remove(o)); this.objs=[]; this._rf=this._lk=this.hf=this._of=this._os=this.H=null; this._sd=false; this.gm=null; this.atK=8; HANDS.list.slice().forEach(h=>HANDS.remove(h)); if(this.tb){ PEOPLE.remove(this.tb); this.tb=null; } this.tp=null; document.body.classList.remove('tp'); { const u=$('#evaui'); if(u) u.classList.remove('on'); const h=$('#holdbtn'); if(h) h.remove(); } R1.follow(false); P.pinY=false; document.body.classList.remove('eva'); { const ar=$('#ringarrow'); if(ar) ar.classList.remove('on'); } this.E.classList.remove('on'); if(this._listen) this._listen(); },
 
   /* ---- 돌 무리 : 모양 넷을 여러 개씩 한 번에 그린다 ---- */
   field(n){ const per=Math.ceil(n/4), I=this.geo.map(g=>{ const m=new THREE.InstancedMesh(g,this.rmat,per); m.frustumCulled=false; this.add(m); return m; }), L=[]; for(let i=0;i<per*4;i++) L.push({k:i%4,j:i/4|0,p:new THREE.Vector3(0,0,-9999),q:new THREE.Quaternion().setFromEuler(new THREE.Euler(Math.random()*6,Math.random()*6,0)),ax:new THREE.Vector3(Math.random()-.5,Math.random()-.5,Math.random()-.5).normalize(),ws:.1+Math.random()*.5,r:3,v:new THREE.Vector3()}); return {I,L}; },
@@ -62,44 +62,42 @@ const BELT={
   upd(F,dt){ for(const o of F.L){ o.p.addScaledVector(o.v,dt); o.q.premultiply(this._q.setFromAxisAngle(o.ax,o.ws*dt)); F.I[o.k].setMatrixAt(o.j,this._m.compose(o.p,o.q,this._s.setScalar(o.r))); } F.I.forEach(m=>m.instanceMatrix.needsUpdate=true); },
 
   /* ============ ① 비행 ============ */
-  async fly(){ const {V,C}=this, {rig,head}=this.J, R=Math.random, g3=()=>(R()+R()+R()-1.5)/1.5; S.phase='cut'; stamp('구조정 R-1 · 조종석','2091.08.07 · 도약 중단'); SEEK.dim(.5,0);
+  // 4.23 사용자 : 조종은 온전히 내 손에 — 저절로 끌려가거나 되돌아오지 않는다 · 다섯 번 부딪히면 끝 · 시간이 갈수록 돌이 빽빽해져 결국 부딪힌다
+  async fly(){ const {V,C}=this, {rig,head}=this.J, R=Math.random, g3=()=>(R()+R()+R()-1.5)/1.5; S.phase='cut'; stamp('구조정 R-1 · 조종석','2091.07.22 · 도약 중단'); SEEK.dim(.5,0);
     for(const o of this.far.L){ const a=R()*6.28, d=150+R()*420; o.r=14+R()*R()*52; o.p.set(Math.cos(a)*d,Math.sin(a)*d*.55,-150+R()*1500); o.ws=.02+R()*.06; o.v.set(0,0,0); if(Math.hypot(o.p.x,o.p.y)<o.r*1.5+70) o.p.multiplyScalar(1.8); }
-    const place=(o,z0,z1,ahead)=>{ const aim=R()<.3; o.r=aim?2.2+R()*3.8:1.2+R()*R()*8; const z=z0+R()*(z1-z0), w=aim?24:105; o.p.copy(rig.position).addScaledVector(ahead,z); o.p.x+=g3()*w*(aim?1:1.2); o.p.y+=g3()*w*(aim?.8:.75); o.v.set(g3()*1.6,g3()*1.2,g3()*1.2); o.ws=.1+R()*.5; };
-    const fw=new THREE.Vector3(0,0,1); this.near.L.forEach(o=>place(o,130,560,fw));
-    let v=0, yaw=0, pit=0, ty=0, tp=0, drag=0, hull=100, rem=2100, live=false, cool=0, done=false, boom=0, pb=1;
-    // 붉은 고리 셋 : 이대로 가면 부딪히는 돌
-    const rt=this.ringTex(), rings=[0,1,2].map(()=>{ const s=this.add(new THREE.Sprite(new THREE.SpriteMaterial({map:rt,color:SEEK.lin(0xff4a30),transparent:true,depthTest:false,depthWrite:false,toneMapped:false}))); s.visible=false; s.renderOrder=20; return s; });
-    const E=this.E; E.className=''; E.querySelector('.k').textContent='돌이 가장 빽빽한 곳'; const de=E.querySelector('.d'), be=E.querySelector('.bar i'), he=E.querySelector('.h');
-    window.dragHook=(dx,dy)=>{ if(!live) return; const k=IS_TOUCH?.0030:.0021; ty-=dx*k; tp+=dy*k; drag=.35; };
+    let dens=0;      // 0 → 1 : 시간이 갈수록 앞길에 놓이는 돌이 늘고 커진다
+    const fw=new THREE.Vector3(0,0,1), rt=new THREE.Vector3(), up=new THREE.Vector3();
+    const place=(o,z0,z1)=>{ const aim=R()<.12+.7*dens; o.r=aim?2+R()*(3.5+3*dens):1.2+R()*R()*8; const z=z0+R()*(z1-z0), w=aim?14+18*(1-dens):105; rt.set(1,0,0).applyQuaternion(rig.quaternion); up.set(0,1,0).applyQuaternion(rig.quaternion);
+      o.p.copy(rig.position).addScaledVector(fw,z).addScaledVector(rt,g3()*w).addScaledVector(up,g3()*w*.8); o.v.set(g3()*1.6,g3()*1.2,g3()*1.2); o.ws=.1+R()*.5; };
+    this.near.L.forEach(o=>place(o,130,560));
+    let v=0, yaw=0, pit=0, wy=0, wp=0, hits=0, live=false, cool=0, pb=1, t=0;
+    const rt2=this.ringTex(), rings=[0,1,2].map(()=>{ const s=this.add(new THREE.Sprite(new THREE.SpriteMaterial({map:rt2,color:SEEK.lin(0xff4a30),transparent:true,depthTest:false,depthWrite:false,toneMapped:false}))); s.visible=false; s.renderOrder=20; return s; });
+    const E=this.E; E.className=''; E.querySelector('.k').textContent='선체 충돌'; const de=E.querySelector('.d'), be=E.querySelector('.bar i'), he=E.querySelector('.h');
+    // 끌기 : 끈 만큼 기수가 돈다 (손을 떼면 그 방향 그대로 — 되돌아가지 않는다)
+    window.dragHook=(dx,dy)=>{ if(!live||TALK.on) return; const k=IS_TOUCH?.0042:.003; wy-=dx*k; wp+=dy*k; };
     const a=new THREE.Vector3(), c=new THREE.Vector3();
-    const f=this.tick(dt=>{ const K=keys; if(live&&!TALK.on){ ty+=((K.ArrowLeft||K.KeyA?1:0)-(K.ArrowRight||K.KeyD?1:0))*.75*dt; tp+=((K.ArrowDown||K.KeyS?1:0)-(K.ArrowUp||K.KeyW?1:0))*.6*dt; }
-      drag-=dt; ty=clamp(ty,-.55,.55); tp=clamp(tp,-.42,.42); if(drag<0){ ty*=1-Math.min(1,dt*.22); tp*=1-Math.min(1,dt*.22); }
-      const ox=rig.position.x, oy=rig.position.y; if(Math.abs(ox)>70) ty=lerp(ty,-Math.sign(ox)*.3,dt*1.2); if(Math.abs(oy)>50) tp=lerp(tp,Math.sign(oy)*.25,dt*1.2);      // 너무 벗어나면 되돌린다
-      const y0=yaw; yaw=lerp(yaw,ty,Math.min(1,dt*3.2)); pit=lerp(pit,tp,Math.min(1,dt*3.2)); const bank=clamp((yaw-y0)/Math.max(dt,.001)*-.32,-.35,.35); rig.rotation.set(pit,yaw,lerp(rig.rotation.z,bank,Math.min(1,dt*3)),'YXZ');
-      fw.set(0,0,1).applyQuaternion(rig.quaternion); rig.position.addScaledVector(fw,v*dt); if(live){ rem=Math.max(0,rem-v*dt); cool-=dt; }
-      // 뒤로 지나간 돌은 다시 앞에
-      for(const o of this.near.L){ if(o.lock) continue; a.copy(o.p).sub(rig.position); if(a.z<-60||Math.abs(a.x)>190||Math.abs(a.y)>170) place(o,330,600,fw); }
+    const f=this.tick(dt=>{ const K=keys; if(live&&!TALK.on){ t+=dt; dens=Math.min(1,t/75); wy+=((K.ArrowLeft||K.KeyA?1:0)-(K.ArrowRight||K.KeyD?1:0))*1.1*dt; wp+=((K.ArrowDown||K.KeyS?1:0)-(K.ArrowUp||K.KeyW?1:0))*.9*dt; }
+      const y0=yaw; yaw=lerp(yaw,wy,Math.min(1,dt*7)); wp=clamp(wp,-1.25,1.25); pit=lerp(pit,wp,Math.min(1,dt*7)); const bank=clamp((yaw-y0)/Math.max(dt,.001)*-.25,-.4,.4); rig.rotation.set(pit,yaw,lerp(rig.rotation.z,bank,Math.min(1,dt*3)),'YXZ');
+      fw.set(0,0,1).applyQuaternion(rig.quaternion); rig.position.addScaledVector(fw,v*dt); cool-=dt;
+      // 뒤로 지나갔거나 옆으로 멀어진 돌은 다시 앞에 (지금 가는 쪽으로)
+      for(const o of this.near.L){ a.copy(o.p).sub(rig.position); const al=a.dot(fw), lat=Math.sqrt(Math.max(0,a.lengthSq()-al*al)); if(al<-40||lat>220||al>720) place(o,330-200*dens,640); }
       // 부딪힘 : 배 = 코(+2 m)에서 꼬리(−12 m)까지의 막대
       let th=[]; if(live) for(const o of this.near.L){ a.copy(o.p).sub(rig.position); const z=clamp(a.dot(fw),-11,1.5); c.copy(rig.position).addScaledVector(fw,z); const d=c.distanceTo(o.p), hit=o.r*.92+1.9;
-          if(d<hit&&cool<=0){ cool=.7; const n=o.p.clone().sub(c).normalize(); o.p.addScaledVector(n,hit-d+.6); o.v.addScaledVector(n,9).addScaledVector(fw,v*.7); ty+=-n.x*.12; tp+=n.y*.12; hull=Math.max(38,hull-4-Math.min(9,o.r*1.4)); this.shake(.05+.01*o.r,.7); this.thud(.5); AUDIO.noise(.5,.35,0,700); FX.flash('#ff2a10',260); he.textContent='선체에 부딪혔다'; E.classList.add('bad'); setTimeout(()=>E.classList.remove('bad'),600); }
-          const t=a.dot(fw)/v; if(t>.3&&t<5.5){ const miss=Math.sqrt(Math.max(0,a.lengthSq()-a.dot(fw)**2)); if(miss<o.r+4.2) th.push([t,o]); } }
-      th.sort((p,q)=>p[0]-q[0]); rings.forEach((s,i)=>{ const x=th[i]; s.visible=!!x; if(x){ s.position.copy(x[1].p); s.scale.setScalar(x[1].r*3.1); s.material.opacity=.45+.4*Math.sin(S.t*14); } });
-      pb-=dt; if(live&&pb<0){ pb=.5+R()*1.6; AUDIO.noise(.05,.08+R()*.1,0,2600+R()*2000); if(R()<.4) AUDIO.tone(900+R()*900,.04,'triangle',.03); }      // 잔돌이 선체를 때리는 소리
-      if(live){ he.textContent=cool>0?he.textContent:th.length?'앞에 돌 — 피한다':''; } de.textContent=(rem/1000).toFixed(1)+' km'; be.style.width=hull+'%'; this.J.cam(); });
+          if(d<hit&&cool<=0){ cool=1.8; hits++; const n=o.p.clone().sub(c).normalize(); o.p.addScaledVector(n,hit-d+.8); o.v.addScaledVector(n,9).addScaledVector(fw,v*.7); this.shake(.06+.012*o.r,.8); this.thud(.6); AUDIO.noise(.6,.4,0,700); FX.flash('#ff2a10',300); E.classList.add('bad'); setTimeout(()=>E.classList.remove('bad'),700);
+            he.textContent=hits>=5?'':['','선체에 부딪혔다','또 부딪혔다 — 선체가 깎인다','선체 손상이 크다','한 번만 더 맞으면 위험하다'][hits]; if(hits===3) toast('VEGA · 선체 손상 60 %. 조심하십시오',2200); }
+          const tt=a.dot(fw)/Math.max(v,1); if(tt>.3&&tt<5.5){ const miss=Math.sqrt(Math.max(0,a.lengthSq()-a.dot(fw)**2)); if(miss<o.r+4.2) th.push([tt,o]); } }
+      th.sort((p,q)=>p[0]-q[0]); rings.forEach((s,i)=>{ const x=th[i]; s.visible=!!x&&live; if(x){ s.position.copy(x[1].p); s.scale.setScalar(x[1].r*3.1); s.material.opacity=.45+.4*Math.sin(S.t*14); } });
+      pb-=dt; if(live&&pb<0){ pb=.5+R()*1.6; AUDIO.noise(.05,.08+R()*.1,0,2600+R()*2000); if(R()<.4) AUDIO.tone(900+R()*900,.04,'triangle',.03); }
+      if(live&&cool<0&&th.length) he.textContent='앞에 돌 — 피한다'; else if(live&&cool<-.8) he.textContent='';
+      de.textContent=hits+' / 5'; be.style.width=(100-hits*20)+'%'; this.J.cam(); });
     SEEK.L.forEach(l=>{ if(l.isHemisphereLight) l.color.set(0xffd9a8); }); AUDIO.hum(.5,42); MUSIC.play('space',{fade:2});
     await fade(false,1200); $('#fade').style.background=''; this.shake(.09,1.2); AUDIO.noise(1.2,.3,0,400); S.phase='play'; over(2.5,e=>v=20*e);
-    await TALK.say([V('도약 중단. 예정보다 앞에서 주름길 밖으로 튕겨 나왔습니다.'),C('뭐에 걸린 거야?'),V('돌입니다. 별을 두르는 소행성 지대 — 1호는 이 지대 바로 너머에 있습니다.'),C('소행성대는 원래 텅 비어 있잖아. 돌과 돌 사이가 수십만 킬로미터는 된다고.'),V('보통은 그렇습니다. 이곳은 큰 천체 하나가 부서진 지 얼마 되지 않았습니다. 조각들이 아직 흩어지지 못했습니다.'),V(byDevice('돌아가면 넉 달, 지나가면 1분. 자동 회피는 이 밀도를 감당하지 못합니다. 화면을 끌거나 방향키로 기수를 돌려 피하십시오.','돌아가면 넉 달, 지나가면 1분. 자동 회피는 이 밀도를 감당하지 못합니다. 화면을 끌어 기수를 돌려 피하십시오.')),C('…지나간다.')]);
-    live=true; E.classList.add('on'); goal(byDevice('돌을 피해 지나간다 — 화면을 끌어(또는 방향키) 기수를 돌린다 · 붉은 고리 = 부딪힐 돌','돌을 피해 지나간다 — 화면을 끌어 기수를 돌린다 · 붉은 고리 = 부딪힐 돌')); over(3,e=>v=20+14*e); let said=0;
-    await until(()=>{ if(!said&&rem<1150){ said=1; toast('VEGA · 절반 지났습니다',1800); } return rem<330; });
-    // ② 앞에서 큰 돌 둘이 부딪혀 부서진다 → 파편
-    const [A,B]=this.near.L; A.lock=B.lock=true; fw.set(0,0,1).applyQuaternion(rig.quaternion); const hitP=rig.position.clone().addScaledVector(fw,250); A.r=24; B.r=17; A.p.copy(hitP).add(new THREE.Vector3(62,26,30)); B.p.copy(hitP).add(new THREE.Vector3(-70,-12,34)); A.v.set(-15,-6,-6); B.v.set(17,3,-7); A.ws=.3; B.ws=.4; goal('');
-    toast('VEGA · 앞쪽, 큰 돌 둘이 부딪힙니다',2600); AUDIO.tone(880,.12,'square',.05); AUDIO.tone(880,.12,'square',.05,.25); let t=0; await until(dt=>{ t+=dt; return A.p.distanceTo(B.p)<36||t>5; });
-    const bp=A.p.clone().lerp(B.p,.45); FX.flash('#fff2d0',700); const puff=this.add(new THREE.Sprite(SEEK.smat(0xffb070,{depthTest:true,opacity:.9}))); puff.position.copy(bp); over(2.6,e=>{ puff.scale.setScalar(20+190*e); puff.material.opacity=.9*(1-e); }); setTimeout(()=>{ this.thud(.5); AUDIO.noise(1.4,.3,0,300); },250);
-    A.r=12; B.r=9; A.v.set(8,9,-4); B.v.set(-9,-8,-3); const sh=this.near.L.slice(2).sort((p,q)=>q.p.distanceTo(bp)-p.p.distanceTo(bp)).slice(0,LITE?34:56), to=rig.position.clone().addScaledVector(fw,40).sub(bp).normalize();
-    sh.forEach((o,i)=>{ o.lock=true; o.r=.5+R()*R()*4; o.p.copy(bp).add(new THREE.Vector3(g3(),g3(),g3()).multiplyScalar(14)); o.v.set(g3(),g3(),g3()).multiplyScalar(20).addScaledVector(to,16+R()*34); o.ws=.6+R()*2; });
-    // 피할 수 없는 하나
-    const X=sh[0]; X.r=1.7; X.ws=4; let hitT=0; await until(dt=>{ hitT+=dt; const tgt=rig.position.clone().addScaledVector(fw,-5).add(new THREE.Vector3(0,2.4,0)), L=tgt.clone().sub(X.p), d=L.length(); X.v.copy(L.normalize().multiplyScalar(62)).addScaledVector(fw,v); return d<9||hitT>6; });
-    rings.forEach(s=>s.visible=false); live=false; this.off(f); window.dragHook=()=>{}; this.near.L.forEach(o=>{ o.lock=false; o.v.multiplyScalar(.12); }); E.classList.remove('on'); },
+    await TALK.say([V('도약 중단. 예정보다 앞에서 주름길 밖으로 튕겨 나왔습니다.'),C('뭐에 걸린 거야?'),V('돌입니다. 별을 두르는 소행성 지대 — 1호는 이 지대 바로 너머에 있습니다.'),C('소행성대는 원래 텅 비어 있잖아. 돌과 돌 사이가 수십만 킬로미터는 된다고.'),V('보통은 그렇습니다. 이곳은 큰 천체 하나가 부서진 지 얼마 되지 않았습니다. 조각들이 아직 흩어지지 못했습니다.'),
+      V(byDevice('자동 회피는 이 밀도를 감당하지 못합니다. 직접 모십시오 — 화면을 끌거나 방향키로 기수를 돌립니다.','자동 회피는 이 밀도를 감당하지 못합니다. 직접 모십시오 — 화면을 끌어 기수를 돌립니다.')),V('선체는 다섯 번까지 버팁니다. 붉은 고리는 이대로 가면 부딪힐 돌입니다.'),C('…지나간다.')]);
+    live=true; E.classList.add('on'); goal(byDevice('돌을 피해 간다 — 화면을 끌거나 방향키로 기수를 돌린다 · 붉은 고리 = 부딪힐 돌','돌을 피해 간다 — 화면을 끌어 기수를 돌린다 · 붉은 고리 = 부딪힐 돌')); over(3,e=>v=20+14*e);
+    await until(()=>{ if(t>40&&!this._dsay){ this._dsay=1; toast('VEGA · 돌이 점점 빽빽해집니다',2200); } return hits>=5; });
+    // 다섯 번째 : 큰 충돌
+    rings.forEach(s=>s.visible=false); live=false; this.off(f); window.dragHook=()=>{}; goal(''); this.near.L.forEach(o=>{ o.lock=false; o.v.multiplyScalar(.12); }); E.classList.remove('on'); },
   ringTex(){ return this._rt||(this._rt=(()=>{ const c=document.createElement('canvas'); c.width=c.height=128; const x=c.getContext('2d'); x.strokeStyle='#fff'; x.lineWidth=7; x.beginPath(); x.arc(64,64,52,0,7); x.stroke(); return new THREE.CanvasTexture(c); })()); },
 
   /* ============ 충돌 → 도는 배를 멈춘다 ============ */
@@ -119,6 +117,9 @@ const BELT={
     await until(dt=>{ idle+=dt; const w=Math.hypot(av.x,av.y); de.textContent=w<.1?'거의 멈췄다':(w*57.3).toFixed(0)+'° / 초'; be.style.width=Math.min(100,w/1.8*100)+'%'; ar.style.transform=`translate(-50%,-50%) rotate(${Math.atan2(-av.x,av.y)}rad)`; ar.style.opacity=w>.12?1:0; if(w<.12) av.multiplyScalar(1-Math.min(1,dt*2.5)); return w<.03; });
     ar.remove(); E.classList.remove('on','spin'); goal(''); this.off(f); window.dragHook=()=>{}; await this.calm(); this.ok(); toast('회전 정지',1600); },
   ok(){ AUDIO.tone(880,.12,'sine',.06); AUDIO.tone(1320,.18,'sine',.05,.1); },
+  // 오른쪽 아래 큰 단추 : 누르고 있는 동안 on · 누를 때마다 fn (4.23 — '아래로 끌기' 대신)
+  holdBtn(text,fn){ const b=document.createElement('button'); b.id='holdbtn'; b.textContent=text; document.body.appendChild(b); const o={el:b,on:false,remove(){ b.remove(); }};
+    b.addEventListener('pointerdown',e=>{ e.preventDefault(); e.stopPropagation(); o.on=true; b.classList.add('on'); fn&&fn(); }); ['pointerup','pointerleave','pointercancel'].forEach(n=>b.addEventListener(n,()=>{ o.on=false; b.classList.remove('on'); })); requestAnimationFrame(()=>b.classList.add('show')); return o; },
 
   /* ============ ③ 무엇이 망가졌나 (홀로그램) → 나갈 채비 ============ */
   // 해가 벽을 뚫고 배 안을 밝히지 않게 (그림자 계산이 없다) : 안을 걸을 때는 햇빛을 줄인다
@@ -172,7 +173,7 @@ const BELT={
   // 밖의 눈 : 떠 있는 몸의 흔들림 · 기울기 (R1.follow 위에 덧붙인다)
   eva(){ document.body.classList.add('eva'); P.pinY=true; P.y=0; R1.follow(true); const base=window.camHook, q=new THREE.Quaternion(), e=new THREE.Euler(); this.roll=0; this.sway=1; window.camHook=()=>{ camera.position.x+=Math.sin(S.t*.7)*.012*this.sway+(Math.random()-.5)*(this.sh||0); camera.position.y+=Math.sin(S.t*.93+1)*.014*this.sway+(Math.random()-.5)*(this.sh||0); base(); camera.quaternion.multiply(q.setFromEuler(e.set(Math.sin(S.t*.61)*.008*this.sway,0,this.roll+Math.sin(S.t*.43)*.02*this.sway))); };
     const m=this.mark=new THREE.Sprite(new THREE.SpriteMaterial({map:this.ringTex(),color:SEEK.lin(0xffc24a),transparent:true,depthTest:false,depthWrite:false,toneMapped:false})); m.renderOrder=20; this.add(m,R1.g); m.visible=false; this.tick(()=>{ m.scale.setScalar(.36+.05*Math.sin(S.t*5)); m.material.opacity=.65+.35*Math.sin(S.t*5); });
-    this.hl.intensity=.8; this.rope(); },
+    this.fpHook=window.camHook; this.hl.intensity=.8; this.rope(); },
   /* 안전줄 : 걸린 곳들 → 허리 (토막 26 개) */
   rope(){ const N=26, im=this.ropeM=new THREE.InstancedMesh(new THREE.CylinderGeometry(.011,.011,1,6),new THREE.MeshStandardMaterial({color:0xd9dde0,roughness:.8}),N*2); im.frustumCulled=false; im.count=0; this.add(im,R1.g); this.clips=[]; const m=new THREE.Matrix4(), q=new THREE.Quaternion(), up=V3(0,1,0), s=V3(1,1,1), a=V3(0,0,0), b=V3(0,0,0), d=V3(0,0,0), c=V3(0,0,0); let n=0;
     const seg=(A,B,sag,wob)=>{ for(let i=0;i<N;i++){ const pt=(k,o)=>{ const f=Math.sin(k*Math.PI); o.lerpVectors(A,B,k); o.y+=-sag*f*.35+Math.sin(k*9+S.t*.8)*.05*wob*f; o.x+=Math.sin(k*6+S.t*.6)*.16*wob*f; o.z+=Math.cos(k*7+S.t*.5)*.1*wob*f; return o; }; pt(i/N,a); pt((i+1)/N,b); d.subVectors(b,a); const L=d.length(); if(L<1e-5) continue; q.setFromUnitVectors(up,c.copy(d).divideScalar(L)); s.set(1,L*1.04,1); im.setMatrixAt(n++,m.compose(c.addVectors(a,b).multiplyScalar(.5),q,s)); } };
@@ -180,14 +181,13 @@ const BELT={
   // 걸쇠를 건다 : 오른손이 걸쇠를 들고 가 문다
   async clip(p,s='R'){ const o=this.H[s], k=this.N('hook'); k.visible=true; o.on=false; if(!o.h.g.parent) await HANDS.enter(o.h,R1.g,p.clone().add(V3(0,.12,-.2)),V3(0,1,0),.6); HANDS.pose(o.h,'pinch',.15); this.ext.add(k); const f=this.tick(()=>k.position.copy(o.h.g.position)); await HANDS.to(o.h,p.clone().add(V3(0,.02,-.03)),V3(0,1,0),.5); this.off(f); const kk=k.clone(); this.add(kk,R1.g); kk.position.copy(p); k.visible=false; this.clips.push(p.clone()); AUDIO.tone(1500,.04,'square',.05); this.thud(.1); HANDS.pose(o.h,'open',.15); await sleep(250); },
 
-  async out(from){ const {V,C}=this; if(this.o2===undefined||from!=='fly') this.o2=this.o2||100; this.o2hud(); this.scatter(); S.phase='cut'; P.free=false; P.look=false; this.look(); this.eva(); this.hands(); stamp('구조정 R-1 · 선체 밖','2091.08.07 · 선외 활동');
+  async out(from){ const {V,C}=this; if(this.o2===undefined||from!=='fly') this.o2=this.o2||100; this.o2hud(); this.scatter(); S.phase='cut'; P.free=false; P.look=false; this.look(); this.eva(); this.hands(); stamp('구조정 R-1 · 선체 밖','2091.07.22 · 선외 활동');
     this.shade(.72,2.5); await camTo({x:.12,z:-11.5,yaw:0,pitch:-.03,eye:1.5},1.6); S.phase='play'; await TALK.say([C('…발밑이 없다.'),V('안전줄부터 거십시오. 해치 오른쪽 노란 고리입니다.')]);
     await camTo({x:.42,z:-12.5,yaw:-2.1,pitch:.1,eye:1.6},1.1); const an=V3(1.24,1.78,-12.06); await this.next(an,'안전줄을 건다 — 빛나는 고리'); S.phase='cut'; await this.clip(an); await TALK.say([V('안전줄 고정. 냉각관은 선체 위, 열 걸음쯤 앞입니다. 노란 손잡이를 잡고 가십시오.')]);
-    if(from!=='site'){ // 해치 밖으로 나와 돌아선다
-      this.H.R.on=false; await this.next(this.N('HR_00').position.clone(),byDevice('손잡이를 하나씩 잡고 간다 — 빛나는 고리를 누른다 (또는 W)','손잡이를 하나씩 잡고 간다 — 빛나는 고리를 누른다')); S.phase='cut'; await this.hold('R',0); await camTo({x:.85,z:-12.7,yaw:-.7,pitch:-.05,eye:1.45},1.3); await camTo({...this.node(0),yaw:Math.PI+.45-Math.PI*2},1.5); await this.hold('L',0); this.last='L'; S.phase='play';
-      await this.rail(1); await this.rail(2); await this.rail(3); goal('');
-      await TALK.say([C('…위도 아래도 없다. 저 노란 별이 S-09. 어두워지고 있다.'),V('밝기가 가장 낮은 때까지 사흘 남았습니다. 작업에는 지장 없습니다.')]);
-      await this.rail(4,'손잡이를 잡고 냉각관까지'); await this.rail(5); await this.rail(6); await this.rail(7); goal(''); S.phase='cut'; await this.clip(V3(.3,3.0,-7.65),'L'); await this.hold('L',7,.3); toast('안전줄을 손잡이에 옮겨 걸었다',1600); await this.rail(8,'냉각관으로'); goal(''); }
+    if(from!=='site'){ // 4.23 : 여기서부터는 3인칭 — 내가 직접 움직인다 (scenes/eva3.js)
+      await TALK.say([V('여기서부터는 직접 움직이십시오. 손잡이를 잡았다가 박차거나, 추진기를 조금씩 쓰십시오.'),V('안전줄은 10 m 입니다. 냉각관은 선체 위, 빛나는 고리의 손잡이입니다.')]);
+      let said=0; await this.tpLeg(8,'냉각관으로 — 빛나는 고리의 손잡이를 잡는다',{from:0,tick:(dt,st)=>{ if(!said&&this.tb.wrap.position.y>2.6){ said=1; TALK.say([C('…위도 아래도 없다. 저 노란 별이 S-09. 어두워지고 있다.'),V('밝기가 가장 낮은 때까지 사흘 남았습니다. 작업에는 지장 없습니다.')]); } }});
+      await this.tpEnd(8); S.phase='cut'; await this.clip(V3(.3,3.0,-7.65),'L'); await this.hold('L',8,.3); toast('안전줄을 냉각관 옆 손잡이에 옮겨 걸었다',1600); goal(''); }
     else { this.H.R.on=false; warp(0,-8,Math.PI); P.y=0; this.clips.push(V3(.3,3.0,-7.65)); await camTo(this.node(8),.5); await this.hold('R',8); await this.hold('L',8); }
     this.N('HR_09'); this.leak(true); await TALK.say([C('찾았다. 관이 완전히 끊어졌어.'),V('냉각제가 새고 있습니다. 먼저 오른쪽 붉은 밸브를 잠그십시오.')]);
     await this.crank(-1); await this.pull(); await this.storm(); await this.tether(); await this.fit(); },
@@ -220,9 +220,9 @@ const BELT={
     window.dragHook=(dx,dy)=>{ if(TALK.on) return; if(!mode) want+=dx*(IS_TOUCH?.0016:.0012); else if(dy>0) acc+=dy; };
     const f=this.tick(dt=>{ if(!mode){ const k=((keys.KeyD||keys.ArrowRight)?1:0)-((keys.KeyA||keys.ArrowLeft)?1:0); want+=k*2.4*dt; const lim=.05+.022*n; want=clamp(want,-lim,lim); if(!k) want*=1-Math.min(1,dt*.5); tilt=lerp(tilt,want,Math.min(1,dt*11));
         const sd=tilt>lim*.62?1:tilt<-lim*.62?-1:0; if(sd&&sd!==side){ side=sd; n++; this.thud(.16+.02*n); AUDIO.tone(120+40*Math.random(),.18,'sawtooth',.03,0,-40); this.shake(.008,.25); chips(5+n); } }
-      else { if(keys.KeyS||keys.ArrowDown) acc+=260*dt; const g=Math.min(1,acc/420); lift=lerp(lift,g*.16,Math.min(1,dt*8)); acc=Math.max(0,acc-dt*60); tilt=Math.sin(S.t*31)*.012*g; }
+      else { if(keys.KeyS||keys.ArrowDown||keys.KeyE||keys.Space||this.pb&&this.pb.on) acc+=260*dt; const g=Math.min(1,acc/420); lift=lerp(lift,g*.16,Math.min(1,dt*8)); acc=Math.max(0,acc-dt*60); tilt=Math.sin(S.t*31)*.012*g; }
       sh.quaternion.copy(qt.setFromAxisAngle(ax,tilt)).multiply(q0); sh.position.set(p0.x,p0.y+lift,p0.z-lift*.4); for(const s of ['R','L']) this.put(this.H[s].h,gp(s),X(s)); });
-    await until(()=>n>=8); goal(byDevice('힘껏 당긴다 — 아래로 끈다 (또는 S)','힘껏 당긴다 — 화면을 아래로 끈다')); toast('헐거워졌다',1200); mode=1; await until(()=>lift>.13); goal(''); this.off(f); window.dragHook=dh; S.phase='cut'; this.thud(.5); this.shake(.02,.4); chips(26);
+    await until(()=>n>=8); goal(byDevice('힘껏 당긴다 — [당기기] 를 누르고 있는다 (또는 S)','힘껏 당긴다 — [당기기] 를 누르고 있는다')); toast('헐거워졌다',1200); mode=1; this.pb=this.holdBtn('당기기'); await until(()=>lift>.13); this.pb.remove(); this.pb=null; goal(''); this.off(f); window.dragHook=dh; S.phase='cut'; this.thud(.5); this.shake(.02,.4); chips(26);
     // 뽑혀 나온다 → 눈앞으로 돌려 본다
     sh.userData.dec.visible=true; const a=sh.position.clone(), qa=sh.quaternion.clone(), b=V3(.02,3.26,-6.42), qb=new THREE.Quaternion().setFromEuler(new THREE.Euler(.42,0,.04)); await over(1.5,e=>{ sh.position.lerpVectors(a,b,e); sh.quaternion.copy(qa).slerp(qb,e); for(const s of ['R','L']) this.put(this.H[s].h,gp(s),X(s)); }); const hv=this.tick(()=>{ sh.position.y=b.y+Math.sin(S.t*.9)*.008; for(const s of ['R','L']) this.put(this.H[s].h,gp(s),X(s)); });
     S.phase='play'; await TALK.say([C('…이건 돌이 아니다.'),C('선체 외판이야. 글자가 남아 있어. H, U, Y, G…'),V('하위헌스 1호의 외판입니다. 이 지대에 1호의 조각이 섞여 있습니다.'),C('이 자국은 뭐지. 세 줄… 나란히.'),V('돌에 맞은 자국이 아닙니다. 금속이 안쪽에서 바깥쪽으로 휘었습니다.'),C('…안에서?')]);
@@ -235,7 +235,7 @@ const BELT={
     let left=25, hid=false, hurt=false; E.className='on cnt'; E.querySelector('.k').textContent='돌 무리'; E.querySelector('.h').textContent=''; const de=E.querySelector('.d'), be=E.querySelector('.bar i'); let bt=0; const cf=this.tick(dt=>{ if(TALK.on) return; left=Math.max(0,left-dt); de.textContent=left.toFixed(0)+' 초'; be.style.width=left/25*100+'%'; bt-=dt; if(bt<=0){ bt=left<8?.4:1; AUDIO.tone(left<8?1200:800,.05,'square',.03); if(left<8) SFX.play('heartbeat',{vol:.4}); }
       if(left<=0&&!hid&&!hurt){ hurt=true; FX.flash('#ff2a10',500); this.thud(.7); this.shake(.06,.8); this.o2=Math.max(40,this.o2-12); toast('헬멧에 맞았다 — 산소가 샌다',2200); } });
     const pb=this.pebbles(); const rate={k:0}; this.tick(dt=>pb(dt,rate.k)); this.tick(()=>{ if(!this._sd){ const u=clamp(1-left/25,0,1); rate.k=Math.max(rate.k,u>.6?(u-.6)*.25:0); } });
-    await this.next(this.N('HR_09').position.clone(),byDevice('방열판 뒤로 숨는다 — 빛나는 손잡이 (또는 W)','방열판 뒤로 숨는다 — 빛나는 손잡이를 누른다')); hid=true; await this.moveTo(9,.8); goal(''); S.phase='cut'; await camTo({x:0,z:-6.35-Math.max(0,1.6-camera.aspect)*.7,eye:3.3,pitch:.34},.7); goal('방열판 뒤에 붙어 버틴다'); S.phase='play'; P.look=true; this.look(); await until(()=>left<=0); this.off(cf); E.classList.remove('on','cnt');
+    await this.tpLeg(9,'방열판 뒤로 숨는다 — 방열판 뒤 손잡이를 잡는다',{from:8}); hid=true; await this.tpEnd(9); goal(''); S.phase='cut'; await camTo({x:0,z:-6.35-Math.max(0,1.6-camera.aspect)*.7,eye:3.3,pitch:.34},.7); goal('방열판 뒤에 붙어 버틴다'); S.phase='play'; P.look=true; this.look(); await until(()=>left<=0); this.off(cf); E.classList.remove('on','cnt');
     // 쏟아진다
     this._sd=true; rate.k=.3; let t=0, n=0; await until(dt=>{ t+=dt; rate.k=Math.min(1,.3+t*.16); n-=dt; if(n<=0){ n=.1+Math.random()*.35; this.shake(.012+Math.random()*.02,.25); } return t>7.5; });
     // 큰 돌이 방열판을 친다
@@ -255,12 +255,12 @@ const BELT={
   async tether(){ const {V,C}=this; S.phase='play'; P.look=false; window.dragHook=()=>{}; AUDIO.radio(1.2); await TALK.say([V('크리스! 응답하십시오, 크리스!'),C('…살아 있어. 줄 하나에 매달려 있다.'),V('안전줄 정상. 줄을 당겨 돌아오십시오.')]); S.phase='play';
     this.hands(); const {R,L}=this.H, c=V3(.3,3.0,-7.65), d=V3(0,0,0), sd=()=>V3(P.x,P.eye-.2,P.z), dir=()=>d.copy(c).sub(sd()).normalize().clone(), X=()=>V3(0,1,0), off={R:.62,L:.42}, at=s=>{ const q=dir(), r=V3(Math.cos(P.yaw),0,-Math.sin(P.yaw)); return sd().addScaledVector(q,off[s]).addScaledVector(r,.02).add(V3(0,-.1,0)); };
     R.on=L.on=false; await Promise.all(['R','L'].map(s=>HANDS.enter(this.H[s].h,R1.g,at(s),X(),.7))); ['R','L'].forEach(s=>HANDS.pose(this.H[s].h,'grip',.25)); this.ropeEnd=V3(0,0,0);
-    const D0=sd().distanceTo(c), stop=1.55, N=7; let acc=0, pulls=0, busy=false, act='R'; goal(byDevice('줄을 당긴다 — 화면을 아래로 길게 끈다 (또는 S 를 거듭 누른다)','줄을 당긴다 — 화면을 아래로 길게 끈다')); const E=this.E; E.className='on cnt'; E.querySelector('.k').textContent='R-1 까지'; const de=E.querySelector('.d'), be=E.querySelector('.bar i');
+    const D0=sd().distanceTo(c), stop=1.55, N=7; let acc=0, pulls=0, busy=false, act='R'; goal(byDevice('줄을 당긴다 — [당기기] 를 거듭 누른다 (또는 S)','줄을 당긴다 — [당기기] 를 거듭 누른다')); const tb=this.holdBtn('당기기',()=>{ if(!busy) acc=999; }); const E=this.E; E.className='on cnt'; E.querySelector('.k').textContent='R-1 까지'; const de=E.querySelector('.d'), be=E.querySelector('.bar i');
     const kd=e=>{ if(['KeyS','ArrowDown','KeyE','Space'].includes(e.code)&&!e.repeat) acc=999; }; addEventListener('keydown',kd); window.dragHook=(dx,dy)=>{ if(dy>0&&!busy) acc+=dy; };
     const f=this.tick(()=>{ if(!R.h.g.parent) return; const L2=sd().distanceTo(c); de.textContent=Math.max(0,L2-stop).toFixed(1)+' m'; be.style.width=clamp((1-(L2-stop)/(D0-stop))*100,0,100)+'%'; ['R','L'].forEach(s=>this.put(this.H[s].h,at(s),X())); this.ropeEnd.copy(sd()).addScaledVector(dir(),.3).add(V3(0,-.14,0)); });
     const need=Math.max(90,innerHeight*.16); while(pulls<N){ await until(()=>acc>need); acc=0; busy=true; const s=act, o=s==='R'?'L':'R', p0=V3(P.x,P.eye,P.z), L2=sd().distanceTo(c), go=Math.min(L2-stop,(D0-stop)/N), q=dir(); HANDS.pose(this.H[o].h,'open',.1); over(.3,e=>off[o]=lerp(off[o],.74,e)).then(()=>HANDS.pose(this.H[o].h,'grip',.1)); this.thud(.1); SFX.play('cloth',{vol:.3}); if(pulls%2===0) SFX.play('breath',{vol:.6});
       const a0=off[s]; await over(.75,e=>{ off[s]=lerp(a0,.34,e); const p=p0.clone().addScaledVector(q,go*e); P.x=p.x; P.eye=p.y; P.z=p.z; }); act=o; pulls++; busy=false; acc=0; }
-    goal(''); E.classList.remove('on','cnt'); removeEventListener('keydown',kd); this.off(f); S.phase='cut'; this.ropeEnd=null; this.slack=1; ['R','L'].forEach(s=>{ this.H[s].on=false; HANDS.pose(this.H[s].h,'open',.15); }); const m=camTo(this.node(8),1.8); await sleep(900); await Promise.all([this.hold('R',8),sleep(200).then(()=>this.hold('L',8))]); await m; this.last='L'; this.look(); S.phase='play';
+    goal(''); tb.remove(); E.classList.remove('on','cnt'); removeEventListener('keydown',kd); this.off(f); S.phase='cut'; this.ropeEnd=null; this.slack=1; ['R','L'].forEach(s=>{ this.H[s].on=false; HANDS.pose(this.H[s].h,'open',.15); }); const m=camTo(this.node(8),1.8); await sleep(900); await Promise.all([this.hold('R',8),sleep(200).then(()=>this.hold('L',8))]); await m; this.last='L'; this.look(); S.phase='play';
     await TALK.say([C('…돌아왔다.'),V('심박 168. 숨을 고르십시오. 무리는 지나갔습니다.')]); },
 
   /* ============ ⑦ 새 관 끼우기 ============ */
@@ -289,10 +289,10 @@ const BELT={
   /* ============ ⑧ 돌아와 엔진을 켠다 ============ */
   async back(){ const {V,C}=this; this.look(); this.atK=8;
     // 뒤로 : 손잡이를 거꾸로 (고개는 그대로 — 뒷걸음)
-    P.look=true; await this.backTo(7,byDevice('해치로 돌아간다 — 빛나는 고리 (또는 W)','해치로 돌아간다 — 빛나는 고리를 누른다')); this.clips.pop(); this.thud(.08); toast('안전줄을 풀어 들고 간다',1400); await this.backTo(5); await this.backTo(3); goal('');
-    await TALK.say([C('…1호의 외판에 난 자국. 안에서 바깥으로.'),V('기록해 두었습니다.')]); await this.backTo(2,'해치로 돌아간다'); await this.backTo(1); await this.backTo(0); goal(''); S.phase='cut';
+    this.clips.pop(); this.thud(.08); toast('안전줄을 풀어 들고 간다',1400); await TALK.say([C('…1호의 외판에 난 자국. 안에서 바깥으로.'),V('기록해 두었습니다. 해치로 돌아오십시오.')]);
+    await this.tpLeg(0,'해치로 돌아간다 — 해치 옆 손잡이를 잡는다',{from:8}); await this.tpEnd(0); goal(''); S.phase='cut';
     ['R','L'].forEach(s=>{ this.H[s].on=false; HANDS.exit(this.H[s].h,.4); }); await camTo({x:.05,z:-12.95,eye:1.45,yaw:Math.PI,pitch:0},1.2); this.shade(.07,2); await camTo({x:0,z:-11.1,eye:1.55},1.7); this.clips=[]; await camTo({x:0,z:-10.9,yaw:0,pitch:0,eye:1.6},1.0);
-    document.body.classList.remove('eva'); R1.follow(true); P.pinY=false; P.eye=1.66; this.hl.intensity=0; stamp('구조정 R-1 · 해치 방','2091.08.07 · 선외 활동 종료');
+    document.body.classList.remove('eva'); R1.follow(true); P.pinY=false; P.eye=1.66; this.hl.intensity=0; stamp('구조정 R-1 · 해치 방','2091.07.22 · 선외 활동 종료');
     const d=R1.items.hatchdoor, x0=d.position.x; AUDIO.tone(48,1.8,'sine',.1); await over(2,e=>{ d.position.x=x0-1.45*e; DO.D.W.position.x=1.45*(1-e); }); R1.hatchOpen=false; this.thud(.3); this.ext.visible=false; DO.setLock&&DO.setLock(false,0); S.phase='play'; await DO.wheel(1,1.25);
     await TALK.say([V('해치 잠김. 공기를 채웁니다.')]); S.phase='cut'; AUDIO.noise(4,.3,0,1800,'highpass'); AUDIO.noise(4,.2,.3,500); await sleep(3600); this.vac=false; await camTo({yaw:Math.PI,x:0,z:-10.5},.9); SFX.play('airlock',{vol:.6}); await over(1.2,e=>this.door(1-e));
     // 우주복을 벗어 건다

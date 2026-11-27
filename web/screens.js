@@ -139,20 +139,16 @@ const SCREEN=(()=>{ const W=1600,H=700; let cv,g,tex,mesh,ov,og,otex,oMesh,mode=
       T('흡수선이 모두 같은 비율로 긴 파장 쪽으로 밀렸다 → 우리은하 밖, 멀어지는 은하의 빛',52,640,F(400,17),DIM);
       box(1290,364,282,100,'판정'); T(z>.03?'외부 은하':'분석 중…',1310,430,F(600,30),z>.03?AL:MUTE); },
 
-    mayday(){ chrome('04','하위헌스 1호 — 마지막 수신','DSN 캔버라 70 m · X 밴드 8.42 GHz');
-      box(28,72,1100,250,'수신 파형'); const alive=t<5.8, a=alive?.32+.2*Math.sin(t*2.3):.02;
-      g.strokeStyle='rgba(255,90,54,.9)'; g.lineWidth=1.6; g.beginPath(); for(let x=40;x<1120;x+=3){ const y=198+(Math.random()-.5)*200*a*(.35+Math.sin(x*.013+t*5)**2); x>40?g.lineTo(x,y):g.moveTo(x,y); } g.stroke(); g.lineWidth=1;
-      // 폭포수 (주파수 · 시간)
-      box(28,338,1100,322,'스펙트로그램'); if(!D.wf){ D.wf=document.createElement('canvas'); D.wf.width=540; D.wf.height=150; }
-      const w=D.wf.getContext('2d'); w.drawImage(D.wf,0,1); const row=w.createImageData(540,1);
-      for(let i=0;i<540;i++){ const c=Math.abs(i-270), sig=alive&&t>.6?Math.exp(-c*c/30)*(.7+.3*Math.random()):0, sb=alive&&t>.6?.35*Math.exp(-Math.pow(c-40-20*Math.sin(t*3),2)/60):0, n=Math.random()*.18+sig+sb;
-        row.data[i*4]=255*Math.min(1,n*1.6); row.data[i*4+1]=90*Math.min(1,n*1.2); row.data[i*4+2]=54*n; row.data[i*4+3]=255; } w.putImageData(row,0,0);
-      g.imageSmoothingEnabled=false; g.drawImage(D.wf,40,364,1076,284); g.imageSmoothingEnabled=true;
+    // 수신 신호 (4.23) : 목소리가 아니라 짧고 긴 펄스 — 모스 부호로 풀면 MAYDAY · 위치도 이름도 없이 되풀이된다
+    mayday(){ chrome('04','하위헌스 1호 — 수신 신호','DSN 캔버라 70 m · X 밴드 8.42 GHz');
+      const U=.12, seq=[]; for(const ch of 'MAYDAY'){ for(const m of MORSE.C[ch]){ for(let k=0;k<(m==='-'?3:1);k++) seq.push(1); seq.push(0); } seq.push(0,0); } const L=seq.length, now=t-.6, on=u=>u>=0&&u<L&&seq[u|0]===1;
+      box(28,72,1100,250,'수신 파형 · 펄스'); g.strokeStyle='rgba(255,90,54,.9)'; g.lineWidth=1.6; g.beginPath(); for(let x=40;x<1120;x+=2){ const u=(now-(1120-x)/260)/U, y=198+(on(u)?Math.sin(x*.9)*44+(Math.random()-.5)*30:(Math.random()-.5)*8); x>40?g.lineTo(x,y):g.moveTo(x,y); } g.stroke(); g.lineWidth=1;
+      // 점 · 선
+      box(28,338,1100,140,'펄스 → 점 · 선'); const done=Math.max(0,Math.min(L,now/U|0)); let x=52, u=0; while(u<done){ if(seq[u]){ let n=0; while(seq[u+n]) n++; g.fillStyle=AL; if(n>=3) g.fillRect(x,402,34,10); else { g.beginPath(); g.arc(x+5,407,6,0,7); g.fill(); } x+=n>=3?46:20; u+=n; } else { if(seq[u+1]===0&&seq[u+2]===0) x+=16; u++; } }
+      box(28,494,1100,166,'점 · 선 → 글'); let k=0, lt=0; const W2='MAYDAY'; for(let i=0;i<W2.length;i++){ lt+=MORSE.C[W2[i]].split('').reduce((a,m)=>a+(m==='-'?4:2),0)+2; if(done>=lt) k=i+1; } T(W2.slice(0,k).split('').join('  '),60,600,M(64,600),AL);
       box(1144,72,428,588,'메타데이터');
-      [['발신','HUY-1 · 하위헌스 1호'],['수신 시각','2090.08.11  04:17:33'],['임무 일수','312일째'],['신호 세기',alive?(-151.8+Math.sin(clock*7)*.6).toFixed(1)+' dBm':'—'],['배경 잡음','18 Hz · 출처 미상']].forEach(([a,b],i)=>{ T(a,1166,124+i*62,F(500,15),DIM); T(b,1166,150+i*62,M(18),i===3&&!alive?AL:INK); });
-      const s='MAYDAY, MAYDAY, WE ARE—', n=Math.min(s.length,Math.floor(Math.max(0,t-.8)*6)); box(1144,440,428,220,'음성 → 글');
-      T(s.slice(0,12),1166,520,M(34,600),AL); T(s.slice(12,n),1166,566,M(34,600),AL);
-      if(!alive){ T('— 신호 끊김 · LOS —',1166,620,M(16),MUTE); T('그 뒤로 응답 없음  7개월',52,312,M(16),AL); } },
+      [['발신','HUY-1 · 하위헌스 1호'],['형식','모스 부호 · 음성 없음'],['되풀이','약 46시간마다'],['마지막 수신','2091.03.12  23:02:41'],['배경 잡음','18 Hz · 출처 미상']].forEach(([a,b],i)=>{ T(a,1166,124+i*62,F(500,15),DIM); T(b,1166,150+i*62,M(18),INK); });
+      box(1144,440,428,220,'판정'); T(k>=6?'조난 신호':'해독 중…',1166,520,F(600,34),k>=6?AL:MUTE); if(k>=6){ T('위치 · 배 이름 · 인원 없음',1166,566,M(16),MUTE); T('7개월째 같은 신호',1166,604,M(16),MUTE); } },
 
     crew(){ chrome('05','구조 계획 · 1인 구조정 R-1','2호 탑재 구조정 · 다음 주 출발');
       box(28,72,940,370,'R-1 옆모습 · 길이 18 m'); const y=262;

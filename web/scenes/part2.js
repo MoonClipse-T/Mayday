@@ -1,7 +1,8 @@
 /* ============================================================
    2부 「Mayday_The Atrox」 (4.13 · atrox.html) — 1호를 찾고 나서 돌아가기까지
    시작 화면 = 노란 변광성 곁에서 도는 죽은 1호 → [1호로 간다] → 지난 이야기 → 제목 → ① 1호 앞 640 m 에서 직접 몰아 도킹 · 우주복 · 1호의 문 (scenes/flight.js · 4.16 에 1부에서 옮김) → 1호를 불러온다 → 에어록
-   ② 1호 : 암흑 · 손전등 · 찢긴 시신 · 피 → ③ 동면 구역 C 의 생존자 레아 → 가슴에서 애벌레 → 첫 사격
+   ② 1호 : 암흑 · 손전등 · 찢긴 시신 · 피 → ③ 동면 구역 C 의 생명 신호 = 넉 달 전에 숨진 레아의 몸 안 (생존자는 없다 — 4.23) → 가슴에서 애벌레 → 첫 사격
+   ⑥ 함교 : 통신 기록 — MAYDAY 의 마지막 송신은 사흘 전. 그 신호를 보낸 것은 사람이 아니었다
    ④ 애벌레 사냥 (시신마다 하나) → ⑤ 기관실 원자로 재가동 · 시신을 먹던 성체 → 숨고 · 도망쳐 ⑥ 함교 → 1호를 몰고 웜홀로 (다음 이야기 : 사용자 지시 대기)
    1부(회의 → 발사 → 웜홀 → 1호를 찾기까지)는 scenes/part1.js (index.html)
    저장 지점 : 죽으면 그 자리부터 (GAME.cp) · 제작용 바로 가기 atrox.html?s=cockpit(도킹) · board · survivor · hunt · engine · bridge · stalk
@@ -30,7 +31,7 @@ const GAME={part:2, cp:null,
     TICK.push(dt=>{ if(S.phase!=='title'){ lamp.intensity=0; return; } t+=dt; G.rotation.z+=dt*FLIGHT.W; c.set(62+Math.sin(t*.05)*8,14,zf-34); camera.position.copy(c); camera.lookAt(12,0,zf+58); lamp.position.copy(c); lamp.target.position.set(0,0,zf+30+Math.sin(t*.3)*24); }); },
   // [1호로 간다] : 지난 이야기 → 2부 제목 → 도킹 → 1호 에어록
   async begin(){ S.phase='cut'; document.body.classList.add('overfade'); await fade(true,1200); MUSIC.play('derelict',{fade:4}); prefetch(SHIP.list().map(l=>l[0]).concat('corpse_a','larva','beast'));      // 도킹하는 동안 1호 안을 받아 둔다 (푸는 것은 들어갈 때)
-    await this.recap([['2091년, 목성 곁','웜홀이 열렸다'],['너머로 떠난 하위헌스 1호','대원 열두 명 · 312일째, “Mayday, Mayday, we are—”'],['외부 은하 NGC 3500','전파를 거슬러, 별빛으로 거리를 재어 — 1호를 찾았다'],['1인 구조정 R-1','돌아가는 길은 하나 — 1호를 깨워, 1호를 몰고']]);
+    await this.recap([['2091년, 목성 곁','웜홀이 열렸다'],['너머로 떠난 하위헌스 1호','대원 열두 명 · 312일째 끊긴 교신 — 그리고 일곱 달 동안 되풀이된 신호, MAYDAY'],['외부 은하 NGC 3500','전파를 거슬러, 별빛으로 거리를 재어 — 1호를 찾았다'],['1인 구조정 R-1','돌아가는 길은 하나 — 1호를 깨워, 1호를 몰고']]);
     await card('2부','Mayday_The Atrox','',4200);
     document.body.classList.remove('overfade'); FLIGHT.rig.visible=true; return this.dock(); },
   async dock(){ await FLIGHT.run(); await this.ship(); FLIGHT.free(); GUN.held.visible=true; HELMET.on(true); return this.board(); },
@@ -97,31 +98,32 @@ const GAME={part:2, cp:null,
     // 우주복을 입고 건너왔다 (scenes/flight.js) : VEGA 가 1호 안의 공기를 재고 → 헬멧을 벗는다 (그제야 입김이 보인다)
     if(HELMET.is){ await TALK.say([VG('기압 정상. 산소 19 퍼센트. 독성 기체 없음. 숨 쉴 수 있습니다, 크리스.'),I('…믿는다, VEGA.')]); SFX.play('airlock',{vol:.5}); SFX.play('cloth'); HELMET.on(false); await sleep(1100); }
     await TALK.say([I('…춥다. 입김이 나.'),VG('1호 비상 전력 0. 모든 문이 열린 채입니다. 생명 신호는 배 앞쪽, 동면 구역 C 입니다.'),I('손전등뿐이군.')]);
-    goal('생존자를 찾는다 — 동면 구역 C (복도 서쪽)');
+    goal('생명 신호를 찾는다 — 동면 구역 C (복도 서쪽)');
     STORY.once(45,9.7,3.2,()=>TALK.say([I('…사람이다. 아니, 사람이었던 것.'),I('…1호 대원복. 여기까지 끌려왔다. 그리고… 뭔가에 뜯긴 자국.'),VG('맥박 없음. 사망한 지 수 주로 추정됩니다.')]));
     STORY.once(36,10.5,2.4,()=>{ THUD(.3); AUDIO.noise(1.5,.08,0,400); TALK.say([I('…위에서 뭔가 지나갔다.'),VG('환기 덕트 안입니다. 크기는… 측정되지 않습니다.')]); });
     STORY.once(30,10.5,2.4,()=>TALK.say([I('끌고 간 자국. 손톱으로 바닥을 긁은 자국.'),I('다들… 어디로 끌려간 거지.')]));
     return this.survivor(); },
 
   /* ---- ③ 동면 구역 C 의 생존자 ---- */
+  // 4.23 사용자 : 1호에 생존자는 없다 — 생명 신호는 넉 달 전에 숨진 레아의 몸 안에서 나온다
   async survivor(){ const f=S.flags; S.phase='play'; P.free=true;
-    goal('생존자를 찾는다 — 동면 구역 C');
+    goal('생명 신호를 찾는다 — 동면 구역 C');
     const lx=24.5, lz=-5.0, le=this.leah=await this.leahBody(lx,lz);
-    BLOOD.pool(lx,lz-1,1.8);
-    const LE=t=>({who:'레아',t,npc:le}), MUT=['…차가워야 해… 차가우면 잠들어…','…움직여… 안에서 움직여…','…쏘지 마… 나 아직… 나야…'];
-    { let k=0, cd=0; const fn=dt=>{ if(f.leahFound||!PEOPLE.list.includes(le)) return TICK.splice(TICK.indexOf(fn),1); cd-=dt; if(cd>0) return; if(Math.hypot(P.x-lx,P.z-lz)<9&&!TALK.on){ cd=6; TALK.say([LE(MUT[k++%MUT.length])]); } }; TICK.push(fn); }
-    await new Promise(res=>PEOPLE.talkable(le,()=>{ if(f.leahFound) return; f.leahFound=true; res(); }));
+    BLOOD.pool(lx,lz-1,1.8); le.wear.add([[.5,.6,.85,.1,'o']]);
+    // 가까이 갈수록 생명 신호 탐지음이 빨라진다
+    { let cd=0; const fn=dt=>{ if(f.leahFound||!PEOPLE.list.includes(le)) return TICK.splice(TICK.indexOf(fn),1); cd-=dt; if(cd>0) return; const d=Math.hypot(P.x-lx,P.z-lz); if(d<14&&S.phase==='play'){ cd=.25+d*.12; AUDIO.tone(1320,.05,'sine',.03); } }; TICK.push(fn); }
+    await new Promise(res=>interact(le.pick,'살펴본다 · 레아 문 (1호 생물학자)',()=>{ if(f.leahFound) return; f.leahFound=true; res(); },{range:3.2}));
     this.save(28.5,10.5,.69);      // 문 앞 복도 — 방 안이면 되살아나자마자 옆(3 m) 시신에서 깨어났다 (4.18)
     S.phase='cut'; P.free=false; ME.setCrouch(false); await camTo({x:lx+.9,z:lz-.6,yaw:yawTo(lx,lz-1.3),pitch:-.75,eye:1.55},1); P.look=true;
-    await TALK.say([I('…레아 문? 1호 생물학자, 레아 문.'),LE('…누구…'),I('구조하러 왔어요. NASA, 크리스. 혼자예요.'),LE('…혼자… 다행이다… 다른 사람은 데려오지 마…'),
-      I('무슨 일이 있었던 거예요. 다른 대원들은?'),LE('…그게 우리를 먹었어. 하나씩. 그리고… 먹다 남긴 몸마다… 알을…'),LE('…나도야. 느껴져. 안에서— 아, 아아—')]);
+    await TALK.say([I('…레아 문. 1호 생물학자.'),VG('맥박 없음. 체온은 주변 온도와 같습니다. 숨진 지… 넉 달이 넘었습니다.'),I('넉 달? 그럼 지금까지 온 MAYDAY 는… 누가 보낸 거야.'),
+      VG('크리스. 생명 신호는… 이 몸 안에서 나옵니다.'),I('…뭐?')]);
     const larva=await this.birth(le); P.look=false;
     // 첫 사격 : 덮쳐 오는 애벌레
     await TALK.say([VG('크리스! 쏘십시오!')]); goal(byDevice('쏴라 — F 또는 [사격]','쏴라 — [사격]')); P.eye=1.66; S.phase='play'; P.free=true;
     LARVA.on=true; await new Promise(r=>{ LARVA.onKill=()=>r(); });
     goal(''); await sleep(600);
     await TALK.say([I('…하아… 하아…'),VG('생체 반응… 늘어납니다. 일곱, 여덟… 1호 곳곳의 시신마다 하나씩입니다.'),
-      I('"먹다 남긴 몸마다 알을." …전부 깨어나고 있다.'),VG('원자로가 있는 기관실까지 가려면 복도를 지나야 합니다. 그것들을 그냥 두면 따라옵니다.')]);
+      I('시신마다… 안에 하나씩. 전부 깨어나고 있다.'),VG('원자로가 있는 기관실까지 가려면 복도를 지나야 합니다. 그것들을 그냥 두면 따라옵니다.')]);
     return this.hunt(); },
   // 레아의 몸 : 대원복(Tripo) 을 칠해 찢고 더럽힌다 · 바닥에 누워 (발이 남 · 머리가 북쪽 벽)
   async leahBody(lx,lz){ const le=await PEOPLE.spawn({kind:'maya',name:'레아 문',role:'1호 생물학자',pose:'lie',at:{x:lx,z:lz,yaw:0}}); le.watch=false; le.solid=false; le.sleep=true;
@@ -129,7 +131,7 @@ const GAME={part:2, cp:null,
   // 가슴에서 애벌레 : 경련 · 피 · 붉은 섬광 → 내 쪽으로 뛰어든다
   async birth(le){ const w=le.wrap.position, chest=new THREE.Vector3(w.x,.3,w.z-1.25);
     let shake=true; const sh=()=>{ if(shake){ le.wrap.position.y=.1+Math.abs(Math.sin(S.t*31))*.05; le.wrap.rotation.y=Math.sin(S.t*27)*.05; } }; TICK.push(sh); AUDIO.noise(1.6,.12,0,500);
-    await TALK.say([{who:'레아',t:'커헉… 커, 커헉—',npc:le}]);
+    await TALK.say([I('…몸이, 움직인다.')]);
     BLOOD.spray(chest,30,3); SFX.play('burst',{at:chest}); await sleep(500); BLOOD.spray(chest,40,3.6); AUDIO.noise(.6,.3,0,900); await sleep(400);
     const fl=new THREE.PointLight(0xff2010,8,6,1.6); fl.position.copy(chest); WORLD.add(fl); setTimeout(()=>WORLD.remove(fl),160);
     BLOOD.spray(chest,70,5); AUDIO.tone(1100,.5,'sawtooth',.07,0,700); STING(.8); FX.flash('#ff2010',300); FX.shake(.5,.05);
@@ -203,10 +205,12 @@ const GAME={part:2, cp:null,
     await STORY.at(seat,'함장석 — 1호를 움직인다','함장석으로 — 1호를 움직인다',{range:2.6});
     S.phase='cut'; P.free=false; goal('');
     await camTo({x:cs.x,z:cs.z+.1,yaw:0,pitch:.02,eye:1.22},1.2); P.look=true; THUD(.55); GROWL(.12); FX.shake(.3,.04);
-    await TALK.say([VG('함교 문 밀폐. 1호 조종권 확보. 항로… 웜홀 입구까지 사흘.'),I('사흘 동안 저것과 같은 배에.'),VG('네. 그리고 크리스—'),I('…알아. 문이 오래 버티지 못한다는 거.'),
-      VG('1호, 출발합니다.')]);
+    await TALK.say([VG('함교 문 밀폐. 1호 조종권 확보. 항로… 웜홀 입구까지 사흘.'),I('사흘 동안 저것과 같은 배에.'),
+      VG('…크리스. 통신 기록을 열었습니다. MAYDAY 의 마지막 송신은 사흘 전입니다.'),I('사흘 전? 대원들은 넉 달 전에 모두…'),
+      {...VG('송신기의 전신 키에 자국이 있습니다. 나란한 세 줄.'),fx:()=>MORSE.play('MAYDAY',{vol:.05})},I('…사람이 보낸 게 아니었어.'),I('저게 — 우리를 불러들인 거야.'),
+      {...VG('…1호, 출발합니다.'),fx:()=>{ THUD(.6); GROWL(.14); FX.shake(.3,.04); }}]);
     AUDIO.hum(1.4,34); FX.shake(2,.03); await sleep(1500); await fade(true,2200);
-    await card('하위헌스 1호 — 웜홀로','이야기는 여기까지 (다음 : 웜홀 속에서)','분기점 · 문제는 사용자 지시를 기다린다',5200);
+    await card('하위헌스 1호 — 웜홀로','MAYDAY 를 보낸 것은 사람이 아니었다','이야기는 여기까지 (다음 : 웜홀 속에서)',5200);
     location.href=location.pathname; },
 };
 // 입김 : 작은 흰 안개가 퍼지며 사라진다

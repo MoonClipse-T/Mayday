@@ -51,7 +51,7 @@ const R1={g:null,b:null,seated:true,on:{},_wait:{},
     async ledge(){ S.busy=true; P.free=false; const s=this.spots.ledge||{x:.55,z:-6.65}, x0=P.x, z0=P.z;
       await camTo({x:s.x+.1,z:s.z,yaw:-Math.PI/2,pitch:0,eye:1.66},.9); const d=this.viewDir||{}; await camTo({x:d.x===undefined?s.x+.1:d.x,z:d.z===undefined?s.z:d.z,eye:1.34,yaw:d.yaw===undefined?-Math.PI/2:d.yaw,pitch:d.pitch===undefined?.03:d.pitch},.9); SFX.play('cloth',{vol:.4});
       await TALK.say([I(this.view||'…창밖은 별뿐이다. 깜빡이지 않는 별.')]); await camTo({x:x0,z:z0,eye:1.66,pitch:0},.7); P.free=true; S.busy=false; },      // 몸을 펴고 섰던 자리로 한 걸음 물러난다 (바 · 의자에 끼지 않게)
-    shelf(){ return doc('R-1 운용 수첩','<p><b>R-1 구조정</b> — 1인 · 동면 캡슐 1 · 이온 엔진 · 연료 <b>편도분</b>.</p><p><b>도킹</b> : R-1 의 도킹 해치는 <b>뒤쪽(외부 해치)</b>에 있다. 도킹할 때는 배를 돌려 뒤를 상대 고리에 대고, 해치 방의 <b>후방 도킹 조종대</b>에서 뒤 카메라를 보며 몬다.</p><p><b>동면</b> : 캡슐에 들어가면 VEGA 가 정해진 날에 깨운다. 깨어나면 몸이 무겁다 — 천천히 일어날 것.</p><p class="dim">— 책 사이에 끼워진 사진 : 1호 대원 열두 명. 맨 끝에 레아 문.</p>','책장 · 둘째 칸'); },
+    shelf(){ return doc('R-1 운용 수첩','<p><b>R-1 구조정</b> — 1인 · 동면 캡슐 1 · 이온 엔진 · 연료 <b>편도분</b>.</p><p><b>구조정 AI</b> : <b>VEGA</b> — 항법 · 생명 유지 · 선내 잠금을 맡는다.</p><p><b>도킹</b> : R-1 의 도킹 해치는 <b>뒤쪽(외부 해치)</b>에 있다. 도킹할 때는 배를 돌려 뒤를 상대 고리에 대고, 해치 방의 <b>후방 도킹 조종대</b>에서 뒤 카메라를 보며 몬다.</p><p><b>동면</b> : 캡슐에 들어가면 VEGA 가 정해진 날에 깨운다. 깨어나면 몸이 무겁다 — 천천히 일어날 것.</p><p class="dim">— 책 사이에 끼워진 사진 : 1호 대원 열두 명. 맨 끝에 레아 문.</p>','책장 · 둘째 칸'); },
     capsule(){ return TALK.say([I('…넉 달을 저 안에서 잔다. 아니, 잤다.')]); },
     locker(){ SFX.play('locker_open',{vol:.6}); return TALK.say([I('EVA 우주복 한 벌, 산소통 둘. …1호 안은 공기가 있기를.')]); },
     aft(){ return TALK.say([I('후방 도킹 조종대. 뒤쪽 카메라로 보며 배를 몬다 — 도킹할 때 쓴다.')]); },

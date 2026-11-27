@@ -128,7 +128,9 @@ const JOURNEY={
     S.phase='cut'; P.free=false; goal(''); await camTo({x:-.35,z:-8.75,yaw:Math.PI/2,pitch:-.12,eye:1.62},.9);
     AUDIO.tone(220,.18,'square',.05); AUDIO.tone(180,.25,'square',.05,.2); S.phase='play';
     await TALK.say([V('캡슐 잠금 해제 실패. 암호가 설정되어 있습니다.'),C('…암호? 이런 걸 건 적이 없는데.'),C('…다니엘이다.')]);
-    goal('캡슐 암호 — 다니엘의 쪽지를 풀자 (영어 네 글자)'); await PODLOCK.run(); goal('');
+    goal('캡슐 암호 — 다니엘의 쪽지를 풀자 (영어 네 글자)');
+    for(;;){ if(await PODLOCK.run()) break; goal('캡슐 암호 — 다시 하려면 캡슐을 누른다'); S.phase='play'; P.free=true; await R1.task('capsule'); S.phase='cut'; P.free=false; await camTo({x:-.35,z:-8.75,yaw:Math.PI/2,pitch:-.12,eye:1.62},.9); S.phase='play'; goal('캡슐 암호 — 다니엘의 쪽지를 풀자 (영어 네 글자)'); }      // 닫기 (4.23)
+    goal('');
     await TALK.say([V('잠금 해제. …다니엘 기관사에게 전할 말이 있으십니까?'),C('돌아가서 직접 할게.')]);
     await R1.intoCapsule(); AUDIO.noise(2,.08,0,400); AUDIO.tone(140,3,'sine',.05,0,-60);
     await TALK.say([C('…다녀오겠습니다.')]);
@@ -215,7 +217,7 @@ const JOURNEY={
     this.tick(dt=>{ k+=dt/10; const e=Math.min(1,k); U.R.value=R0+Math.pow(e,2.2)*2.6; U.tun.value=Math.max(0,(e-.45)/.55);
       const sh=e*e*.03; head.sx=(Math.random()-.5)*sh; head.sy=(Math.random()-.5)*sh; if(Math.random()<dt*3*e) AUDIO.noise(.5,.08+.1*e,0,300+600*e); if(e>=1) done=true; });
     setTimeout(()=>AUDIO.tone(60,8,'sawtooth',.06,0,-25),300);
-    await TALK.say([V('중력 렌즈 경계 통과. 별빛이 고리 안으로 말려 들어갑니다.'),V('선체 응력 87%. 92%.'),C('…그 문장의 끝을, 들으러 간다.')]);
+    await TALK.say([V('중력 렌즈 경계 통과. 별빛이 고리 안으로 말려 들어갑니다.'),V('선체 응력 87%. 92%.'),C('…기다려, 1호. 살아 있는 사람이 있다면.')]);
     while(!done) await sleep(100);
     const fe=$('#fade'); fe.style.background='#fff'; fade.next='웜홀 건너는 중'; await fade(true,500); AUDIO.hum(.2,30);
     this.inTransit=false; FLIGHT.ui(false); this.clean(); U.tun.value=0; camera.far=2000; camera.updateProjectionMatrix();

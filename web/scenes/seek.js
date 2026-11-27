@@ -2,8 +2,8 @@
    1호를 찾아서 (4.16) — 웜홀을 건넌 뒤, 1부의 마지막 절반 : 1호의 마지막 전파를 거슬러 1호가 있는 곳을 알아낸다
    ① 여기는 어디 : 깜깜한 하늘(별만 드문드문) → VEGA 가 눈앞에 홀로그램을 띄운다 — 우리은하가 아니다 · 외부 은하 NGC 3500 (지구에서 4억 3천만 광년)
    ② 전파의 방향 : 안테나는 뱃머리에 있다 → 기수를 돌려 전파가 가장 또렷한 쪽을 찾는다 → 지구에 닿지 못한 '기록 조각' 셋이 풀린다 (표면 온도 5,500 K · 밝기가 변하는 별)
-   ③ 촬영 : 그쪽을 찍는다 — 빛을 내는 것 열셋 → 하루 한 장씩 열이레 (그동안 캡슐에서 잔다)
-   ④ 지우기 (로비의 홀로그램) : 색(= 표면 온도)이 다른 별 · 밝기가 변하지 않는 별을 지워 나가 하나만 남긴다
+   ③ 촬영 : 그쪽을 찍는다 — 빛을 내는 것 열셋 → 사진 한 장으로는 밝기가 변하는지 모른다 → 해치 방 기록 단말에서 1호가 같은 하늘을 열이레 동안 찍은 옛 기록을 찾아 밝기 표로 본다 (4.23 : 동면 대신)
+   ④ 지우기 (로비의 홀로그램) : 1단계 밝기가 변하는 별(변광성)만 남기기 → 2단계 그 가운데 표면 온도 5,500 K 인 별 하나 (4.23)
    ⑤ 절대 등급 : 남은 별의 밝기가 되풀이되는 주기를 재고 → 같은 종류의 별 다섯에서 규칙(주기가 두 배 → 0.7 작아진다)을 찾아 절대 등급을 알아낸다 (지식이 아니라 규칙 찾기)
    ⑥ 겉보기 등급 : 광도계 — 별빛과 기준 광원의 밝기를 맞춘다 → 1.3
    ⑦ 거리 : 5등급 차 = 밝기 100배 → 10 pc 의 10배 = 100 pc (시험 신호로 확인)
@@ -31,8 +31,8 @@ const SEEK={
 
   async run(from='arrive'){ const J=this.J=await JOURNEY.cockpit(); J.head.y=0; J.head.p=-.02;
     await SKY.space({dir:[.14,.06,-1],R:.09,jupiter:false,sunDir:[-.4,.5,.6],far:true,sunI:.1}); scene.background=new THREE.Color(0x000000); renderer.toneMappingExposure=1; this.lamps(); this.board=null; this.day=0;
-    if(from==='arrive'){ await this.arrive(); await this.direction(); await this.shoot(); await this.rest(); }
-    else { await this.dim(.3,0); this.ui(); this.frags(); if(from==='holo'){ await R1.wake(); fade(false,900); await R1.outOfCapsule(); } }
+    if(from==='arrive'){ await this.arrive(); await this.direction(); await this.shoot(); await this.records(); }
+    else { await this.dim(.3,0); this.ui(); this.frags(); if(from==='holo'){ fade(false,900); await R1.stand(J.head); } }
     if(['belt','crash','eva','site','found'].includes(from)){ loadGLB('ship_ext').then(h=>this.hull=h); if(from!=='found') await BELT.run({belt:'fly',eva:'prep'}[from]||from); return this.found(); }
     if(from!=='warp'){ await this.hologram(); await this.erase(); await this.absolute(); await this.apparent(); await this.distance(); await this.closeHolo(); }
     else { fade(false,800); await R1.stand(J.head); }
@@ -87,9 +87,9 @@ const SEEK={
       {...V('우리는 이 은하의 맨 가장자리에 있습니다. 별이 드문 곳입니다.'),fx:()=>{ me.visible=true; AUDIO.tone(990,.12,'sine',.06); }},
       C('그래서 이렇게 깜깜했군. …1호는? 1호는 어디 있어.'),
       V('보이지 않습니다. 열도, 불빛도 없습니다.'),
-      {...V('하지만 1호의 마지막 전파가 아직 이 하늘을 떠돌고 있습니다.'),fx:()=>{ rings.visible=true; AUDIO.radio(2.5); }},
-      V('그 전파를 거슬러 올라가면, 1호가 있습니다.')]);
-    AUDIO.radio(4); await TALK.say([RADIO('…여기는 하위헌스 1호… 대원 열두 명 중… 우리는 지금…'),RADIO('Mayday, Mayday, we are—')]);
+      {...V('하지만 1호의 MAYDAY 신호가 지금도 이 하늘에 울립니다. 이틀에 한 번꼴로.'),fx:()=>{ rings.visible=true; AUDIO.radio(2.5); }},
+      V('그 신호를 거슬러 올라가면, 1호가 있습니다.')]);
+    await TALK.say([{...RADIO(MORSE.text('MAYDAY')),fx:()=>MORSE.play('MAYDAY')},C('…MAYDAY. 지구에서 들은 그대로다.')]);
     this.hum(); await this.show(H,false,.7); R1.g.remove(H); P.look=false; },
 
   /* ============ ② 전파의 방향 ============ */
@@ -109,7 +109,7 @@ const SEEK={
       const off=Math.acos(clamp(fw.dot(T),-1,1)), s=.5*Math.pow(Math.max(0,1-off/2.6),1.3)+.5*Math.exp(-Math.pow(off/.28,2));
       if(off<.11&&idle>.25){ const ax=new THREE.Vector3().crossVectors(fw,T); if(ax.length()>1e-4) rig.quaternion.premultiply(new THREE.Quaternion().setFromAxisAngle(ax.normalize(),off*Math.min(1,dt*1.6))); }      // 거의 맞으면 살며시 끌려간다
       this.J.cam(); hold=off<.06?hold+dt:0; snd&&snd.set(s); bar.style.width=Math.round(s*100)+'%'; ui.classList.toggle('hot',s>.8);
-      msg.textContent=hold>0?'그대로…':s>.8?'목소리가 들린다 — 조금만 더':s>.45?'잡음 속에 무언가 있다':s>.18?'잡음이 조금 걷혔다':'잡음뿐이다';
+      msg.textContent=hold>0?'그대로…':s>.8?'펄스가 또렷하다 — 조금만 더':s>.45?'잡음 속에 무언가 있다':s>.18?'잡음이 조금 걷혔다':'잡음뿐이다';
       bp-=dt; if(bp<=0&&s>.25){ bp=1.15-.85*s; AUDIO.tone(700+500*s,.05,'sine',.02+.05*s); }
       // 파형 : 잡음 위로 목소리의 마디가 드러난다
       ph+=dt; g.clearRect(0,0,900,150); g.lineWidth=2.5; g.strokeStyle=s>.8?'#ffb0a0':'#9fd8ff'; g.beginPath(); for(let x=0;x<900;x+=3){ const u=x/900, env=Math.pow(Math.abs(Math.sin(u*9.4+ph*1.1))*Math.abs(Math.sin(u*23+ph*.6)),.8), y=75+Math.sin(x*.21+ph*26)*58*env*s+(Math.random()-.5)*92*(1-s)*(.25+.75*(1-s)); x?g.lineTo(x,y):g.moveTo(x,y); } g.stroke();
@@ -120,15 +120,15 @@ const SEEK={
     const q0=rig.quaternion.clone(), q1=q0.clone(); { const f=new THREE.Vector3(0,0,1).applyQuaternion(q0); q1.premultiply(new THREE.Quaternion().setFromUnitVectors(f,T)); } await over(.8,e=>rig.quaternion.copy(q0).slerp(q1,e));
     ui.classList.add('lock'); msg.textContent='방향 고정';
     // 기록 조각 셋
-    await TALK.say([V('방향을 고정했습니다. …크리스. 전파 속에 다른 신호가 섞여 있습니다.'),V('1호가 마지막 교신 뒤에 보낸 기록입니다. 지구에는 닿지 못했습니다. 조각 셋을 풀었습니다.')]);
+    MORSE.play('MAYDAY',{vol:.05}); await TALK.say([V('방향을 고정했습니다. …크리스. MAYDAY 펄스 사이에 다른 자료가 실려 있습니다.'),V('1호의 옛 기록입니다. 마지막 교신 뒤에 쓰였고, 지구에는 닿지 못했습니다. 조각 셋을 풀었습니다.')]);
     this.ui(); for(let i=0;i<3;i++){ AUDIO.radio(2.2); await TALK.say([{who:'레아 문',ch:'1호 기록 · 조각 '+(i+1),kind:'radio',t:this.FRAG[i][0]}]); this.frags(i+1); }
     ui.classList.remove('on'); setTimeout(()=>ui.remove(),600);
-    await TALK.say([C('…레아 문. 마지막 교신 뒤에도 살아 있었다.'),V('1호는 어떤 별 곁에 있습니다. 그 별을 찾으면, 1호를 찾습니다.')]); },
+    await TALK.say([C('…레아 문. 마지막 교신 뒤에도 살아 있었다.'),V('1호의 임무는 태양을 닮은 별의 골디락스 존에서 행성을 찾는 것이었습니다.'),V('1호는 기록 속 그 별을 찾아갔습니다. 그 별을 찾으면, 1호를 찾습니다.')]); },
 
   /* ---- 화면 판 : 기록 조각(왼쪽) · 장치(오른쪽) · 아래 줄 ---- */
   ui(){ let e=$('#seek'); if(!e){ e=document.createElement('div'); e.id='seek'; e.innerHTML='<div class="rec"><p class="k">1호 기록 조각</p></div><div class="side"></div><div class="bot"></div><div class="chip"></div>'; document.body.appendChild(e); } requestAnimationFrame(()=>e.classList.add('on')); return this.E=e; },
   frags(n=3){ const r=this.E.querySelector('.rec'); r.querySelectorAll('.f').forEach(x=>x.remove()); for(let i=0;i<n;i++){ const d=document.createElement('div'); d.className='f'+(i===n-1?' new':''); d.innerHTML=`<b class="i">${i+1}</b><p>${this.FRAG[i][1]}</p>`; r.appendChild(d); } r.classList.add('on'); },
-  side(html,cls=''){ const s=this.E.querySelector('.side'); s.className='side '+cls; s.innerHTML=html; requestAnimationFrame(()=>s.classList.add('on')); return s; },
+  side(html,cls=''){ const s=this.E.querySelector('.side'); s.className='side '+cls; s.innerHTML='<button class="fold" aria-label="접기">접기 ▾</button>'+html; s.querySelector('.fold').onclick=()=>{ AUDIO.click(); const m=s.classList.toggle('min'); s.querySelector('.fold').textContent=m?'펼치기 ▴':'접기 ▾'; }; requestAnimationFrame(()=>s.classList.add('on')); return s; },
   off(sel){ const s=this.E.querySelector(sel); s.classList.remove('on'); setTimeout(()=>{ if(!s.classList.contains('on')) s.innerHTML=''; },350); },
   ok(){ AUDIO.tone(880,.12,'sine',.08); AUDIO.tone(1320,.18,'sine',.07,.1); }, no(){ AUDIO.tone(220,.18,'square',.04); },
   // 끌기 : 누른 것에서 시작해 창 전체에서 따라간다 (손가락이 밖으로 나가도 이어진다)
@@ -153,12 +153,34 @@ const SEEK={
     const G=this.makeBoard(); R1.g.add(G); G.position.set(0,1.1,.12); G.rotation.y=Math.PI; G.scale.setScalar(.62); G.visible=true; this.S.forEach(s=>s.a=0); this.ba=1; this.paint(); this.hum();
     // 노출 : 빛이 하나씩 맺힌다
     await Promise.all(this.S.map(async(s,i)=>{ await sleep(250+i*170); AUDIO.tone(900+i*60,.05,'sine',.03); await over(.9,e=>{ s.a=e; this.paint(); }); })); await sleep(400);
-    await TALK.say([V('빛을 내는 것, 열셋. 1호는 이 가운데 하나의 곁에 있습니다.'),C('나머지는 지우면 된다. …그런데 밝기가 변하는 건 사진 한 장으로는 모르잖아.'),V('하루에 한 장씩, 열이레 동안 찍겠습니다. 그동안 캡슐에서 쉬십시오.')]);
+    await TALK.say([V('빛을 내는 것, 열셋. 1호는 이 가운데 하나의 곁에 있습니다.'),C('나머지는 지우면 된다. …그런데 밝기가 변하는 건 사진 한 장으로는 모르잖아.'),V('이 하늘은 1호가 먼저 지나갔습니다. 1호가 보내온 옛 관측 기록이 R-1 에 실려 있습니다.'),V('같은 하늘을 여러 날 찍은 기록이 있을 겁니다. 해치 방 기록 단말에서 찾아보십시오.')]);
     await this.show(G,false,.6); R1.g.remove(G); window.dragHook=hk; },      // 4.19 : 끌기를 돌려주지 않아, 캡슐 · 홀로그램까지 걸을 때 고개가 돌아가지 않았다
-  // 열이레 : 캡슐에서 잔다
-  async rest(){ const {V,C}=this, {head}=this.J; this.E.classList.remove('on'); this.dim(1,1.2); R1.view='…별 몇 개. 그 사이는 그냥 어둠이다.'; R1.viewDir=null; await R1.stand(head); await R1.task('capsule','동면 캡슐로 — 로비 뒤쪽 (열이레 동안 촬영)');
-    await R1.intoCapsule(); AUDIO.noise(2,.08,0,400); AUDIO.tone(140,3,'sine',.05,0,-60); S.phase='cut'; fade.next='동면 중 · 하루에 한 장씩 열이레'; await fade(true,1800); await sleep(2600);
-    stamp('구조정 R-1 · NGC 3500 가장자리','2091.08.07 · 촬영 17일째'); await this.dim(.3,0); await R1.wake(); AUDIO.noise(2.2,.08,0,500); await fade(false,2200); await TALK.say([V('동면 해제. 열이레가 지났습니다. 사진 열일곱 장을 이어 붙여 로비에 띄웠습니다.')]); await R1.outOfCapsule(); this.E.classList.add('on'); },
+  // 기록 단말 (4.23 사용자 : 동면 대신 지난 기록을 찾아 데이터를 시각화) — 해치 방 후방 조종대 화면
+  //   찾을 것 : 전파가 온 쪽(방위 244° · 고도 +15°)을 여러 날 찍은 기록 → 열세 빛의 밝기를 날짜별로 그린 표 → 로비 홀로그램
+  ARC:[['G-3 행성 탐사 · 골디락스 존 후보','112° · +02°',1,'2090.05.30','planet'],['S-구역 하늘 탐사 · 시험 촬영','244° · +15°',1,'2090.06.01','one'],['S-구역 하늘 탐사','244° · +15°',17,'2090.06.02 ~ 06.18','ok'],
+    ['N-구역 하늘 탐사','061° · −20°',17,'2090.07.04 ~ 07.20','dir'],['웜홀 쪽 하늘 (우리 은하)','015° · +40°',9,'2090.04.11 ~ 04.19','dir'],['선체 외부 점검 사진','—',24,'2090.06.20','hull']],
+  async records(){ const {V,C}=this, {head}=this.J; this.E.classList.remove('on'); this.dim(1,1.2); R1.view='…별 몇 개. 그 사이는 그냥 어둠이다.'; R1.viewDir=null; await R1.stand(head);
+    const pk=R1._picks[Object.keys(R1.BOX).indexOf('aft')], it=INTER.find(i=>i.mesh===pk), n0=it&&it.name; if(it) it.name='기록 단말 — 1호의 옛 관측 기록';
+    await R1.task('aft','해치 방(맨 뒤) 기록 단말 — 1호의 옛 관측 기록을 찾는다'); if(it) it.name=n0;
+    S.phase='cut'; P.free=false; goal(''); await camTo({x:.62,z:-10.62,yaw:-Math.PI/2,pitch:-.12,eye:1.5},.8); AUDIO.tone(660,.1,'square',.04); AUDIO.noise(.3,.06,0,2400);
+    stamp('구조정 R-1 · NGC 3500 가장자리','2091.07.21 · 1호의 옛 기록'); this.E.classList.add('on'); this.frags();
+    const rows=this.ARC.map((r,i)=>`<tr data-i="${i}"><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}장</td><td>${r[3]}</td></tr>`).join('');
+    const s=this.side(`<p class="hd">HUY-1 관측 기록 보관소</p><p class="want">전파가 온 쪽 : 방위 <b>244°</b> · 고도 <b>+15°</b></p><table class="arc"><tr><th>기록</th><th>방향 (방위 · 고도)</th><th>장수</th><th>날짜</th></tr>${rows}</table><canvas class="hm" width="1120" height="360"></canvas><div class="row"><p class="msg">기록을 누르면 미리 본다</p><button class="go" disabled>이 기록을 불러온다</button></div>`,'arcv');
+    const cv=s.querySelector('.hm'), g=cv.getContext('2d'), msg=s.querySelector('.msg'), go=s.querySelector('.go'); let sel=-1, miss=0;
+    // 밝기 표 : 줄 = 빛 열셋 · 칸 = 날짜 (밝을수록 노랗게) — 미리 보기는 흐리게
+    const heat=(kind,full)=>{ g.clearRect(0,0,1120,360); if(kind==='hull'||kind==='planet'){ g.fillStyle='rgba(191,230,255,.5)'; g.font='28px "IBM Plex Sans KR",sans-serif'; g.textAlign='center'; g.fillText(kind==='hull'?'선체 사진 — 별이 없다':'행성 한 장 — 이 하늘이 아니다',560,190); return; }
+      const days=kind==='one'?1:17, rnd=kind==='dir'?(i=>Math.abs(Math.sin(i*91.7))):null, X0=120, W=(1120-X0-20)/17, H=360/14;
+      g.font='18px "IBM Plex Mono",monospace'; g.textAlign='right'; g.fillStyle='rgba(191,230,255,.7)'; for(let r=0;r<13;r++) g.fillText(kind!=='dir'?'S-'+String(r+1).padStart(2,'0'):'?',X0-12,(r+1)*H+6);
+      for(let r=0;r<13;r++) for(let d=0;d<days;d++){ const st=this.STARS[r], f=kind!=='dir'?this.flux(st,d)*st.m:.6+.5*rnd(r*31+d*7), k=clamp((f-.35)/1.3,0,1); g.fillStyle=`rgba(${Math.round(60+195*k)},${Math.round(70+150*k)},${Math.round(90-40*k)},${full?1:.55})`; g.fillRect(X0+d*W+1,r*H+H*.5+1,W-2,H-2); }
+      g.textAlign='center'; g.fillStyle='rgba(191,230,255,.6)'; for(let d=0;d<days;d+=4) g.fillText((d+1)+'일',X0+d*W+W/2,356); };
+    s.querySelectorAll('tr[data-i]').forEach(tr=>tr.onclick=()=>{ if(TALK.on) return; AUDIO.tick(); sel=+tr.dataset.i; s.querySelectorAll('tr').forEach(t=>t.classList.toggle('sel',t===tr)); heat(this.ARC[sel][4],false); go.disabled=false; msg.textContent=this.ARC[sel][0]; });
+    goal('1호의 옛 기록에서 — 전파가 온 쪽을 여러 날 찍은 기록을 찾는다');
+    await new Promise(res=>{ go.onclick=async()=>{ if(TALK.on||sel<0) return; const k=this.ARC[sel][4]; AUDIO.click();
+      if(k==='ok'){ this.ok(); heat('ok',true); s.classList.add('good'); msg.textContent='열세 빛의 밝기 — 날짜별로'; go.disabled=true; res(); return; }
+      this.no(); miss++; msg.textContent=k==='one'?'한 장뿐이다 — 밝기가 변하는지 알려면 여러 날 찍은 기록이어야 한다':k==='dir'?'방향이 다르다 — 전파는 방위 244° · 고도 +15° 에서 왔다':k==='hull'?'하늘 사진이 아니다':'이 하늘이 아니다 — 방향을 보자'; }; });
+    goal(''); await sleep(900);
+    await TALK.say([V('S-구역 하늘 탐사, 1호가 하루 한 장씩 열이레 동안 찍었습니다. 빛을 내는 것 열셋의 밝기를 날짜별로 그렸습니다.'),C('줄마다 색이 그대로인 것도 있고, 밝아졌다 어두워졌다 하는 것도 있다.'),V('로비 홀로그램에 열이레 치를 띄우겠습니다.')]);
+    this.off('.side'); },
 
   /* ============ ④ 지우기 (로비의 홀로그램) ============ */
   HZ:-5.75, EYE:{x:0,z:-7.5,yaw:Math.PI,pitch:-.03,eye:1.5},
@@ -177,12 +199,13 @@ const SEEK={
   pt(e){ const rc=new THREE.Raycaster(); rc.setFromCamera(new THREE.Vector2(e.clientX/innerWidth*2-1,-(e.clientY/innerHeight)*2+1),camera); const G=this.board; G.updateWorldMatrix(true,false); const n=new THREE.Vector3(0,0,1).transformDirection(G.matrixWorld), o=G.getWorldPosition(new THREE.Vector3()), h=rc.ray.intersectPlane(new THREE.Plane().setFromNormalAndCoplanarPoint(n,o),new THREE.Vector3()); return h?G.worldToLocal(h):null; },
   scr(o){ const v=o.getWorldPosition(new THREE.Vector3()).project(camera); return [(v.x+1)/2*innerWidth,(1-v.y)/2*innerHeight]; },
   async erase(){ const {V,C}=this, E=this.E, el=$('#c'), bot=E.querySelector('.bot'), chip=E.querySelector('.chip');
-    await TALK.say([V('열이레 치 사진입니다. 아래 막대를 밀면 시간이 흐릅니다.'),C('1호 곁의 별이 아닌 것을, 하나씩 지운다.')]);
-    goal('기록 조각과 맞지 않는 별을 지운다 — 별을 누르거나, 판 밖으로 끌어낸다');
-    bot.className='bot on'; bot.innerHTML='<button class="play" aria-label="재생">▶</button><input class="tl" type="range" min="0" max="16" step="0.05" value="0"><b class="d">1일째</b><span class="n"></span><button class="go" disabled>이 별을 쫓는다</button>';
+    await TALK.say([V('1호가 찍은 열이레 치입니다. 아래 막대를 밀면 날짜가 흐릅니다.'),C('기록 조각 2 — 밝아졌다, 어두워졌다. 먼저 밝기가 변하는 별만 남기자.')]);
+    let phase=1; const VAR=[4,8,9,11], ID=n=>'S-'+String(n).padStart(2,'0');
+    goal('1단계 — 밝기가 변하는 별(변광성)만 남긴다 · 날짜를 넘기며 밝기가 그대로인 별을 지운다 (누르거나 판 밖으로 끌어낸다)');
+    bot.className='bot on'; bot.innerHTML='<button class="play" aria-label="재생">▶</button><input class="tl" type="range" min="0" max="16" step="0.05" value="0"><b class="d">1일째</b><span class="n"></span><button class="go">변광성만 남겼다</button>';
     const tl=bot.querySelector('.tl'), dl=bot.querySelector('.d'), nn=bot.querySelector('.n'), go=bot.querySelector('.go'), pb=bot.querySelector('.play'); let playing=false, sel=null, drag=null, done=false, miss=0;
     const setDay=d=>{ this.day=d; tl.value=d; dl.textContent=(Math.floor(d)+1)+'일째'; this.paint(); }; tl.addEventListener('input',()=>{ playing=false; pb.textContent='▶'; setDay(+tl.value); }); pb.onclick=()=>{ AUDIO.click(); playing=!playing; pb.textContent=playing?'❚❚':'▶'; if(playing&&this.day>=16) setDay(0); };
-    const left=()=>this.S.filter(s=>!s.out), upd=()=>{ const n=left().length; nn.textContent='남은 별 '+n; go.disabled=n!==1; }; upd(); setDay(0);
+    const left=()=>this.S.filter(s=>!s.out), upd=()=>{ const n=left().length; nn.textContent='남은 별 '+n; go.disabled=n<1; }; upd(); setDay(0);
     const drop=(s,dir)=>{ s.out=true; AUDIO.noise(.25,.08,0,2600,'highpass'); AUDIO.tone(520,.2,'sine',.04,0,-300); const p0=s.o.position.clone(), v=dir||new THREE.Vector3((Math.random()-.5)*.2,.1,0); over(.5,e=>{ s.o.position.copy(p0).addScaledVector(v,e); s.a=1-e*.76; s.k=1-e*.6; this.paint(); }).then(()=>{ over(.4,e=>{ s.o.position.lerpVectors(s.o.position,s.home,e); }); s.tag.material.color.set(0x556070); }); sel=null; chip.classList.remove('on'); upd(); };
     const back=s=>{ s.out=false; AUDIO.tone(520,.15,'sine',.05,0,260); s.tag.material.color.set(0xffffff); over(.4,e=>{ s.a=.24+.76*e; s.k=.4+.6*e; this.paint(); }); upd(); };
     const pick=s=>{ sel=s; chip.className='chip on'; chip.innerHTML=`<p><i style="background:${s.hex}"></i>S-${String(s.d.n).padStart(2,'0')} · ${s.name}</p><button>${s.out?'되살린다':'지운다'}</button>`; chip.querySelector('button').onclick=()=>{ s.out?back(s):drop(s); sel=null; chip.classList.remove('on'); }; };
@@ -191,9 +214,14 @@ const SEEK={
       upx=()=>{ if(!drag) return; const {s,mv}=drag; drag=null; if(!mv) return pick(s); const p=s.o.position, far=Math.abs(p.x)>.92||Math.abs(p.y)>.5; if(far) drop(s,p.clone().sub(s.home).setLength(.35)); else { const p0=p.clone(); over(.3,e=>s.o.position.lerpVectors(p0,s.home,e)); } };
     el.addEventListener('pointerdown',down); addEventListener('pointermove',move); addEventListener('pointerup',upx); addEventListener('pointercancel',upx);
     const f=dt=>{ if(playing){ const d=this.day+dt*2.2; if(d>=16){ playing=false; pb.textContent='▶'; setDay(16); } else setDay(d); } if(sel){ const [x,y]=this.scr(sel.o); chip.style.transform=`translate(${clamp(x+26,8,innerWidth-220)}px,${clamp(y-30,60,innerHeight-220)}px)`; } }; TICK.push(f);
-    await new Promise(res=>{ go.onclick=async()=>{ if(done||TALK.on) return; const s=left()[0]; if(!s) return; AUDIO.click();
-        if(s.d.n===this.TARGET){ done=true; this.ok(); res(); return; }
-        this.no(); miss++; const L=[]; if(s.d.c!=='y') L.push(V(`S-${String(s.d.n).padStart(2,'0')}, ${s.name}. 표면 온도가 5,500 K 인 별의 색이 아닙니다.`)); if(!s.d.P) L.push(V(`S-${String(s.d.n).padStart(2,'0')} 의 밝기는 열이레 동안 그대로였습니다.`)); L.push(miss<2?V('지운 별을 다시 누르면 되살릴 수 있습니다.'):V('표면 온도가 높은 별은 파랗고, 낮은 별은 붉습니다. 5,500 K 는 태양과 비슷합니다.')); await TALK.say(L); }; });
+    let miss2=0; await new Promise(res=>{ go.onclick=async()=>{ if(done||TALK.on) return; const L=left().map(s=>s.d.n), NM=n=>this.S.find(s=>s.d.n===n).name; AUDIO.click();
+        if(phase===1){ const keep=L.filter(n=>!VAR.includes(n)), lost=VAR.filter(n=>!L.includes(n));
+          if(!keep.length&&!lost.length){ phase=2; this.ok(); go.textContent='이 별을 쫓는다'; await TALK.say([V('변광성 넷 — S-04, S-08, S-09, S-11.'),C('기록 조각 1 — 창밖의 별, 표면 온도 5,500 K.'),V('이 가운데 그 표면 온도인 별 하나만 남기십시오.')]); goal('2단계 — 변광성 가운데 표면 온도 5,500 K 인 별 하나만 남긴다 (별을 누르면 색이 보인다)'); upd(); return; }
+          this.no(); miss++; const Ls=[]; if(lost.length) Ls.push(V(`${ID(lost[0])} 는 밝기가 변하는 별입니다. 다시 눌러 되살리십시오.`)); if(keep.length) Ls.push(V(`${ID(keep[0])} 의 밝기는 열이레 동안 그대로였습니다.`+(keep.length>1?` 그런 별이 ${keep.length}개 남아 있습니다.`:''))); if(miss>=2) Ls.push(V('막대를 천천히 밀며 별 하나만 지켜보십시오. 커졌다 작아졌다 하면 변광성입니다.')); await TALK.say(Ls); return; }
+        if(L.length===1&&L[0]===this.TARGET){ done=true; this.ok(); res(); return; }
+        this.no(); miss2++; const Ls=[], wrongC=L.filter(n=>this.S.find(s=>s.d.n===n).d.c!=='y'), still=L.filter(n=>!VAR.includes(n));
+        if(still.length) Ls.push(V(`${ID(still[0])} 는 밝기가 변하지 않는 별입니다.`)); else if(!L.includes(this.TARGET)) Ls.push(V('남은 별 가운데 표면 온도 5,500 K 인 별이 없습니다. 지운 변광성을 되살려 보십시오.')); else if(wrongC.length) Ls.push(V(`${ID(wrongC[0])}, ${NM(wrongC[0])}. 표면 온도 5,500 K 인 별의 색이 아닙니다.`));
+        Ls.push(miss2<2?V('하나만 남기십시오.'):V('표면 온도가 높은 별은 파랗고, 낮은 별은 붉습니다. 5,500 K 는 태양과 비슷합니다.')); await TALK.say(Ls); }; });
     TICK.splice(TICK.indexOf(f),1); el.removeEventListener('pointerdown',down); removeEventListener('pointermove',move); removeEventListener('pointerup',upx); removeEventListener('pointercancel',upx); chip.classList.remove('on'); this.off('.bot'); goal('');
     this.E.querySelector('.rec').classList.remove('on');
     // 남은 하나 : 판 가운데로 커진다
@@ -267,7 +295,7 @@ const SEEK={
     let nt=0; await until(dt=>{ if(keys.KeyW||keys.ArrowUp) setK(k+dt*.7); else if(!on&&k>0) setK(k-dt*.25); nt-=dt; if(k>.05&&nt<=0){ nt=.14; AUDIO.noise(.3,.05+.12*k,0,200+500*k); } return k>=.995; });
     goal(''); this.off('.bot'); return th; },
   async warp(){ const {V,C}=this, {rig,head}=this.J; loadGLB('ship_ext').then(h=>this.hull=h); await R1.task('seat','조종석으로 — 주름길 도약 100 pc'); await R1.sit(); head.y=0; head.p=-.02; S.phase='play'; P.free=false; window.dragHook=()=>{}; this.dim(.35,1);
-    stamp('구조정 R-1 · 조종석','2091.08.07 · 도약 100 pc');
+    stamp('구조정 R-1 · 조종석','2091.07.22 · 도약 100 pc');
     await TALK.say([V('방향, 1호의 전파. 거리, 100 pc. 주름길 입구를 열었습니다.'),{who:'크리스',ch:'무전',kind:'me',t:'…기다려, 1호. 지금 간다.'}]);
     const th=await this.throttle('추력 손잡이를 끝까지 민다',byDevice('추력 손잡이를 위로 끝까지 민다 (또는 W)','추력 손잡이를 위로 끝까지 민다')), z0=th?th.userData.z0:0; S.phase='cut'; AUDIO.tone(50,7,'sawtooth',.07,0,60); AUDIO.noise(6,.22,0,500); SFX.play('thruster',{vol:1});
     // 별이 늘어나 줄이 된다 → 하얗게
@@ -287,7 +315,7 @@ const SEEK={
     const hull=this.hull||await loadGLB('ship_ext'), G=new THREE.Group(); hull.scale.setScalar(3); hull.traverse(o=>{ if(o.isMesh){ o.material=o.material.clone(); if(o.material.color) o.material.color.multiplyScalar(.12); if(o.material.emissive) o.material.emissive.setRGB(0,0,0); } }); G.add(hull); G.position.set(-86,44,620); G.rotation.set(.1,1.15,0,'YXZ'); WORLD.add(G); const spin=new THREE.Group(); G.add(spin); spin.add(hull);
     const lamp=new THREE.SpotLight(0xe8f0ff,0,900,.16,.7,.6); lamp.position.set(0,.2,1.6); lamp.target.position.set(-86,44,620); rig.add(lamp,lamp.target);
     let t=0, sp=0; JOURNEY.tick(dt=>{ t+=dt; star.material.uniforms.t.value=t; star.material.uniforms.k.value=1+.12*Math.sin(t*.5); halo.material.opacity=.82+.14*Math.sin(t*.5); spin.rotation.z+=dt*.6; rig.position.z+=sp*dt; this.J.cam(); });
-    const c0=camera.far; camera.far=2400; camera.updateProjectionMatrix(); stamp('구조정 R-1 · 변광성 S-09 곁','2091.08.07 · 소행성 지대 너머');
+    const c0=camera.far; camera.far=2400; camera.updateProjectionMatrix(); stamp('구조정 R-1 · 변광성 S-09 곁','2091.07.22 · 소행성 지대 너머');
     await sleep(700); await fade(false,2400); $('#fade').style.background=''; AUDIO.tone(110,5,'sine',.05); MUSIC.play('derelict',{fade:5}); await over(1,e=>sp=14*e);
     S.phase='play'; P.look=true; window.dragHook=(dx,dy)=>{ const k=IS_TOUCH?.004:.003; head.y=clamp(head.y-dx*k,-1.1,1.1); head.p=clamp(head.p-dy*k,-.6,.5); };
     await TALK.say([V('소행성 지대를 벗어났습니다. 앞쪽에 변광성 S-09.'),C('…노란 별. 정말로 숨을 쉬는 것 같다.'),V('전파원 확인. 바로 앞입니다.'),C('별 앞에 뭔가 있다. …검은 그림자.')]);

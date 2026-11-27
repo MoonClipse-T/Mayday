@@ -39,7 +39,7 @@ const FLIGHT={W:.6,                // 1호 자전 (rad/s ≈ 34°/s · 10초에 
     this.helm=true; this.aftcam=false; this.nose=0; document.body.classList.remove('aftcam');
     this.built=true; },
   async run(){ S.phase='cut'; P.free=false; if(!this.built) await this.build(); this.built=false; goal(''); R1.seated=true;
-    stamp('구조정 R-1 · 조종석','2091.08.07 · 변광성 S-09 곁'); window.dragHook=null;
+    stamp('구조정 R-1 · 조종석','2091.07.22 · 변광성 S-09 곁'); window.dragHook=null;
     TICK.push(this.fn=dt=>this.tick(dt)); MUSIC.play('derelict',{fade:4});
     this.ui(true);
     await fade(false,2200); $('#fade').style.background='';

@@ -43,3 +43,10 @@ const VOICE={map:null,el:null,
   TALK.next=function(){ const done=$('#talk .txt').textContent.length>=this.full.length; if(done) VOICE.stop(); next(); }; }
 addEventListener('pointerdown',()=>{ SFX.preload(); VOICE.load(); },{once:true,capture:true});
 addEventListener('keydown',()=>{ SFX.preload(); VOICE.load(); },{once:true,capture:true});
+// MAYDAY 는 목소리가 아니라 모스 부호 (4.23 사용자) — 짧고 긴 소리 · 표기
+const MORSE={C:{M:'--',A:'.-',Y:'-.--',D:'-..',S:'...',O:'---'},
+  text(w){ return w.split('').map(c=>(this.C[c]||'').replace(/\./g,'·').replace(/-/g,'—')).join('   '); },
+  // 소리 : 한 점 u 초 · 선은 셋 · 글자 사이 셋 — 끝나는 데 걸리는 초를 돌려준다
+  play(w,{u=.085,f=760,vol=.07}={}){ const c=AUDIO.ctx; if(!c) return 0; let t=0; const g=c.createGain(); g.gain.value=0; g.connect(c.destination); const o=c.createOscillator(); o.type='sine'; o.frequency.value=f; o.connect(g); const t0=c.currentTime+.05;
+    for(const ch of w){ for(const m of this.C[ch]||''){ const d=m==='-'?3*u:u; g.gain.setTargetAtTime(vol,t0+t,.004); g.gain.setTargetAtTime(0,t0+t+d,.004); t+=d+u; } t+=2*u; }
+    o.start(t0); o.stop(t0+t+.2); AUDIO.noise(t+.4,.03,0,2600,'bandpass'); return t; } };

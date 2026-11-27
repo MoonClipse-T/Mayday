@@ -106,7 +106,8 @@ const DO={g:null, D:{}, WC:V3(0,.6,-11.526), SUIT:[{o2:100,bat:9,date:'2091.03.1
     // 전자 잠금 : 가까이 가서 누른다 (누르기만 하는 것에는 손을 내지 않는다 — 4.16 사용자)
     const lp=this.gp(D.leafR,V3(-.35,1.4,.05)); await camTo({x:-.2,z:lp.z+.02,yaw:Math.PI/2,pitch:-.46,eye:1.56},.9); await TALK.say([V('보관함은 전자 잠금입니다. 비밀번호를 입력하십시오.')]);
     S.phase='play'; const tap=s=>this.drawLock(s);
-    await codePad({cls:'low',hd:'우주복 보관함 · 전자 잠금',html:'<p class="note">비밀번호 네 글자 (영어)</p><p class="ask">이 구조정 <b>AI 의 이름</b>은?</p>',answer:'VEGA',onKey:tap,onBad:()=>{ this.drawLock('----','bad'); setTimeout(()=>this.drawLock(''),700); }});
+    const pw=await codePad({cls:'low',hd:'우주복 보관함 · 전자 잠금',html:'<p class="note">비밀번호 네 글자 (영어)</p><p class="ask">이 구조정 <b>AI 의 이름</b>은?</p>',answer:'VEGA',onKey:tap,onBad:()=>{ this.drawLock('----','bad'); setTimeout(()=>this.drawLock(''),700); }});
+    if(!pw){ this.drawLock(''); S.phase='cut'; await camTo({x:.35,z:-10.6,eye:1.66,pitch:0},.6); if(MS&&MISSION.open) MS.classList.add('on'); S.phase='play'; toast('비밀번호를 알아낸 뒤 보관함을 다시 누른다',2600); return false; }      // 닫았다 : 배 안을 둘러보고 다시
     this.drawLock('VEGA','ok'); S.phase='cut'; AUDIO.noise(.3,.2,0,700); THUD(.15);
     await camTo({x:-.02,z:-10.6,yaw:Math.PI/2,pitch:-.12,eye:1.5},.6); await this.doors(true);
     await camTo({x:.12,z:-10.6,yaw:Math.PI/2,pitch:-.06,eye:1.5},.5); await TALK.say([V('우주복 두 벌. 문 안쪽이 점검표입니다. 실물과 다른 항목이 있으면 고쳐 주십시오.')]);
@@ -158,16 +159,17 @@ const DO={g:null, D:{}, WC:V3(0,.6,-11.526), SUIT:[{o2:100,bat:9,date:'2091.03.1
     return ()=>{ on=false; setTimeout(()=>{ const i=TICK.indexOf(f); if(i>=0) TICK.splice(i,1); L.forEach(s=>b.remove(s)); },600); }; },
 };
 
-/* ---- 영어 네 글자 자판 → 맞힐 때까지 기다린다 ---- */
+/* ---- 영어 네 글자 자판 → 맞히면 true · [닫기] 면 null (4.23 : 모르면 닫고 배 안에서 찾아본 뒤 다시) ---- */
 function codePad({cls='',hd,html,answer,onKey,onBad}){ const A=answer.toUpperCase(); return new Promise(res=>{ const q=document.createElement('div'); q.id='podlock'; q.className=cls;
-  q.innerHTML=`<p class="hd">${hd}</p>${html}<div class="slots">${'<i></i>'.repeat(4)}</div><p class="msg"></p>
+  q.innerHTML=`<button class="x" aria-label="닫기">닫기 ✕</button><p class="hd">${hd}</p>${html}<div class="slots">${'<i></i>'.repeat(4)}</div><p class="msg"></p>
     <div class="kb">${'QWERTYUIOPASDFGHJKLZXCVBNM'.split('').map(c=>`<button data-c="${c}">${c}</button>`).join('')}<button data-c="⌫" class="w">⌫</button></div><div class="row"><button class="ok">확인</button></div>`;
   document.body.appendChild(q); requestAnimationFrame(()=>q.classList.add('on'));
   let s='', end=false; const slots=[...q.querySelectorAll('.slots i')], msg=q.querySelector('.msg'), draw=()=>slots.forEach((e,i)=>e.textContent=s[i]||'');
   const key=c=>{ if(end) return; AUDIO.tick(); if(c==='⌫') s=s.slice(0,-1); else if(s.length<4) s+=c; else return; q.classList.remove('bad'); msg.textContent=''; draw(); onKey&&onKey(s); };
   const ok=()=>{ if(end) return; if(s.length<4){ msg.textContent='네 글자를 넣자'; return; }
-    if(s===A){ end=true; AUDIO.tone(880,.12,'sine',.08); AUDIO.tone(1320,.2,'sine',.07,.1); q.classList.add('good'); msg.textContent='잠금 해제'; removeEventListener('keydown',kb,true); setTimeout(()=>{ q.remove(); res(); },1000); return; }
+    if(s===A){ end=true; AUDIO.tone(880,.12,'sine',.08); AUDIO.tone(1320,.2,'sine',.07,.1); q.classList.add('good'); msg.textContent='잠금 해제'; removeEventListener('keydown',kb,true); setTimeout(()=>{ q.remove(); res(true); },1000); return; }
     AUDIO.tone(180,.25,'square',.05); q.classList.add('bad'); msg.textContent='암호가 틀렸습니다'; s=''; setTimeout(draw,350); onBad&&onBad(); };
   q.querySelectorAll('.kb button').forEach(b=>b.onclick=()=>key(b.dataset.c)); q.querySelector('.ok').onclick=ok;
+  q.querySelector('.x').onclick=()=>{ if(end) return; end=true; AUDIO.click(); removeEventListener('keydown',kb,true); q.classList.remove('on'); setTimeout(()=>q.remove(),300); res(null); };
   const kb=e=>{ if(TALK.on) return; const k=e.key.length===1&&/[a-z]/i.test(e.key)?e.key.toUpperCase():e.key==='Backspace'?'⌫':e.key==='Enter'?'ok':null; if(!k) return; e.preventDefault(); e.stopPropagation(); k==='ok'?ok():key(k); };
   addEventListener('keydown',kb,true); }); }
