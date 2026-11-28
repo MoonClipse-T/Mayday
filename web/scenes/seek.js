@@ -4,15 +4,16 @@
    ② 전파의 방향 : 안테나는 뱃머리에 있다 → 기수를 돌려 전파가 가장 또렷한 쪽을 찾는다 → 지구에 닿지 못한 '기록 조각' 셋이 풀린다 (표면 온도 5,500 K · 밝기가 변하는 별)
    ③ 촬영 : 그쪽을 찍는다 — 빛을 내는 것 열셋 → 사진 한 장으로는 밝기가 변하는지 모른다 → 해치 방 기록 단말에서 1호가 같은 하늘을 열이레 동안 찍은 옛 기록을 찾아 밝기 표로 본다 (4.23 : 동면 대신)
    ④ 지우기 (로비의 홀로그램) : 1단계 밝기가 변하는 별(변광성)만 남기기 → 2단계 그 가운데 표면 온도 5,500 K 인 별 하나 (4.23)
-   ⑤ 절대 등급 : 남은 별의 밝기가 되풀이되는 주기를 재고 → 같은 종류의 별 다섯에서 규칙(주기가 두 배 → 0.7 작아진다)을 찾아 절대 등급을 알아낸다 (지식이 아니라 규칙 찾기)
-   ⑥ 겉보기 등급 : 광도계 — 별빛과 기준 광원의 밝기를 맞춘다 → 1.3
+   ⑤ 절대 등급 : 남은 별의 밝기가 되풀이되는 주기를 재고 → 같은 종류의 별 다섯에서 규칙(주기가 두 배 → 0.7 작아진다)을 찾아 절대 등급을 알아낸다 (지식이 아니라 규칙 찾기) → −4.5
+   ⑥ 겉보기 등급 (4.25) : 변광성은 평균 등급을 쓴다 — 기록의 가장 밝을 때 −2.0 · 가장 밝을 때는 가장 어두울 때의 100배 → 가장 어두울 때 3.0 → 평균 0.5 (단답)
+   4.25 : ⑤ ⑥ ⑦ 의 답은 밀대가 아니라 단답(숫자 자판) — 찍어서 맞히지 못하게
    ⑦ 거리 : 5등급 차 = 밝기 100배 → 10 pc 의 10배 = 100 pc (시험 신호로 확인)
    ⑧ 도약 : 주름길(웜홀이 열리며 시공간에 잡힌 주름 — 1호도 전파도 이 길로 왔다)을 100 pc → 소행성 지대(scenes/belt.js) → 노란 변광성 곁에 1호의 그림자 → 1부 끝 (도킹은 2부)
    홀로그램은 모두 3D (additive · 벽에 가리지 않음) · 재는 장치는 그 옆 판(#seek)
    ============================================================ */
 'use strict';
 const SEEK={
-  DAYS:17, TARGET:9, PERIOD:8, ABS:-3.7, APP:1.3, MULT:10,
+  DAYS:17, TARGET:9, PERIOD:8, ABS:-4.5, APP:.5, MAX:-2.0, MIN:3.0, MULT:10,      // 4.25 : 겉보기 0.5 (−2.0 과 3.0 의 평균) − 절대 −4.5 = 5 → 100 pc
   COL:{b:['파란색','#6a98ff'],bw:['청백색','#a5c3ff'],w:['흰색','#f2f5ff'],yw:['황백색','#fff0bd'],y:['노란색','#ffd02a'],o:['주황색','#ff8f30'],r:['붉은색','#ff4630']},
   // 열원 열셋 : n 번호 · c 색 · x y 판 위 자리 · m 크기 · P 밝기가 변하는 주기(없으면 그대로) · t0 가장 밝은 날
   STARS:[{n:1,c:'w',x:-.72,y:.27,m:1.0},{n:2,c:'b',x:-.43,y:.37,m:1.15},{n:3,c:'y',x:-.16,y:.2,m:1.05},{n:4,c:'r',x:-.63,y:-.06,m:1.0,P:12,t0:6},{n:5,c:'o',x:-.31,y:-.03,m:.9},{n:6,c:'y',x:.1,y:-.14,m:.85},{n:7,c:'b',x:.3,y:.36,m:.9},
@@ -22,7 +23,7 @@ const SEEK={
     ['…그 별이 이상하다. 밝아졌다가, 어두워졌다가. 숨을 쉬는 것 같다.','밝아졌다가, 어두워졌다가.<br><b>숨을 쉬는</b> 것 같다.'],
     ['…밤마다 환기구에서 소리가 난다. 불을 켜면 멈춘다. 몇 명 남았는지… 이제 세지 않는다.','밤마다 환기구에서 소리.<br>몇 명 남았는지 세지 않는다.']],
   // 같은 종류의 별 (규칙 : 주기 2배 → 절대 등급 0.7 작아진다) — 표면 온도 · 겉보기 등급은 규칙이 없다
-  CARDS:[{k:'A',P:2,M:-2.3,T:'6,300 K',m:4.2},{k:'B',P:32,M:-5.1,T:'5,400 K',m:7.7},{k:'C',P:16,M:-4.4,T:'5,900 K',m:6.1},{k:'?',P:8,M:null,T:'5,500 K',m:null},{k:'D',P:4,M:-3.0,T:'6,100 K',m:5.5},{k:'E',P:1,M:-1.6,T:'5,700 K',m:9.3}],
+  CARDS:[{k:'A',P:2,M:-3.1,T:'6,300 K',m:4.2},{k:'B',P:32,M:-5.9,T:'5,400 K',m:7.7},{k:'C',P:16,M:-5.2,T:'5,900 K',m:6.1},{k:'?',P:8,M:null,T:'5,500 K',m:null},{k:'D',P:4,M:-3.8,T:'6,100 K',m:5.5},{k:'E',P:1,M:-2.4,T:'5,700 K',m:9.3}],
   // 0(어두움) ~ 1(밝음) : 빠르게 밝아지고 천천히 어두워진다
   wave(d,P,t0){ let f=((d-t0)/P+.25)%1; if(f<0) f+=1; const s=f<.25?f/.25:1-(f-.25)/.75; return s*s*(3-2*s); },
   flux(s,d){ return s.P?Math.pow(10,.4*1.9*(this.wave(d,s.P,s.t0)-.5)):1; },
@@ -138,6 +139,14 @@ const SEEK={
   dial(el,{min,max,step,val,on}){ el.innerHTML=`<button aria-label="줄이기">−</button><input type="range" min="${min}" max="${max}" step="${step}" value="${val}"><button aria-label="늘리기">+</button>`; const r=el.querySelector('input'), B=el.querySelectorAll('button'); let iv=0; const go=()=>on(+(+r.value).toFixed(3));
     r.addEventListener('input',()=>{ AUDIO.tick(); go(); }); B.forEach((b,i)=>{ const st=()=>{ if(!b.isConnected) return end(); r.value=+r.value+(i?step:-step); AUDIO.tick(); go(); }, end=()=>{ clearTimeout(iv); clearInterval(iv); iv=0; }; b.addEventListener('pointerdown',e=>{ e.preventDefault(); st(); iv=setTimeout(()=>iv=setInterval(st,70),380); }); ['pointerup','pointerleave','pointercancel'].forEach(n=>b.addEventListener(n,end)); }); go(); return r; },
 
+  // 단답 (4.25) : 숫자 자판(− · 소수점 · 지우기) · PC 키보드도 · Enter = 기록 단추. 밀대처럼 밀어 보며 찍지 못하게
+  ask(el,{unit='',go=null,on=null}={}){ let t=''; el.className='ask'; el.innerHTML=`<div class="ans"><b class="v"></b><span class="u">${unit}</span></div><div class="kp">${['1','2','3','4','5','6','7','8','9','0','.','−'].map(k=>`<button data-k="${k}">${k}</button>`).join('')}<button data-k="⌫" class="w">⌫</button></div>`;
+    const v=el.querySelector('.v'), val=()=>!t||t==='−'||t==='.'?NaN:parseFloat(t.replace('−','-')), show=()=>{ v.textContent=t||'?'; on&&on(val()); },
+      key=k=>{ AUDIO.tick(); if(k==='⌫') t=t.slice(0,-1); else if(k==='−') t=t.startsWith('−')?t.slice(1):'−'+t; else if(k==='.'){ if(!t.includes('.')) t+=t.replace('−','')?'.':'0.'; } else if(t.replace(/[−.]/g,'').length<5) t+=k; show(); };
+    el.querySelectorAll('.kp button').forEach(b=>b.onclick=()=>key(b.dataset.k));
+    const kb=e=>{ if(!el.isConnected) return removeEventListener('keydown',kb,true); if(TALK.on||e.ctrlKey||e.altKey||e.metaKey) return; if(e.key==='Enter'&&go){ e.preventDefault(); go.click(); return; } const k=/^[0-9.]$/.test(e.key)?e.key:e.key==='-'?'−':e.key==='Backspace'?'⌫':null; if(!k) return; e.preventDefault(); e.stopPropagation(); key(k); };
+    addEventListener('keydown',kb,true); show(); return {get v(){ return val(); }, clear(){ t=''; show(); }}; },
+
   /* ============ ③ 촬영 ============ */
   makeBoard(){ const G=this.board=new THREE.Group(), W=.98, Hh=.56, c=.12, pts=[]; [[-1,-1],[1,-1],[1,1],[-1,1]].forEach(([a,b])=>{ const x=a*W,y=b*Hh; pts.push(new THREE.Vector3(x,y,0),new THREE.Vector3(x-a*c,y,0),new THREE.Vector3(x,y,0),new THREE.Vector3(x,y-b*c,0)); }); G.add(this.lines(pts,0x9fd8ff,.9));
     const gr=[]; for(let i=-4;i<=4;i++) gr.push(new THREE.Vector3(i*.22,-Hh+.03,-.02),new THREE.Vector3(i*.22,Hh-.03,-.02)); for(let j=-2;j<=2;j++) gr.push(new THREE.Vector3(-W+.03,j*.22,-.02),new THREE.Vector3(W-.03,j*.22,-.02)); G.add(this.lines(gr,0x6fb6e0,.12));
@@ -246,43 +255,53 @@ const SEEK={
     this.off('.side'); goal('');
     await TALK.say([V('S-09. 주기 8일.'),V('우리은하의 기록에서 같은 종류의 별 다섯을 찾았습니다. 가까이 있어, 절대 등급을 이미 아는 별들입니다.'),C('규칙이 있는지 보자. 무엇이 변할 때 절대 등급이 따라 변하는지.')]);
     // 카드 여섯 : 끌어서 순서를 바꾼다
-    const order=this.CARDS.map((_,i)=>i), q=this.side('<p class="hd">같은 종류의 별 — 절대 등급은 무엇을 따라 변하는가</p><div class="cards"></div><p class="msg">카드를 끌어 순서를 바꿔 가며 견줘 보자</p><div class="dialrow"><p class="lb">S-09 의 절대 등급</p><div class="dial"></div><b class="val"></b><button class="go">기록</button></div>','rule');
+    const order=this.CARDS.map((_,i)=>i), q=this.side('<p class="hd">같은 종류의 별 — 절대 등급은 무엇을 따라 변하는가</p><div class="cards"></div><p class="msg">카드를 끌어 순서를 바꿔 가며 견줘 보자</p><div class="dialrow"><p class="lb">S-09 의 절대 등급</p><div class="ask"></div><button class="go">기록</button></div>','rule');
     const box=q.querySelector('.cards'), els=this.CARDS.map((c,i)=>{ const d=document.createElement('div'); d.className='card'+(c.M===null?' tgt':''); d.innerHTML=`<p class="nm">${c.M===null?'S-09':'별 '+c.k}</p><canvas width="220" height="86"></canvas><dl><dt>주기</dt><dd>${c.P}일</dd><dt>표면 온도</dt><dd>${c.T}</dd><dt>겉보기 등급</dt><dd>${c.m===null?'—':c.m.toFixed(1)}</dd><dt class="ab">절대 등급</dt><dd class="ab">${c.M===null?'?':this.N(c.M)}</dd></dl>`; box.appendChild(d); const k=d.querySelector('canvas'), gg=k.getContext('2d'); this.curve(gg,220,86,{P:c.P,t0:c.P*.3,days:32,color:c.M===null?'#ffd02a':'#9fd8ff'}); return d; });
     const N=els.length, place=skip=>{ const w=box.clientWidth/N; order.forEach((ci,pos)=>{ if(ci===skip) return; els[ci].style.transform=`translateX(${pos*w}px)`; els[ci].style.width=(w-8)+'px'; }); }; place(); requestAnimationFrame(()=>place()); const rs=()=>place(); addEventListener('resize',rs);
     els.forEach((d,ci)=>{ let x0=0, p0=0; this.grab(d,{down:e=>{ x0=e.clientX; p0=order.indexOf(ci)*box.clientWidth/N; d.classList.add('drag'); },move:e=>{ const w=box.clientWidth/N, nx=clamp(p0+e.clientX-x0,0,w*(N-1)); d.style.transform=`translateX(${nx}px)`; const to=Math.round(nx/w), at=order.indexOf(ci); if(to!==at){ order.splice(at,1); order.splice(to,0,ci); AUDIO.tick(); place(ci); } },up:()=>{ d.classList.remove('drag'); place(); }}); });
-    const val=q.querySelector('.val'), m2=q.querySelector('.msg'); let v=0; this.dial(q.querySelector('.dial'),{min:-6,max:0,step:.1,val:0,on:x=>{ v=x; val.textContent=this.N(x); }});
+    const m2=q.querySelector('.msg'), A=this.ask(q.querySelector('.ask'),{unit:'등급',go:q.querySelector('.go')});
     goal('규칙을 찾아 S-09 의 절대 등급을 알아낸다'); miss=0;
-    await new Promise(res=>{ q.querySelector('.go').onclick=()=>{ if(TALK.on) return; if(Math.abs(v-this.ABS)<.051){ this.ok(); els[3].querySelector('dd.ab').textContent=this.N(this.ABS); q.classList.add('good'); m2.textContent='절대 등급 −3.7 — 규칙에 꼭 맞는다'; order.sort((a,b)=>this.CARDS[a].P-this.CARDS[b].P); place(); setTimeout(res,2600); }
-      else { this.no(); miss++; m2.textContent=miss<2?'그 값이면 규칙에서 벗어난다':miss<4?'주기가 짧은 것부터 늘어놓고, 절대 등급이 얼마씩 달라지는지 보자':'주기가 두 배가 될 때마다 절대 등급은 얼마씩 작아지는가?'; } }; });
+    await new Promise(res=>{ q.querySelector('.go').onclick=()=>{ if(TALK.on) return; const v=A.v; if(isNaN(v)){ m2.textContent='숫자를 넣자 (자판의 − 는 음수)'; return; } if(Math.abs(v-this.ABS)<.051){ this.ok(); els[3].querySelector('dd.ab').textContent=this.N(this.ABS); q.classList.add('good'); m2.textContent='절대 등급 '+this.N(this.ABS)+' — 규칙에 꼭 맞는다'; order.sort((a,b)=>this.CARDS[a].P-this.CARDS[b].P); place(); setTimeout(res,2600); }
+      else { this.no(); miss++; A.clear(); m2.textContent=miss<2?this.N(v)+' 이면 규칙에서 벗어난다':miss<4?'주기가 짧은 것부터 늘어놓고, 절대 등급이 얼마씩 달라지는지 보자':'주기가 두 배가 될 때마다 절대 등급은 얼마씩 작아지는가?'; } }; });
     removeEventListener('resize',rs); this.off('.side'); goal('');
-    await TALK.say([C('주기가 두 배가 될 때마다 절대 등급이 0.7씩 작아진다. 천천히 숨 쉬는 별일수록 실제로 더 밝아.'),V('S-09 의 절대 등급, −3.7.'),V('헨리에타 리비트가 1912년에 찾아낸 규칙입니다.'),C('이제 이 별이 여기서 얼마나 밝게 보이는지만 재면 된다.')]); },
+    await TALK.say([C('주기가 두 배가 될 때마다 절대 등급이 0.7씩 작아진다. 천천히 숨 쉬는 별일수록 실제로 더 밝아.'),V('S-09 의 절대 등급, '+this.N(this.ABS)+'.'),V('헨리에타 리비트가 1912년에 찾아낸 규칙입니다.'),C('이제 이 별이 여기서 얼마나 밝게 보이는지만 재면 된다.')]); },
 
   /* ============ ⑥ 겉보기 등급 : 광도계 ============ */
-  async apparent(){ const {V,C}=this; await TALK.say([V('광도계를 켭니다. 왼쪽 반이 S-09 의 평균 별빛, 오른쪽 반이 기준 광원입니다.')]);
-    const s=this.side('<p class="hd">광도계 — 두 빛의 밝기를 맞춘다</p><div class="ph"><canvas width="520" height="520"></canvas><div class="pr"><p class="lb">기준 광원의 등급</p><b class="val"></b><p class="tip">등급이 작을수록 밝다</p></div></div><div class="dialrow"><div class="dial"></div><button class="go">맞췄다</button></div><p class="msg">가운데 경계선이 보이지 않을 때까지 맞추자</p>','photo');
-    const cv=s.querySelector('canvas'), g=cv.getContext('2d'), val=s.querySelector('.val'), msg=s.querySelector('.msg'); let v=4, miss=0;
-    const L=m=>Math.min(1,.05+.72*Math.pow(10,-.4*(m-this.APP))), col=k=>`rgb(${Math.round(255*k)},${Math.round(214*k)},${Math.round(72*k)})`;
-    const draw=()=>{ g.clearRect(0,0,520,520); g.save(); g.beginPath(); g.arc(260,260,240,0,7); g.clip(); g.fillStyle=col(L(this.APP)); g.fillRect(0,0,260,520); g.fillStyle=col(L(v)); g.fillRect(260,0,260,520); const r=g.createRadialGradient(260,260,90,260,260,245); r.addColorStop(0,'rgba(0,0,0,0)'); r.addColorStop(1,'rgba(0,0,0,.5)'); g.fillStyle=r; g.fillRect(0,0,520,520); g.restore(); g.strokeStyle='rgba(159,216,255,.8)'; g.lineWidth=4; g.beginPath(); g.arc(260,260,244,0,7); g.stroke(); g.fillStyle='rgba(191,230,255,.85)'; g.font='26px "IBM Plex Sans KR",sans-serif'; g.textAlign='center'; g.fillText('별빛',130,508); g.fillText('기준',390,508); };
-    this.dial(s.querySelector('.dial'),{min:-2,max:6,step:.1,val:4,on:x=>{ v=x; val.textContent=this.N(x); draw(); }}); goal('광도계로 S-09 의 겉보기 등급을 잰다');
-    await new Promise(res=>{ s.querySelector('.go').onclick=()=>{ if(TALK.on) return; if(Math.abs(v-this.APP)<=.21){ this.ok(); v=this.APP; val.textContent=this.N(v); draw(); s.classList.add('good'); msg.textContent='겉보기 등급 1.3'; setTimeout(res,1700); } else { this.no(); miss++; msg.textContent='경계가 아직 보인다 — 기준 광원이 '+(v<this.APP?'더 밝다':'더 어둡다'); } }; });
-    this.off('.side'); goal(''); await TALK.say([V('S-09 의 겉보기 등급, 1.3.'),C('겉보기 등급 1.3. 절대 등급 −3.7.'),C('절대 등급은 별을 10 pc 에 놓았다고 쳤을 때의 등급. …실제로는 그보다 어둡게 보인다. 10 pc 보다 멀다는 뜻이지.')]); },
+  async apparent(){ const {V,C}=this;
+    await TALK.say([V('S-09 는 8일마다 밝아졌다 어두워졌다 합니다. 이런 별의 겉보기 등급은 가장 밝을 때와 가장 어두울 때 등급의 평균으로 씁니다.'),V('1호의 기록에 따르면 가장 밝을 때 −2.0 등급. 그리고 가장 밝을 때는 가장 어두울 때보다 밝기가 100배입니다.'),C('그럼 가장 어두울 때는 몇 등급이지.')]);
+    const s=this.side('<p class="hd">S-09 의 겉보기 등급 — 평균 밝기를 등급으로</p><canvas width="1120" height="330"></canvas><p class="note">기록 : 가장 밝을 때 <b>−2.0 등급</b> · 가장 밝을 때의 밝기 = 가장 어두울 때의 <b>100배</b></p><div class="dialrow"><p class="lb q"></p><div class="ask"></div><button class="go">기록</button></div><p class="msg">등급이 작을수록 밝다</p>','mag');
+    const cv=s.querySelector('canvas'), g=cv.getContext('2d'), W=1120, H=330, X0=60, X1=W-250, Y0=50, Y1=H-46, msg=s.querySelector('.msg'), q=s.querySelector('.q'), go=s.querySelector('.go'), A=this.ask(s.querySelector('.ask'),{unit:'등급',go});
+    const draw=(lo,avg)=>{ g.clearRect(0,0,W,H); this.curve(g,W,H,{P:this.PERIOD,t0:3,days:24,x0:X0,x1:X1,y0:Y0,y1:Y1});
+      const ln=(y,c,dash,t)=>{ g.setLineDash(dash); g.strokeStyle=c; g.lineWidth=2.5; g.beginPath(); g.moveTo(X0,y); g.lineTo(X1+14,y); g.stroke(); g.setLineDash([]); g.fillStyle=c; g.font='500 27px "IBM Plex Sans KR",sans-serif'; g.textAlign='left'; g.fillText(t,X1+26,y+9); };
+      ln(Y0,'#ffe9a8',[10,8],'가장 밝을 때 −2.0'); ln(Y1,'#9fd8ff',[10,8],'가장 어두울 때 '+(lo===undefined?'?':this.N(lo))); if(avg!==undefined) ln((Y0+Y1)/2,'#6dffb0',[],'평균 '+this.N(avg)); };
+    draw(); let miss=0;
+    // ① 가장 어두울 때
+    q.textContent='가장 어두울 때의 등급'; goal('S-09 가 가장 어두울 때의 등급을 구한다');
+    await new Promise(res=>{ go.onclick=()=>{ if(TALK.on) return; const v=A.v; if(isNaN(v)) return; if(Math.abs(v-this.MIN)<.051){ this.ok(); draw(this.MIN); msg.textContent='밝기 100배 = 5등급 차이 — 가장 어두울 때 '+this.N(this.MIN)+' 등급'; A.clear(); res(); return; }
+      this.no(); miss++; A.clear(); msg.textContent=v<this.MAX?'등급이 작을수록 밝다 — 어두울 때는 −2.0 보다 큰 수':miss<2?this.N(v)+' 등급이면 밝기 차이가 100배가 아니다':'1등급 차이 ≈ 2.5배 · 5등급 차이 = 정확히 100배'; }; });
+    await sleep(900);
+    // ② 평균
+    q.textContent='평균 등급 (겉보기 등급)'; msg.textContent='가장 밝을 때와 가장 어두울 때 등급의 평균'; goal('두 등급의 평균 — S-09 의 겉보기 등급을 구한다'); miss=0;
+    await new Promise(res=>{ go.onclick=()=>{ if(TALK.on) return; const v=A.v; if(isNaN(v)) return; if(Math.abs(v-this.APP)<.051){ this.ok(); draw(this.MIN,this.APP); s.classList.add('good'); msg.textContent='겉보기 등급 '+this.N(this.APP); setTimeout(res,1700); return; }
+      this.no(); miss++; A.clear(); msg.textContent=miss<2?this.N(v)+' 은 평균이 아니다':'(−2.0 + 3.0) ÷ 2'; }; });
+    this.off('.side'); goal(''); await TALK.say([V('S-09 의 겉보기 등급, '+this.N(this.APP)+'.'),C('겉보기 등급 '+this.N(this.APP)+'. 절대 등급 '+this.N(this.ABS)+'.'),C('절대 등급은 별을 10 pc 에 놓았다고 쳤을 때의 등급. …실제로는 그보다 어둡게 보인다. 10 pc 보다 멀다는 뜻이지.')]); },
 
   /* ============ ⑦ 거리 ============ */
   async distance(){ const {V,C}=this;
-    const s=this.side(`<p class="hd">S-09 까지의 거리</p><div class="two"><p>겉보기 등급<b>${this.N(this.APP)}</b><small>여기서 본 등급</small></p><p>절대 등급<b>${this.N(this.ABS)}</b><small>10 pc 에서 본 등급</small></p></div><canvas width="1120" height="400"></canvas><div class="dialrow"><p class="lb">10 pc 의 <b class="val"></b>배</p><div class="dial"></div><button class="go">시험 신호</button></div><p class="msg">거리를 정해 시험 신호를 쏘아 보자</p>`,'dist');
+    const s=this.side(`<p class="hd">S-09 까지의 거리</p><div class="two"><p>겉보기 등급<b>${this.N(this.APP)}</b><small>여기서 본 등급</small></p><p>절대 등급<b>${this.N(this.ABS)}</b><small>10 pc 에서 본 등급</small></p></div><canvas width="1120" height="400"></canvas><div class="dialrow"><p class="lb">거리는 10 pc 의</p><div class="ask"></div><button class="go">시험 신호</button></div><p class="msg">거리를 정해 시험 신호를 쏘아 보자</p>`,'dist');
     const cv=s.querySelector('canvas'), g=cv.getContext('2d'), val=s.querySelector('.val'), msg=s.querySelector('.msg'); let n=1, miss=0, ping=0;
     // 별빛은 거리의 제곱으로 퍼진다 : 10 pc 에서 한 칸이던 빛이 n 배 거리에서는 n×n 칸
     const draw=()=>{ const W=1120,H=400, sx=58, sy=184, K=44, X=k=>sx+K*k, hh=k=>7.6*k, xn=X(n), face=(x,h,k,c)=>{ const D=h*.5, P=(u,v)=>[x+u*D*.5,sy+v*h-u*h*.3]; g.strokeStyle=c; g.lineWidth=k>9?1.2:2; g.beginPath(); for(let i=0;i<=k;i++){ const t=-1+2*i/k; g.moveTo(...P(t,-1)); g.lineTo(...P(t,1)); g.moveTo(...P(-1,t)); g.lineTo(...P(1,t)); } g.stroke(); };
       g.clearRect(0,0,W,H); g.fillStyle='rgba(255,208,42,.1)'; g.strokeStyle='rgba(255,208,42,.5)'; g.lineWidth=2; g.beginPath(); g.moveTo(sx,sy); g.lineTo(xn,sy-hh(n)); g.lineTo(xn,sy+hh(n)); g.closePath(); g.fill(); g.stroke();
       const r=g.createRadialGradient(sx,sy,2,sx,sy,40); r.addColorStop(0,'#fff6c8'); r.addColorStop(.3,'#ffd02a'); r.addColorStop(1,'rgba(255,208,42,0)'); g.fillStyle=r; g.fillRect(sx-40,sy-40,80,80);
       face(X(1),hh(1),1,'#bfe6ff'); if(n>1) face(xn,hh(n),n,'#ffd02a');
-      g.fillStyle='#bfe6ff'; g.font='26px "IBM Plex Sans KR",sans-serif'; g.textAlign='left'; g.fillText(n===1?'10 pc':n*10+' pc',xn+hh(n)*.3+18,sy+9); if(n>3){ g.textAlign='center'; g.fillText('10 pc',X(1)+4,sy+64); }
+      g.fillStyle='#bfe6ff'; g.font='26px "IBM Plex Sans KR",sans-serif'; g.textAlign='left'; g.fillText(n===1?'10 pc':n*10+' pc',Math.min(xn+hh(n)*.3+18,W-140),sy+9); if(n>3){ g.textAlign='center'; g.fillText('10 pc',X(1)+4,sy+64); }
       g.textAlign='center'; g.fillStyle='#ffe9a8'; g.font='500 30px "IBM Plex Sans KR",sans-serif'; g.fillText(n>1?'빛이 '+n+' × '+n+' 칸으로 퍼진다  →  밝기 1 / '+n*n:'10 pc 에서 본 밝기 = 1',W/2,H-10);
       if(ping>0){ g.strokeStyle='rgba(159,216,255,'+(1-ping)+')'; g.lineWidth=5; g.beginPath(); g.arc(xn,sy,20+ping*120,0,7); g.stroke(); } };
-    this.dial(s.querySelector('.dial'),{min:1,max:20,step:1,val:1,on:x=>{ n=x; val.textContent=x; draw(); }}); goal('겉보기 등급과 절대 등급을 견줘 거리를 알아낸다'); const R=k=>k>=10?Math.round(k):k.toFixed(1);
-    await new Promise(res=>{ let busyP=false; s.querySelector('.go').onclick=async()=>{ if(TALK.on||busyP) return; busyP=true; AUDIO.tone(1400,.2,'sine',.06); msg.textContent='신호를 보냈다…'; await over(1.1,(e,k)=>{ ping=k; draw(); }); ping=0; draw(); busyP=false; const r=100/(n*n);
+    const A=this.ask(s.querySelector('.ask'),{unit:'배',go:s.querySelector('.go'),on:x=>{ n=Number.isInteger(x)&&x>=1&&x<=20?x:1; draw(); }}); goal('겉보기 등급과 절대 등급을 견줘 거리를 알아낸다'); const R=k=>k>=10?Math.round(k):k.toFixed(1);
+    await new Promise(res=>{ let busyP=false; s.querySelector('.go').onclick=async()=>{ if(TALK.on||busyP) return; const a=A.v; if(!(a>=1)||!Number.isInteger(a)){ msg.textContent='1 보다 큰 자연수를 넣자'; return; } n=a; busyP=true; AUDIO.tone(1400,.2,'sine',.06); msg.textContent='신호를 보냈다…'; await over(1.1,(e,k)=>{ ping=k; draw(); }); ping=0; draw(); busyP=false; const r=100/(n*n);
         if(n===this.MULT){ this.ok(); s.classList.add('good'); AUDIO.radio(1.6); msg.textContent='되돌아왔다 — 100 pc. S-09 는 거기 있다'; setTimeout(res,2400); return; }
-        this.no(); miss++; msg.textContent=(r>1?`빈 공간이다. ${n*10} pc 라면 별이 지금보다 ${R(r)}배 밝게 보여야 한다`:`빈 공간이다. ${n*10} pc 라면 별이 지금보다 ${R(1/r)}배 어둡게 보여야 한다`)+(miss>=2?' · 5등급 차이는 밝기 100배':''); }; });
+        this.no(); miss++; msg.textContent=(r>1?`빈 공간이다. ${n*10} pc 라면 별이 지금보다 ${R(r)}배 밝게 보여야 한다`:`빈 공간이다. ${n*10} pc 라면 별이 지금보다 ${R(1/r)}배 어둡게 보여야 한다`)+(miss>=2?' · 5등급 차이는 밝기 100배':''); A.clear(); }; });
     this.off('.side'); goal(''); await TALK.say([C('등급 차이 5. 밝기로는 100배. 빛은 거리의 제곱으로 퍼지니까, 10배 멀다. 10 pc 의 10배 — 100 pc.'),V('시험 신호가 되돌아왔습니다. 100 pc. 1호의 전파와 같은 자리입니다.'),C('…찾았다.'),
       C('그런데 100 pc 면 빛으로도 326년이야. 1호가 거기까지 어떻게 갔지?'),V('제 힘으로 간 것이 아닙니다. 웜홀이 열릴 때 이 은하의 시공간에도 주름이 잡혔습니다. 1호는 그 주름에 휩쓸려 갔습니다.'),V('1호의 전파도 주름을 타고 왔습니다. 그래서 우리가 들을 수 있었습니다.'),C('그럼 우리도 그 길을 탈 수 있겠군.'),V('방향은 전파에서, 거리는 별빛에서 얻었습니다. 둘이 맞아야 1호 곁에서 내립니다. 조종석으로 오십시오.')]); },
   async closeHolo(){ this.live=false; this.atHolo=false; prefetch(['r1_ext','rocks']); this.hum(); S.phase='cut'; this.E.classList.remove('on'); await this.show(this.board,false,.8); R1.g.remove(this.board); R1.g.remove(this.base); this.dim(1,1.4); await camTo({z:-7.2,eye:1.66,pitch:0},.8); window.dragHook=(dx,dy,e)=>{ if(R1.seated){ const h=this.J.head,k=IS_TOUCH?.004:.003; h.y=clamp(h.y-dx*k,-1.1,1.1); h.p=clamp(h.p-dy*k,-.6,.5); return; } const k=e&&e.pointerType==='touch'?.0048:.0032; P.yaw-=dx*k; P.pitch=clamp(P.pitch-dy*k,-1.3,1.3); }; S.phase='play'; P.free=true; },

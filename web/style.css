@@ -477,3 +477,19 @@ body.tp #helmet{opacity:0!important}
 /* 4.23 기록 단말 : 기록 표 · 밝기 표 */
 #seek .side.arcv .want{margin:2px 0 10px;font-size:16px;color:#ffd27a} #seek .side.arcv table.arc{width:100%;border-collapse:collapse;font-size:15px} #seek .side.arcv th{text-align:left;font-weight:400;color:var(--mute);padding:4px 8px;font-size:13px}
 #seek .side.arcv td{padding:10px 8px;border-top:1px solid rgba(159,216,255,.15);cursor:pointer} #seek .side.arcv tr.sel td{background:rgba(159,216,255,.16)} #seek .side.arcv canvas.hm{width:100%;height:auto;margin-top:10px;display:block}
+/* 4.25 단답 자판 (SEEK.ask) : 값 칸 + 숫자 자판 — 밀대 대신 */
+#seek .ask{flex:1 1 auto;display:flex;align-items:center;gap:12px;min-width:0}
+#seek .ask .ans{flex:0 0 auto;min-width:118px;padding:6px 12px;border:1px solid rgba(159,216,255,.6);border-radius:6px;background:rgba(0,0,0,.4);display:flex;align-items:baseline;gap:6px;justify-content:flex-end}
+#seek .ask .ans .v{font:600 30px var(--mono);color:#fff} #seek .ask .ans .u{font-size:14px;color:var(--mute)}
+#seek .ask .kp{flex:1 1 auto;display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+#seek .ask .kp button{min-height:38px;padding:0;font:500 18px var(--mono);border:1px solid rgba(159,216,255,.35);background:rgba(159,216,255,.07);color:#e9f6ff;border-radius:5px;touch-action:manipulation}
+#seek .ask .kp button:active{background:rgba(159,216,255,.3)} #seek .ask .kp .w{grid-column:span 1;color:#ffb39e}
+#seek .side .note{margin:8px 0 0;font-size:16px;color:#d8ecff} #seek .side .note b{color:#ffe9a8}
+@media (max-width:760px){ #seek .ask{flex-wrap:wrap} #seek .ask .kp{grid-template-columns:repeat(7,1fr)} }
+#seek .side.mag{width:min(780px,66vw)} #seek .side.dist .ask .ans{min-width:96px}
+#evaui .ud{display:none}
+/* 4.25 뽑기 : 위로 끌라는 화살표 */
+#uparrow{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:16;pointer-events:none;display:flex;flex-direction:column;align-items:center;gap:2px}
+#uparrow i{width:0;height:0;border-left:26px solid transparent;border-right:26px solid transparent;border-bottom:22px solid rgba(255,194,74,.9);filter:drop-shadow(0 0 6px #000);animation:uparr 1s ease-in-out infinite}
+#uparrow i:nth-child(2){animation-delay:.15s;opacity:.7} #uparrow i:nth-child(3){animation-delay:.3s;opacity:.45}
+@keyframes uparr{0%{transform:translateY(14px);opacity:0}40%{opacity:1}100%{transform:translateY(-14px);opacity:0}}

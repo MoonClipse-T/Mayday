@@ -1,10 +1,11 @@
 /* ============================================================
-   선체 밖 3인칭 (4.23 사용자 : 우주 밖에서는 내가 직접 움직인다) — scenes/belt.js 의 선외 활동에 끼운다
+   선체 밖 — 직접 움직인다 (4.23 3인칭 → 4.25 사용자 : 다시 1인칭 · 팔만 보인다 · 움직임은 그대로 내 손에) — scenes/belt.js 의 선외 활동에 끼운다
+   4.25 : 몸(person_seojun)은 보이지 않는 물리 몸으로만 쓰고 눈은 그 머리 — 걷는 1인칭과 같은 카메라(BELT.fpHook · 헬멧 테 · 흔들림) · 오른손이 손잡이를 잡는다 · 위아래는 보는 쪽으로
    몸 : 비행복 대원(person_seojun · Mixamo 뼈)을 흰 우주복으로 칠하고 헬멧 · 생명 유지 장치를 붙인다
    이동 : 무중력 — 추진기(W A S D · R/F 위아래 · 왼쪽 조이스틱)는 천천히 붙는 힘 · [점프] 는 잡은 곳을 박차고 보는 쪽으로
           [잡기] : 손이 닿는 손잡이를 잡는다 (오른팔을 뻗는다 · 그 자리에 몸이 붙는다) · 다시 누르면 놓는다
    안전줄 : 마지막으로 건 곳에서 10 m — 팽팽해지면 더 못 간다 · 배 겉면은 0.2 m 칸으로 막는다(복셀 · SOLID 일꾼)
-   카메라 : 몸 뒤 3.4 m · 끌어서 둘레를 돈다 · 배에 막히면 당겨 온다
+   카메라 : 머리 (P 를 몸에 맞춘다) · 끌어서 둘러본다 · W 는 보는 쪽으로 (위 · 아래 포함)
    목적지(손잡이 k)를 잡으면 1인칭으로 돌아가 하던 일(밸브 · 뽑기 · 숨기 · 해치)을 잇는다
    좌표는 모두 R-1 안의 좌표 g (BELT 와 같다)
    ============================================================ */
@@ -38,18 +39,19 @@ Object.assign(BELT,{
   /* ---- 3인칭 한 구간 : 손잡이 k 를 잡을 때까지 (opt.hurry : 돌 무리 남은 초 · opt.tick 매 프레임) ---- */
   async tpLeg(k,text,opt={}){ await this.tpVox(); const p=await this.tpBody(), T=this.TP, w=p.wrap;
     // 1인칭 손을 치우고 · 몸을 지금 눈 자리에
-    if(this.H) for(const s of ['R','L']){ const o=this.H[s]; o.on=false; HANDS.remove(o.h); } this.H=null;
+    if(!this.H) this.hands(); const HD=this.H; for(const sd of ['R','L']){ const o=HD[sd]; if(!o.h.g.parent) R1.g.add(o.h.g); o.on=true; o.p=o.p||V3(P.x,P.eye-.3,P.z); o.x=o.x||V3(0,1,0); HANDS.pose(o.h,'open',.2); }
     if(!this.tp){ this.tp={v:V3(0,0,0),yaw:P.yaw,pitch:-.25,grip:null,stick:[0,0],up:0}; if(opt.from!==undefined){ const h=this.handle(opt.from); w.position.copy(this.anchorAt(h)); this.tp.grip=h; this.tp.gk=1; this.tp.g0=w.position.clone(); } else w.position.set(P.x,Math.max(P.eye-1.45,-1),P.z); w.rotation.y=P.yaw+Math.PI; }
-    w.visible=true; document.body.classList.add('tp'); const st=this.tp, tgt=this.handle(k);
-    goal(text+' — '+byDevice('W A S D 추진 · R/F 위아래 · E 잡기 · 스페이스 박차기 · 끌기 둘러보기','왼쪽 끌기 추진 · [잡기] · [점프] · 오른쪽 끌기 둘러보기'));
+    w.visible=false; const st=this.tp, tgt=this.handle(k);
+    goal(text+' — '+byDevice('W A S D 추진(보는 쪽으로) · E 잡기 · 스페이스 박차기 · 끌기 둘러보기','왼쪽 끌기 추진(보는 쪽으로) · [잡기] · [점프] · 오른쪽 끌기 둘러보기'));
     this.mark.position.copy(tgt.c); this.mark.visible=true;
     const ui=this.tpUI(), dist=ui.querySelector('.d');
-    window.dragHook=(dx,dy)=>{ if(TALK.on) return; const kk=IS_TOUCH?.006:.0042; st.yaw-=dx*kk; st.pitch=clamp(st.pitch-dy*kk,-1.25,1.1); };
+    window.dragHook=(dx,dy)=>{ if(TALK.on) return; const kk=IS_TOUCH?.006:.0042; st.yaw-=dx*kk; st.pitch=clamp(st.pitch-dy*kk,-1.35,1.35); };
     const fwd=V3(0,0,0), rt=V3(0,0,0), up=V3(0,1,0), q=new THREE.Quaternion(), wq=new THREE.Quaternion(), cam=V3(0,0,0), aim=V3(0,0,0);
-    // 카메라 : 몸 뒤 (배에 막히면 당겨 온다)
-    const hook=()=>{ const tg=w.position.clone().add(V3(0,1.25,0)); const d=V3(Math.sin(st.yaw)*Math.cos(st.pitch),-Math.sin(st.pitch),Math.cos(st.yaw)*Math.cos(st.pitch)); let L=3.4; for(let s=.4;s<=3.4;s+=.12){ const c=tg.clone().addScaledVector(d,s); if(this.occ(c.x,c.y,c.z,.16)){ L=Math.max(.6,s-.2); break; } }
-      cam.copy(tg).addScaledVector(d,L); R1.g.updateWorldMatrix(true,false); camera.position.copy(R1.g.localToWorld(cam.clone())); camera.up.set(0,1,0).applyQuaternion(R1.g.getWorldQuaternion(wq)); camera.lookAt(R1.g.localToWorld(tg.clone())); camera.up.set(0,1,0); };
-    window.camHook=hook;
+    // 눈 = 몸의 머리 : 걷는 1인칭 카메라(this.fpHook — 헬멧 · 흔들림)에 P 를 맞춘다 (손 · 어깨도 P 를 쓴다)
+    const head=()=>{ P.x=w.position.x; P.z=w.position.z; P.eye=w.position.y+1.5; P.y=0; P.yaw=st.yaw; P.pitch=st.pitch; }; head();
+    const cl=(x,y,z)=>{ camera.updateMatrixWorld(); return R1.g.worldToLocal(camera.localToWorld(V3(x,y,z))); }, cu=()=>{ const a=cl(0,1,0), b=cl(0,0,0); return a.sub(b).normalize(); };
+    const arms=dt=>{ const up=cu(), k=Math.min(1,dt*12); for(const sd of ['R','L']){ const o=HD[sd], g=sd==='R'&&st.grip; const t=g?st.grip.c.clone().add(V3(sd==='R'?-.06:.06,0,0)):cl(sd==='R'?.21:-.21,-.27,-.44); o.p.lerp(t,g?Math.min(1,dt*7):k); o.x.lerp(g?V3(1,0,0):up,k).normalize(); HANDS.pose(o.h,g&&st.gk>.45?'grip':'open',.15); } };
+    window.camHook=this.fpHook;
     let done=false, warnT=0, hint=0;
     const grab=()=>{ if(TALK.on||done) return; const chest=w.position.clone().add(V3(0,1.15,0));
       if(st.grip){ if(st.grip.k!==k&&tgt.c.distanceTo(chest)<T.REACH+.3){ st.grip=tgt; st.g0=w.position.clone(); st.gk=0; this.thud(.1); return; } st.grip=null; p.pointAt=null; this.thud(.06); return; }      // 잡은 채로 목적지에 손이 닿으면 옮겨 잡는다
@@ -94,12 +96,13 @@ Object.assign(BELT,{
       // 목적지까지 · 닿는 손잡이가 있으면 [잡기] 가 빛난다
       const chest=w.position.clone().add(V3(0,1.15,0)), D=chest.distanceTo(tgt.c); dist.textContent=D.toFixed(1)+' m'; let near=false; for(let j=0;j<10&&!near;j++) near=this.handle(j).c.distanceTo(chest)<T.REACH; ui.querySelector('.grab').classList.toggle('want',near&&!st.grip); ui.querySelector('.grab').textContent=st.grip?'놓기':'잡기';
       hint+=dt; if(hint>40&&D>3){ hint=-30; toast(byDevice('빛나는 고리 쪽으로 — W 로 추진하거나, 손잡이를 잡고 스페이스로 박찬다','빛나는 고리 쪽으로 — 왼쪽을 끌어 추진하거나, 손잡이를 잡고 [점프]'),3200); }
-      opt.tick&&opt.tick(dt,st); return done; });
+      if(opt.reach&&D<opt.reach&&!done){ st.grip=tgt; st.gk=1; done=true; }      // 4.25 : 목적지 가까이 오면 잡은 것으로 (손잡이를 못 찾아 갇히지 않게)
+      head(); arms(dt); opt.tick&&opt.tick(dt,st); return done; });
     // 끝 : 1인칭으로 (몸을 감추고 손을 다시)
     removeEventListener('keydown',kd,true); canvas.removeEventListener('pointerdown',pd,true); removeEventListener('pointermove',pm); removeEventListener('pointerup',pu); removeEventListener('pointercancel',pu);
-    ui.classList.remove('on'); this.mark.visible=false; goal(''); this.ropeEnd=null; return st.grip; },
+    ui.classList.remove('on'); this.mark.visible=false; goal(''); this.ropeEnd=null; this.lastSt=st; return st.grip; },
   // 3인칭을 끝내고 손잡이 k 의 1인칭 자리로 (BELT.node)
-  async tpEnd(k){ const p=this.tb, st=this.tp; S.phase='cut'; document.body.classList.remove('tp'); if(p){ p.wrap.visible=false; p.pointAt=null; } this.tp=null;
-    window.camHook=this.fpHook; const n=this.node(k); Object.assign(P,{x:n.x,z:n.z,eye:n.eye,yaw:n.yaw,pitch:n.pitch}); this.look(); this.hands(); await this.hold('R',k,.2); await this.hold('L',k,.2); this.last='L'; this.atK=k; },
+  async tpEnd(k){ const p=this.tb; S.phase='cut'; document.body.classList.remove('tp'); if(p){ p.wrap.visible=false; p.pointAt=null; } this.tp=null;
+    window.camHook=this.fpHook; this.look(); await camTo(this.node(k),.7); await this.hold('R',k,.2); await this.hold('L',k,.2); this.last='L'; this.atK=k; },
   tpUI(){ let e=$('#evaui'); if(!e){ e=document.createElement('div'); e.id='evaui'; e.innerHTML='<p class="d"></p><div class="ud"><button data-u="1" aria-label="위로">▲</button><button data-u="-1" aria-label="아래로">▼</button></div><button class="jump">점프</button><button class="grab">잡기</button><div class="stk"><i></i></div>'; document.body.appendChild(e); } e.classList.add('on'); return e; },
 });

@@ -16,11 +16,13 @@ const FLIGHT={W:.6,                // 1호 자전 (rad/s ≈ 34°/s · 10초에 
   // 장면 : 1호 · 별 · 파편 · R-1 (2부 시작 화면에서 먼저 만든다 → run)
   async build(){ LEVEL.clear(); goal('');
     const hull=await loadGLB('ship_ext');
-    await SKY.space({dir:[.1,.08,-1],R:.0001,srot:2.4,jupiter:false,sunDir:[-.55,.4,.75],far:true,sunI:.3});      // 행성 · 웜홀 없음 (웜홀은 100 pc 뒤)
+    // 4.25 : 1부 끝과 같은 하늘 — 노란 변광성 S-09 가 1호 바로 뒤 (다가가는 쪽 · 시작 화면에서 1호가 별 앞에 그림자로 선다)
+    const sunDir=new THREE.Vector3(-.2,-.05,1).normalize();
+    await SKY.space({dir:[.1,.08,-1],R:.0001,srot:2.4,jupiter:false,sunDir:sunDir.toArray(),far:true,sunI:.3});      // 행성 · 웜홀 없음 (웜홀은 100 pc 뒤)
     scene.background=new THREE.Color(0x000000);
     WORLD.add(new THREE.HemisphereLight(0x6f7f99,0x050607,.045));
-    const sunDir=new THREE.Vector3(-.55,.4,.75).normalize(), sun=new THREE.DirectionalLight(0xffdfae,1.15); sun.position.copy(sunDir).multiplyScalar(500); WORLD.add(sun);
-    this.sunSprite(sunDir);
+    const sun=new THREE.DirectionalLight(0xffd9a0,1.25); sun.position.copy(sunDir).multiplyScalar(500); WORLD.add(sun);
+    this.s09(sunDir);
     /* ---- 1호 : 실제 크기(길이 약 140 m) · 긴 축(z)을 중심으로 돈다 · 뱃머리(−z)에 도킹 고리 ---- */
     const G=this.G=new THREE.Group(); WORLD.add(G); hull.scale.setScalar(3); G.add(hull);
     hull.traverse(o=>{ if(o.isMesh){ o.material=o.material.clone(); if(o.material.color) o.material.color.multiplyScalar(.4); if(o.material.emissive) o.material.emissive.setRGB(0,0,0); } });
@@ -77,6 +79,14 @@ const FLIGHT={W:.6,                // 1호 자전 (rad/s ≈ 34°/s · 10초에 
   dockPt(){ const p=this.rig.getWorldPosition(new THREE.Vector3()); if(this.nose) p.add(new THREE.Vector3(0,this.HY,this.nose).applyQuaternion(this.rig.getWorldQuaternion(new THREE.Quaternion()))); return p; },
 
   /* ---- 장면 만들기 ---- */
+  // 변광성 S-09 (4.25) : 1부 끝(SEEK.found)과 같은 노란 공 · 빛무리 둘 · 여드레에 한 번 숨 — 카메라를 따라 860 m 앞(각 크기가 1부와 같다)
+  s09(d){ const gl=this._gl||(this._gl=(()=>{ const c=document.createElement('canvas'); c.width=c.height=128; const g=c.getContext('2d'), r=g.createRadialGradient(64,64,0,64,64,64); r.addColorStop(0,'rgba(255,255,255,1)'); r.addColorStop(.25,'rgba(255,255,255,.45)'); r.addColorStop(1,'rgba(255,255,255,0)'); g.fillStyle=r; g.fillRect(0,0,128,128); return new THREE.CanvasTexture(c); })());
+    const mk=(c,sc,o)=>{ const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:gl,color:new THREE.Color(c).convertSRGBToLinear(),transparent:true,opacity:o,depthTest:true,depthWrite:false,blending:THREE.AdditiveBlending,fog:false,toneMapped:false})); sp.scale.setScalar(sc); sp.renderOrder=-1; WORLD.add(sp); return sp; };
+    const star=new THREE.Mesh(new THREE.SphereGeometry(62,48,32),new THREE.ShaderMaterial({uniforms:{t:{value:0},k:{value:1}},vertexShader:'varying vec3 vN; varying vec3 vP; varying vec3 vV; void main(){ vP=position; vN=normalize(mat3(modelMatrix)*normal); vec4 w=modelMatrix*vec4(position,1.0); vV=normalize(cameraPosition-w.xyz); gl_Position=projectionMatrix*viewMatrix*w; }',
+      fragmentShader:'uniform float t,k; varying vec3 vN,vP,vV; float h(vec3 p){ return fract(sin(dot(p,vec3(12.9,78.2,37.7)))*43758.5); } float n(vec3 p){ vec3 i=floor(p),f=fract(p); f=f*f*(3.0-2.0*f); return mix(mix(mix(h(i),h(i+vec3(1,0,0)),f.x),mix(h(i+vec3(0,1,0)),h(i+vec3(1,1,0)),f.x),f.y),mix(mix(h(i+vec3(0,0,1)),h(i+vec3(1,0,1)),f.x),mix(h(i+vec3(0,1,1)),h(i+vec3(1,1,1)),f.x),f.y),f.z); }'
+        +' void main(){ vec3 p=vP*.12; float g=n(p+vec3(t*.15))*.6+n(p*2.7-vec3(t*.2))*.4; float mu=max(0.0,dot(normalize(vN),normalize(vV))); vec3 c=mix(vec3(1.0,.5,.1),vec3(1.0,.86,.46),pow(mu,.55)); gl_FragColor=vec4(c*(1.15+.9*g)*k*(.7+.9*mu),1.0); }'}));
+    star.renderOrder=-1; WORLD.add(star); const h1=mk(0xffc24a,760,.55), h2=mk(0xff9a2e,1500,.4); let t=0;
+    TICK.push(dt=>{ t+=dt; const p=camera.position.clone().addScaledVector(d,860); star.position.copy(p); h1.position.copy(p); h2.position.copy(p); star.material.uniforms.t.value=t; star.material.uniforms.k.value=1+.12*Math.sin(t*.5); h1.material.opacity=.5+.1*Math.sin(t*.5); }); },
   sunSprite(d){ const cv=document.createElement('canvas'); cv.width=cv.height=256; const g=cv.getContext('2d'), gr=g.createRadialGradient(128,128,0,128,128,128);
     gr.addColorStop(0,'#fff'); gr.addColorStop(.1,'rgba(255,226,150,.98)'); gr.addColorStop(.3,'rgba(255,186,90,.24)'); gr.addColorStop(1,'rgba(0,0,0,0)'); g.fillStyle=gr; g.fillRect(0,0,256,256);
     const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(cv),color:0xffd08a,depthWrite:false,blending:THREE.AdditiveBlending,fog:false,toneMapped:false})); sp.scale.setScalar(300); sp.renderOrder=-1; WORLD.add(sp);
